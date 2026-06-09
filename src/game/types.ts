@@ -17,19 +17,27 @@ export type GamePhase =
   | "cutscene"
   | "retrospective";
 
+// Tools = categorized "analyst toolbox"
+// Central tendency: mean, median, mode
+// Spread: range, sd
+// Distribution: dotplot, boxplot
+// Conditional: countAbove
 export type ToolId =
-  | "average"
+  | "mean"
   | "median"
-  | "spread"
-  | "countAbove"
-  | "distribution"
-  | "inspect";
+  | "mode"
+  | "range"
+  | "sd"
+  | "dotplot"
+  | "boxplot"
+  | "countAbove";
 
-export type Action = "reward" | "training" | "restructure" | "hold";
+export type ToolCategory = "central" | "spread" | "distribution" | "conditional";
 
-export type NPCId = "karim" | "hala" | "tarek" | "alex";
+// 3 clear business actions (restructure removed per design)
+export type Action = "reward" | "training" | "defer";
 
-export type GutCheck = "A" | "B" | "unsure";
+export type NPCId = "karim" | "hala" | "tarek" | "alex" | "ceo";
 
 export type Rep = {
   id: string;
@@ -56,13 +64,26 @@ export type Dataset = {
   outlierTeam: TeamId;
 };
 
+// Files the player collects from NPCs and opens at the desk
+export type BriefcaseFileId = "salesData" | "hrPolicy" | "fieldNotes";
+
+export type BriefcaseFile = {
+  id: BriefcaseFileId;
+  title: string;
+  source: NPCId;
+  icon: string;
+  description: string;
+};
+
 export type ToolResult =
-  | { kind: "average"; team: TeamId; value: number }
+  | { kind: "mean"; team: TeamId; value: number }
   | { kind: "median"; team: TeamId; value: number }
-  | { kind: "spread"; team: TeamId; range: number; sd: number }
-  | { kind: "countAbove"; team: TeamId; threshold: number; count: number; total: number }
-  | { kind: "distribution"; team: TeamId }
-  | { kind: "inspect"; team: TeamId; repId: string; note: string };
+  | { kind: "mode"; team: TeamId; values: number[]; freq: number }
+  | { kind: "range"; team: TeamId; min: number; max: number; value: number }
+  | { kind: "sd"; team: TeamId; value: number }
+  | { kind: "dotplot"; team: TeamId }
+  | { kind: "boxplot"; team: TeamId; q1: number; med: number; q3: number; min: number; max: number }
+  | { kind: "countAbove"; team: TeamId; threshold: number; count: number; total: number };
 
 export type NotebookCard = {
   id: string;
@@ -70,20 +91,32 @@ export type NotebookCard = {
   team: TeamId;
   title: string;
   summary: string;
+  pinnedAt: number;
+};
+
+// Pending result shown in the workspace before user pins or discards it
+export type PendingResult = {
+  id: string;
+  tool: ToolId;
+  team: TeamId;
+  title: string;
+  summary: string;
+  threshold?: number;
 };
 
 export type Recommendation = {
   teamA: Action;
   teamB: Action;
-  primaryMetric: ToolId;
+  primaryMetric: ToolId | null;
 };
 
 export type OutcomeKind =
   | "correct"
+  | "lucky-correct"
   | "surface-wrong"
   | "double-reward"
   | "double-training"
-  | "mixed"
+  | "deferred"
   | "uninformed";
 
 export type Outcome = {
@@ -103,3 +136,4 @@ export type SliceOutcome = OutcomeKind | "pending";
 export type SalesRep = Rep;
 export type SalesTeam = Team & { totalSalesK: number; averagePerformance: number };
 export type EvidenceItem = { id: string; title: string; note: string; station: StationId };
+export type GutCheck = "A" | "B" | "unsure";
