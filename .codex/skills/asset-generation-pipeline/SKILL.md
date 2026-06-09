@@ -10,10 +10,7 @@ Use this skill to turn a loose visual request into a safe, testable asset plan. 
 ## Workflow
 
 1. Classify the asset: character anchor, prop, background, UI asset, isometric reference, or style exploration.
-2. Read the project workflow only as needed:
-   - `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
-   - `docs/prompt-library/ASSET_PROMPT_PATTERNS.md`
-   - `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
+2. Read `PROJECT_BRIEF.md` and `assets/ASSET_INDEX.md` only as needed.
 3. Convert vague user language into a concrete prompt with:
    - intended game role
    - camera/view
@@ -24,7 +21,7 @@ Use this skill to turn a loose visual request into a safe, testable asset plan. 
 4. Generate or request generation through the best available tool for the task.
 5. Treat generated images as raw source, not game-ready assets.
 6. Plan cleanup: background removal, transparent export, trimming, scale normalization, and naming.
-7. Store working files under `assets/generated/` and approved files under `assets/final/`.
+7. Store only current useful candidates under `assets/generated/`; keep runtime-ready assets under `public/assets/`.
 8. When visual quality matters, run a visual check before calling the asset ready.
 
 ## Quality Rules

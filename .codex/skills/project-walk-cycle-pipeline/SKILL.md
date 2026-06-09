@@ -22,12 +22,12 @@ Use this skill for project character walk animations. It narrows the general spr
 
 Before generation, read only the minimum relevant files:
 
+- `PROJECT_BRIEF.md`
 - `assets/ASSET_INDEX.md`
-- `docs/SPRITESHEET_EXECUTION_NOTES.md`
 - Current character anchor/turnaround from the asset index.
 - For Male Analyst: `assets/generated/characters/player-turnarounds/v2-male/male-analyst-directional-turnaround-v2.png`.
 
-Use `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md` only when a new failure mode appears or the user asks for a broader workflow decision.
+Use the global sprite/animation skills when a broader workflow decision is needed.
 
 ## Direction Order
 

@@ -9,7 +9,7 @@ Use this skill to convert a non-technical request into the right action without 
 
 ## First Pass
 
-1. Read `docs/PROJECT_KNOWLEDGE_INDEX.md` when orientation is needed.
+1. Read `PROJECT_BRIEF.md` when orientation is needed.
 2. Classify the request:
    - game idea or learning design
    - gameplay/system implementation
@@ -32,7 +32,7 @@ Use this skill to convert a non-technical request into the right action without 
 - Ask the user only when the answer changes product direction, art direction, learning goals, or irreversible scope.
 - Decide automatically when the issue is workflow, file organization, QA, cleanup, prompt structure, or technical sequence.
 - Do not start building gameplay until the game vision and prototype plan are approved.
-- Do not copy reference style. Translate reference lessons into project-specific plans.
+- Do not copy old reference style or identity. The reference projects were removed after their useful lessons were consolidated.
 - Do not duplicate global skills unless a local skill adds project-specific decision rules.
 
 ## Completion Rules
