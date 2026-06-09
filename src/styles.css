@@ -2318,30 +2318,30 @@ body { background: var(--dark-1); }
    Field, Lab, Cold-open, Memo, Cutscene, Retro
    ============================================================ */
 
-/* ─── Field HUD: clean structured layout, no canvas overlap ─── */
+/* ─── Field HUD: thin overlay; Phaser scene stays primary & interactive ─── */
 .field-hud {
   position: absolute; inset: 0;
   pointer-events: none;
   display: flex; flex-direction: column;
-  padding: 12px; gap: 10px;
-  background: linear-gradient(180deg, rgba(7,12,22,0.92), rgba(7,12,22,0.65) 30%, rgba(7,12,22,0.92));
+  padding: 10px; gap: 8px;
 }
 .field-hud > * { pointer-events: auto; }
 
 .field-bar {
   display: flex; justify-content: space-between; align-items: center;
-  background: rgba(15,23,42,0.95);
+  background: rgba(15,23,42,0.85);
+  backdrop-filter: blur(6px);
   border: 1px solid var(--dark-4);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   color: var(--text-1);
 }
-.field-bar__brand strong { color: var(--gold); display: block; font-size: 14px; }
+.field-bar__brand strong { color: var(--gold); display: block; font-size: 13px; }
 .field-bar__brand small { color: var(--text-2); font-size: 11px; }
 .field-bar__count {
   background: var(--dark-2); border: 1px solid var(--dark-4);
-  border-radius: 10px; padding: 6px 12px; text-align: center;
-  min-width: 64px;
+  border-radius: 10px; padding: 4px 12px; text-align: center;
+  min-width: 60px;
 }
 .field-bar__count span { display: block; color: var(--text-3); font-size: 10px; }
 .field-bar__count strong { color: var(--text-1); font-size: 16px; }
@@ -2350,63 +2350,33 @@ body { background: var(--dark-1); }
 
 .field-objective {
   background: rgba(15,23,42,0.85);
+  backdrop-filter: blur(6px);
   border: 1px solid var(--dark-4);
   border-right: 4px solid var(--gold);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   color: var(--text-1);
-  font-size: 14px; font-weight: 600;
+  font-size: 13px; font-weight: 600;
 }
 .field-objective.is-ready { border-right-color: var(--accent-green); color: var(--accent-green); }
 
-.npc-rail {
-  display: flex; flex-direction: column; gap: 8px;
-  margin-bottom: auto;
+.field-hint {
+  margin: 0 auto;
+  background: rgba(15,23,42,0.7);
+  color: var(--text-2);
+  font-size: 12px;
+  padding: 6px 12px; border-radius: 999px;
+  pointer-events: none;
 }
-.npc-chip {
-  display: grid; grid-template-columns: 44px 1fr auto;
-  gap: 12px; align-items: center;
-  width: 100%; text-align: right;
-  background: rgba(15,23,42,0.92);
-  border: 1px solid var(--dark-4);
-  border-radius: 12px;
-  padding: 12px 14px;
-  color: var(--text-1);
-  cursor: pointer;
-  transition: all 0.15s;
-  font: inherit;
-}
-.npc-chip:hover, .npc-chip:active {
-  border-color: var(--gold);
-  background: rgba(30,41,59,0.95);
-  transform: translateY(-1px);
-}
-.npc-chip.is-done {
-  opacity: 0.6;
-  border-right: 4px solid var(--accent-green);
-}
-.npc-chip__avatar {
-  width: 44px; height: 44px;
-  display: grid; place-items: center;
-  background: var(--dark-3); border-radius: 50%;
-  font-size: 22px;
-}
-.npc-chip__body strong { display: block; color: var(--text-1); font-size: 14px; }
-.npc-chip__body small { color: var(--text-2); font-size: 11px; }
-.npc-chip__state {
-  color: var(--gold); font-size: 12px; font-weight: 700;
-  background: rgba(251,191,36,0.12); padding: 4px 10px; border-radius: 999px;
-  white-space: nowrap;
-}
-.npc-chip.is-done .npc-chip__state {
-  color: var(--accent-green);
-  background: rgba(52,211,153,0.12);
-}
+
+/* spacer so the scene shows through */
+.field-hud { justify-content: flex-start; }
+.field-hud .briefcase-sheet { margin-top: auto; }
 
 /* Briefcase as bottom collapsible sheet */
 .briefcase-sheet {
   position: relative;
-  background: rgba(15,23,42,0.98);
+  background: rgba(15,23,42,0.96);
   border: 1px solid var(--dark-4);
   border-radius: 14px;
   overflow: hidden;
@@ -2417,40 +2387,31 @@ body { background: var(--dark-1); }
   width: 100%;
   display: flex; justify-content: space-between; align-items: center;
   background: transparent; border: 0;
-  padding: 14px 16px;
+  padding: 12px 16px;
   color: var(--gold);
   font: inherit; font-weight: 700; font-size: 14px;
   cursor: pointer;
 }
-.briefcase-sheet__chev {
-  transition: transform 0.2s;
-  color: var(--text-2);
-}
+.briefcase-sheet__chev { transition: transform 0.2s; color: var(--text-2); }
 .briefcase-sheet[data-open="true"] .briefcase-sheet__chev { transform: rotate(180deg); }
 .briefcase-sheet__body {
-  max-height: 0;
-  overflow: hidden;
+  max-height: 0; overflow: hidden;
   transition: max-height 0.25s ease;
   padding: 0 14px;
 }
 .briefcase-sheet[data-open="true"] .briefcase-sheet__body {
-  max-height: 60vh;
-  padding: 0 14px 14px;
-  overflow-y: auto;
+  max-height: 55vh; padding: 0 14px 14px; overflow-y: auto;
 }
 .briefcase-sheet .briefcase-list { margin-bottom: 12px; }
 .briefcase-sheet .primary-button {
   width: 100%; background: var(--gold); color: var(--dark-1);
   padding: 14px; font-size: 15px; font-weight: 800;
-  border: 0; border-radius: 10px;
-  cursor: pointer;
+  border: 0; border-radius: 10px; cursor: pointer;
 }
 
-/* Hide the old briefcase-panel block entirely */
 .briefcase-panel { display: none !important; }
-
-/* Hide field-hud__top / objective old blocks (now using field-bar) */
 .field-hud__top, .field-hud__roster { display: none !important; }
+
 
 /* ─── LAB: mobile-friendly tabs + stack ─── */
 @media (max-width: 880px) {
