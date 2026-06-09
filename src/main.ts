@@ -1,7 +1,7 @@
 import "./styles.css";
-import { createGame } from "./game/createGame";
 import { createHud } from "./ui/hud";
 import { company } from "./data/salesCase";
+import { gameEvents } from "./game/events";
 import type { PlayerProfile } from "./game/types";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -9,6 +9,8 @@ if (!app) throw new Error("Missing #app root");
 const appRoot = app;
 
 const defaultProfile: PlayerProfile = { name: "نور", avatar: "female" };
+
+clearLegacyPreviewState();
 
 function renderProfileScreen() {
   appRoot.innerHTML = `
@@ -69,7 +71,57 @@ function bootSlice(profile: PlayerProfile) {
     </main>
   `;
   createHud(profile);
-  createGame(profile);
+  bootOfficeScene(profile);
 }
 
 renderProfileScreen();
+
+function clearLegacyPreviewState() {
+  void navigator.serviceWorker?.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => void registration.unregister());
+  });
+
+  if ("caches" in window) {
+    void caches.keys().then((keys) => keys.forEach((key) => void caches.delete(key)));
+  }
+}
+
+async function bootOfficeScene(profile: PlayerProfile, attempt = 1) {
+  try {
+    const { createGame } = await import("./game/createGame");
+    createGame(profile);
+  } catch (error) {
+    console.warn("Phaser office scene failed to load; retrying current NovaPharm scene.", error);
+    if (attempt < 3) {
+      window.setTimeout(() => void bootOfficeScene(profile, attempt + 1), 600 * attempt);
+      return;
+    }
+    renderOfficeFallback();
+  }
+}
+
+function renderOfficeFallback() {
+  const container = document.querySelector<HTMLElement>("#game-root");
+  if (!container) return;
+  container.innerHTML = `
+    <div class="office-fallback" dir="rtl" aria-label="مكتب NovaPharm">
+      <header>
+        <strong>${company.name}</strong>
+        <span>${company.tagline}</span>
+      </header>
+      <button data-npc="karim">مكتب مدير المبيعات — Karim</button>
+      <button data-npc="hala">غرفة الموارد البشرية — Hala</button>
+      <button data-npc="tarek">مكتب العمليات الميدانية — Tarek</button>
+      <button data-desk>مكتبك — افتح التحليل</button>
+    </div>
+  `;
+  container.querySelectorAll<HTMLButtonElement>("[data-npc]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const npc = button.dataset.npc as "karim" | "hala" | "tarek";
+      gameEvents.emit("npcinteract", { npc });
+    });
+  });
+  container.querySelector<HTMLButtonElement>("[data-desk]")?.addEventListener("click", () => {
+    gameEvents.emit("opendesk", undefined);
+  });
+}
