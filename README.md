@@ -5,11 +5,12 @@ Arabic-first Vite + Phaser prototype for a statistics/business learning game.
 Read first:
 
 1. `PROJECT_BRIEF.md`
-2. `package.json`
-3. `src/data/salesCase.ts`
-4. `src/game/simulation.ts`
-5. `src/ui/hud.ts`
-6. `src/scenes/OfficeScene.ts`
+2. `AGENT_PLAYBOOK.md`
+3. `package.json`
+4. `src/data/salesCase.ts`
+5. `src/game/simulation.ts`
+6. `src/ui/hud.ts`
+7. `src/scenes/OfficeScene.ts`
 
 ## What This Is
 

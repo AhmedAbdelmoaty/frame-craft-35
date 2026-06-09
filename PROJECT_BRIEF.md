@@ -1,6 +1,8 @@
 # MADAR Analyst Slice - Project Brief
 
-This is the compact source of truth for Lovable and Codex.
+This is the compact product source of truth for Lovable and Codex.
+
+For execution style, workflow rules, asset pitfalls, and agent behavior, also read `AGENT_PLAYBOOK.md`.
 
 ## Product Goal
 
@@ -123,7 +125,7 @@ The next priority is not more art. The next priority is clearer game logic and p
 
 ## Agent Instructions
 
-Lovable should read only this file, `README.md`, `package.json`, and the relevant `src/` files before working.
+Lovable should read only this file, `AGENT_PLAYBOOK.md`, `README.md`, `package.json`, and the relevant `src/` files before working.
 
 Codex can also use `.codex/skills` for project-specific workflow routing.
 
@@ -137,11 +139,12 @@ You are continuing the MADAR Analyst Slice project.
 Read only these first:
 1. README.md
 2. PROJECT_BRIEF.md
-3. package.json
-4. src/data/salesCase.ts
-5. src/game/simulation.ts
-6. src/ui/hud.ts
-7. src/scenes/OfficeScene.ts
+3. AGENT_PLAYBOOK.md
+4. package.json
+5. src/data/salesCase.ts
+6. src/game/simulation.ts
+7. src/ui/hud.ts
+8. src/scenes/OfficeScene.ts
 
 This is a Vite + Phaser Arabic-first browser game, not a quiz or dashboard.
 

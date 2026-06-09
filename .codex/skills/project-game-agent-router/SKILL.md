@@ -9,7 +9,7 @@ Use this skill to convert a non-technical request into the right action without 
 
 ## First Pass
 
-1. Read `PROJECT_BRIEF.md` when orientation is needed.
+1. Read `PROJECT_BRIEF.md` and `AGENT_PLAYBOOK.md` when orientation is needed.
 2. Classify the request:
    - game idea or learning design
    - gameplay/system implementation

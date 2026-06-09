@@ -7,10 +7,11 @@ This repository is the compact workspace for the MADAR statistics/business learn
 For any major work, read:
 
 1. `PROJECT_BRIEF.md`
-2. `README.md`
-3. the relevant `src/` files
+2. `AGENT_PLAYBOOK.md`
+3. `README.md`
+4. the relevant `src/` files
 
-Do not scan old references. They were intentionally removed after their useful lessons were consolidated.
+Do not scan old references. They were intentionally removed after their useful lessons were consolidated into `AGENT_PLAYBOOK.md`.
 
 ## User Context
 
@@ -26,6 +27,7 @@ Do not ask the user to choose skills, engine details, package commands, sprite s
 - Avoid quiz-first, lecture-first, dashboard-first, and Excel-like gameplay.
 - Do not reveal early that the mean is misleading.
 - Use `PROJECT_BRIEF.md` as the current source of truth.
+- Use `AGENT_PLAYBOOK.md` as the compact execution/workflow memory.
 - Use `.codex/skills` only when a Codex workflow needs project-specific routing.
 
 ## Current Priority
