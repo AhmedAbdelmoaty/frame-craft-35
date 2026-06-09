@@ -26,6 +26,16 @@ body {
   background: #dfe7ef;
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.95)),
+    #0f172a;
+}
+
 [dir="rtl"] {
   text-align: right;
 }
@@ -256,6 +266,46 @@ input[name="name"] {
 .game-root {
   position: absolute;
   inset: 0;
+}
+
+.office-fallback {
+  min-height: 100%;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  padding: 32px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.office-fallback header {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.office-fallback header strong,
+.office-fallback header span {
+  display: block;
+}
+
+.office-fallback header strong {
+  color: #fbbf24;
+  font-size: 18px;
+}
+
+.office-fallback header span {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.office-fallback button {
+  min-width: min(420px, calc(100vw - 48px));
+  padding: 14px 18px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.92);
+  color: #e2e8f0;
+  font-weight: 800;
 }
 
 .hud-root {
