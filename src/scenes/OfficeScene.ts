@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { company, npcs } from "../data/salesCase";
+import { briefcaseFiles, company, npcs } from "../data/salesCase";
 import { gameEvents } from "../game/events";
 import type { NPCId, PlayerProfile } from "../game/types";
 
@@ -18,10 +18,11 @@ const ROOM_H = 780;
 export class OfficeScene extends Phaser.Scene {
   private player?: Phaser.GameObjects.Container;
   private playerSprite?: Phaser.GameObjects.Image;
-  private currentTarget: { x: number; y: number } = { x: 200, y: 600 };
   private moving = false;
   private hotspots: Hotspot[] = [];
+  private deskGlow?: Phaser.GameObjects.Arc;
   private interactionLocked = false;
+  private collectedCount = 0;
 
   constructor(private readonly profile: PlayerProfile) {
     super("OfficeScene");
@@ -34,12 +35,11 @@ export class OfficeScene extends Phaser.Scene {
     this.load.svg("n.karim", url("/assets/characters/sales-manager.svg"), { width: 78, height: 118 });
     this.load.svg("n.hala", url("/assets/characters/hr-manager.svg"), { width: 78, height: 118 });
     this.load.svg("n.tarek", url("/assets/characters/employee.svg"), { width: 70, height: 108 });
-    this.load.svg("n.alex", url("/assets/characters/data-coach.svg"), { width: 74, height: 112 });
     this.load.svg("desk", url("/assets/props/notebook.svg"), { width: 70, height: 70 });
   }
 
   create() {
-    this.cameras.main.setBackgroundColor("#e6ecf2");
+    this.cameras.main.setBackgroundColor("#0f172a");
     this.cameras.main.setBounds(0, 0, ROOM_W, ROOM_H);
 
     this.drawShell();
@@ -49,81 +49,99 @@ export class OfficeScene extends Phaser.Scene {
 
     gameEvents.on("phasechange", (e) => {
       if (!e.detail) return;
-      // Lock interaction when not in field phase
       this.interactionLocked = e.detail.phase !== "field";
+    });
+    gameEvents.on("filecollected", () => {
+      this.collectedCount += 1;
+      this.updateDeskGlow();
     });
   }
 
   private drawShell() {
     const g = this.add.graphics();
-    g.fillStyle(0xf6f8fb, 1);
-    g.fillRoundedRect(40, 40, ROOM_W - 80, ROOM_H - 80, 20);
-    g.lineStyle(3, 0xb9c4cf, 1);
-    g.strokeRoundedRect(40, 40, ROOM_W - 80, ROOM_H - 80, 20);
+    // Office floor
+    g.fillStyle(0x1e293b, 1);
+    g.fillRoundedRect(40, 40, ROOM_W - 80, ROOM_H - 80, 18);
+    g.lineStyle(2, 0x334155, 1);
+    g.strokeRoundedRect(40, 40, ROOM_W - 80, ROOM_H - 80, 18);
 
     // Header strip
-    g.fillStyle(0x1f3a52, 1);
-    g.fillRoundedRect(40, 40, ROOM_W - 80, 70, { tl: 20, tr: 20, bl: 0, br: 0 });
+    g.fillStyle(0x0f172a, 1);
+    g.fillRoundedRect(40, 40, ROOM_W - 80, 64, { tl: 18, tr: 18, bl: 0, br: 0 });
     this.add
-      .text(ROOM_W / 2, 76, `${company.name} — ${company.tagline}`, {
+      .text(ROOM_W / 2, 72, `${company.name} — ${company.tagline}`, {
         fontFamily: "Inter, sans-serif",
-        fontSize: "20px",
+        fontSize: "18px",
         fontStyle: "700",
-        color: "#ffffff",
+        color: "#fbbf24",
       })
       .setOrigin(0.5);
 
-    // Office zones (visual only)
-    g.fillStyle(0xeef3f8, 1);
-    g.fillRoundedRect(120, 160, 380, 240, 12); // VP corner
-    g.fillRoundedRect(540, 160, 380, 240, 12); // HR corner
-    g.fillRoundedRect(960, 160, 280, 240, 12); // Sales Ops
-    g.fillRoundedRect(120, 460, 540, 260, 12); // Player desk + Alex
-    g.fillRoundedRect(700, 460, 540, 260, 12); // Open area
+    // 3 rooms + player desk
+    const rooms = [
+      { x: 110, y: 150, w: 360, h: 250, name: "مكتب مدير المبيعات", sub: "Karim" },
+      { x: 510, y: 150, w: 360, h: 250, name: "غرفة اجتماعات الموارد البشرية", sub: "Hala" },
+      { x: 910, y: 150, w: 360, h: 250, name: "مكتب العمليات الميدانية", sub: "Tarek" },
+      { x: 410, y: 450, w: 560, h: 280, name: "مكتبك (المحلل)", sub: this.profile.name },
+    ];
+    rooms.forEach((r, i) => {
+      g.fillStyle(i === 3 ? 0x172033 : 0x1e2a3d, 1);
+      g.fillRoundedRect(r.x, r.y, r.w, r.h, 12);
+      g.lineStyle(2, i === 3 ? 0xfbbf24 : 0x334155, 0.8);
+      g.strokeRoundedRect(r.x, r.y, r.w, r.h, 12);
 
-    this.add.text(135, 175, "VP Sales", this.label());
-    this.add.text(555, 175, "HR", this.label());
-    this.add.text(975, 175, "Sales Ops", this.label());
-    this.add.text(135, 475, "مكتبك (The Lab)", this.label());
-    this.add.text(715, 475, "Open area", this.label());
-  }
-
-  private label(color = "#5d6f82") {
-    return {
-      fontFamily: "Inter, sans-serif",
-      fontSize: "13px",
-      fontStyle: "700",
-      color,
-    } as Phaser.Types.GameObjects.Text.TextStyle;
+      // door / sign
+      const signY = r.y + 16;
+      const sx = r.x + r.w / 2;
+      this.add
+        .text(sx, signY, r.name, {
+          fontFamily: "Inter, sans-serif",
+          fontSize: "13px",
+          fontStyle: "700",
+          color: "#e2e8f0",
+          align: "center",
+        })
+        .setOrigin(0.5, 0);
+      this.add
+        .text(sx, signY + 18, r.sub, {
+          fontFamily: "Inter, sans-serif",
+          fontSize: "11px",
+          color: "#94a3b8",
+        })
+        .setOrigin(0.5, 0);
+    });
   }
 
   private setupHotspots() {
     this.hotspots = [
-      { id: "karim", x: 310, y: 290, label: npcs.karim.name, sublabel: npcs.karim.role, color: 0x2b78c5 },
-      { id: "hala", x: 730, y: 290, label: npcs.hala.name, sublabel: npcs.hala.role, color: 0x7657a5 },
-      { id: "tarek", x: 1100, y: 290, label: npcs.tarek.name, sublabel: npcs.tarek.role, color: 0xb7791f },
-      { id: "alex", x: 540, y: 600, label: npcs.alex.name, sublabel: npcs.alex.role, color: 0xa83d47 },
-      { id: "desk", x: 240, y: 600, label: "مكتبك", sublabel: "افتح The Lab", color: 0x3d8644 },
+      { id: "karim", x: 290, y: 300, label: npcs.karim.name, sublabel: "مدير المبيعات", color: 0x60a5fa },
+      { id: "hala", x: 690, y: 300, label: npcs.hala.name, sublabel: "الموارد البشرية", color: 0xc084fc },
+      { id: "tarek", x: 1090, y: 300, label: npcs.tarek.name, sublabel: "العمليات الميدانية", color: 0xf59e0b },
+      { id: "desk", x: 690, y: 600, label: "مكتبك", sublabel: "افتح بعد ما تجمع 3 ملفات", color: 0xfbbf24 },
     ];
   }
 
   private drawHotspots() {
     this.hotspots.forEach((h) => {
+      if (h.id === "desk") {
+        this.deskGlow = this.add.circle(h.x, h.y + 10, 70, 0xfbbf24, 0.0);
+      }
       const key = h.id === "desk" ? "desk" : `n.${h.id}`;
       const sprite = this.add.image(h.x, h.y, key);
       sprite.setOrigin(0.5, 0.85);
       sprite.setInteractive({ useHandCursor: true });
 
-      const labelBg = this.add.rectangle(h.x, h.y + 50, 180, 44, 0xffffff, 0.92);
-      labelBg.setStrokeStyle(2, h.color, 0.9);
-      const text = this.add.text(h.x, h.y + 50, `${h.label}\n${h.sublabel}`, {
-        fontFamily: "Inter, sans-serif",
-        fontSize: "12px",
-        fontStyle: "700",
-        color: "#1f2a37",
-        align: "center",
-      });
-      text.setOrigin(0.5);
+      const labelBg = this.add.rectangle(h.x, h.y + 54, 200, 42, 0x0f172a, 0.92);
+      labelBg.setStrokeStyle(2, h.color, 0.85);
+      this.add
+        .text(h.x, h.y + 54, `${h.label}\n${h.sublabel}`, {
+          fontFamily: "Inter, sans-serif",
+          fontSize: "11px",
+          fontStyle: "700",
+          color: "#e2e8f0",
+          align: "center",
+        })
+        .setOrigin(0.5);
 
       sprite.on("pointerdown", () => this.interact(h));
       labelBg.setInteractive({ useHandCursor: true });
@@ -140,11 +158,25 @@ export class OfficeScene extends Phaser.Scene {
     });
   }
 
+  private updateDeskGlow() {
+    if (!this.deskGlow) return;
+    if (this.collectedCount >= 3) {
+      this.tweens.add({
+        targets: this.deskGlow,
+        fillAlpha: 0.4,
+        scale: { from: 1, to: 1.3 },
+        yoyo: true,
+        repeat: -1,
+        duration: 900,
+        ease: "Sine.easeInOut",
+      });
+    }
+  }
+
   private createPlayer() {
     const start = { x: 200, y: 620 };
-    this.currentTarget = start;
     this.player = this.add.container(start.x, start.y).setDepth(1000);
-    const shadow = this.add.ellipse(0, 45, 60, 18, 0x17202a, 0.2);
+    const shadow = this.add.ellipse(0, 45, 60, 18, 0x000000, 0.3);
     const key = this.profile.avatar === "female" ? "p.female" : "p.male";
     this.playerSprite = this.add.image(0, 0, key);
     this.playerSprite.setOrigin(0.5, 0.82);
@@ -184,9 +216,10 @@ export class OfficeScene extends Phaser.Scene {
       ease: "Sine.easeInOut",
       onComplete: () => {
         this.moving = false;
-        this.currentTarget = target;
         onArrive?.();
       },
     });
   }
 }
+// Reference to briefcaseFiles to avoid tree-shaking complaints in some build setups.
+void briefcaseFiles;
