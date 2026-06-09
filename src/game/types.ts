@@ -17,24 +17,14 @@ export type GamePhase =
   | "cutscene"
   | "retrospective";
 
-// Tools = categorized "analyst toolbox"
-// Central tendency: mean, median, mode
-// Spread: range, sd
-// Distribution: dotplot, boxplot
-// Conditional: countAbove
-export type ToolId =
-  | "mean"
-  | "median"
-  | "mode"
-  | "range"
-  | "sd"
-  | "dotplot"
-  | "boxplot"
-  | "countAbove";
+// Simplified analyst toolbox — 4 tools, always run on BOTH teams side-by-side.
+//  - mean       → where does the team center?
+//  - median     → middle value (robust to outliers)
+//  - spread     → range + standard deviation, merged
+//  - countAbove → how many reps clear the policy threshold?
+export type ToolId = "mean" | "median" | "spread" | "countAbove";
 
-export type ToolCategory = "central" | "spread" | "distribution" | "conditional";
-
-// 3 clear business actions (restructure removed per design)
+// 3 clear business actions
 export type Action = "reward" | "training" | "defer";
 
 export type NPCId = "karim" | "hala" | "tarek" | "alex" | "ceo";
@@ -64,7 +54,6 @@ export type Dataset = {
   outlierTeam: TeamId;
 };
 
-// Files the player collects from NPCs and opens at the desk
 export type BriefcaseFileId = "salesData" | "hrPolicy" | "fieldNotes";
 
 export type BriefcaseFile = {
@@ -75,34 +64,23 @@ export type BriefcaseFile = {
   description: string;
 };
 
-export type ToolResult =
-  | { kind: "mean"; team: TeamId; value: number }
-  | { kind: "median"; team: TeamId; value: number }
-  | { kind: "mode"; team: TeamId; values: number[]; freq: number }
-  | { kind: "range"; team: TeamId; min: number; max: number; value: number }
-  | { kind: "sd"; team: TeamId; value: number }
-  | { kind: "dotplot"; team: TeamId }
-  | { kind: "boxplot"; team: TeamId; q1: number; med: number; q3: number; min: number; max: number }
-  | { kind: "countAbove"; team: TeamId; threshold: number; count: number; total: number };
-
-export type NotebookCard = {
+// A side-by-side comparison result. Always covers both teams.
+export type ComparisonResult = {
   id: string;
   tool: ToolId;
-  team: TeamId;
   title: string;
-  summary: string;
-  pinnedAt: number;
-};
-
-// Pending result shown in the workspace before user pins or discards it
-export type PendingResult = {
-  id: string;
-  tool: ToolId;
-  team: TeamId;
-  title: string;
-  summary: string;
+  hint: string; // short Arabic line explaining what this measures
+  summaryA: string;
+  summaryB: string;
+  // raw display values (string-formatted, e.g. "95%" or "8/10")
+  displayA: string;
+  displayB: string;
+  // which team scores "better" by this metric (or null = tie / not applicable)
+  winner: TeamId | null;
   threshold?: number;
 };
+
+export type NotebookCard = ComparisonResult & { pinnedAt: number };
 
 export type Recommendation = {
   teamA: Action;
@@ -126,7 +104,7 @@ export type Outcome = {
   finalEmail: { from: string; subject: string; body: string };
 };
 
-// Legacy compatibility (kept for any old imports during transition)
+// Legacy compatibility shims (kept for any old imports)
 export type StationId = "lobby" | "desk" | "sales" | "hr" | "decision";
 export type EvidenceId = string;
 export type HotspotId = string;
@@ -137,3 +115,6 @@ export type SalesRep = Rep;
 export type SalesTeam = Team & { totalSalesK: number; averagePerformance: number };
 export type EvidenceItem = { id: string; title: string; note: string; station: StationId };
 export type GutCheck = "A" | "B" | "unsure";
+// kept so any stale references compile during transition
+export type ToolCategory = "central" | "spread" | "distribution" | "conditional";
+export type PendingResult = ComparisonResult;

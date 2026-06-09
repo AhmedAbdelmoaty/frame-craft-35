@@ -9,7 +9,6 @@ import type {
   OutcomeKind,
   Recommendation,
   TeamId,
-  ToolCategory,
   ToolId,
 } from "./types";
 
@@ -21,21 +20,6 @@ export const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);
   const n = s.length;
   return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
-};
-
-export const mode = (xs: number[]): { values: number[]; freq: number } => {
-  const counts = new Map<number, number>();
-  xs.forEach((x) => counts.set(x, (counts.get(x) ?? 0) + 1));
-  let max = 0;
-  counts.forEach((c) => {
-    if (c > max) max = c;
-  });
-  const values: number[] = [];
-  counts.forEach((c, v) => {
-    if (c === max) values.push(v);
-  });
-  values.sort((a, b) => a - b);
-  return { values, freq: max };
 };
 
 export const range = (xs: number[]) => Math.max(...xs) - Math.min(...xs);
@@ -65,53 +49,34 @@ export const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export const getDataset = (id: DatasetVariantId): Dataset => datasetVariants[id];
 
-// --- Tool metadata ---
-
-export const toolCategory: Record<ToolId, ToolCategory> = {
-  mean: "central",
-  median: "central",
-  mode: "central",
-  range: "spread",
-  sd: "spread",
-  dotplot: "distribution",
-  boxplot: "distribution",
-  countAbove: "conditional",
-};
+// --- Tool metadata (4 tools, side-by-side) ---
 
 export const toolLabel: Record<ToolId, string> = {
-  mean: "المتوسط الحسابي (Mean)",
-  median: "الوسيط (Median)",
-  mode: "المنوال (Mode)",
-  range: "المدى (Range)",
-  sd: "الانحراف المعياري (SD)",
-  dotplot: "مخطط النقاط (Dot Plot)",
-  boxplot: "مخطط الصندوق (Box Plot)",
-  countAbove: "العدّ فوق حدّ (Count Above)",
+  mean: "متوسط الأداء",
+  median: "الوسيط (القيمة في النص)",
+  spread: "مدى التشتت",
+  countAbove: "عدد المتفوقين فوق المعيار",
 };
 
 export const toolShort: Record<ToolId, string> = {
-  mean: "Mean",
-  median: "Median",
-  mode: "Mode",
-  range: "Range",
-  sd: "SD",
-  dotplot: "Dot Plot",
-  boxplot: "Box Plot",
-  countAbove: "Count Above",
+  mean: "المتوسط",
+  median: "الوسيط",
+  spread: "التشتت",
+  countAbove: "المتفوقون",
 };
 
-export const categoryLabel: Record<ToolCategory, string> = {
-  central: "مقاييس النزعة المركزية",
-  spread: "مقاييس التشتت",
-  distribution: "رسم التوزيع",
-  conditional: "العدّ الشرطي",
+export const toolHint: Record<ToolId, string> = {
+  mean: "أين يتمركز أداء كل فريق؟",
+  median: "إيه القيمة اللي في نص الفريق؟ (مش بتتأثر بالأرقام الشاذة)",
+  spread: "هل الفريق متماسك ولا متفرّق؟",
+  countAbove: "كام مندوب فوق سياسة الـ85%؟",
 };
 
-export const categoryHint: Record<ToolCategory, string> = {
-  central: "أين يتمركز الأداء؟",
-  spread: "هل الفريق متماسك أم متفرّق؟",
-  distribution: "كيف تتوزع القيم بصرياً؟",
-  conditional: "كم مندوب يحقق المعيار؟",
+export const toolIcon: Record<ToolId, string> = {
+  mean: "📊",
+  median: "🎯",
+  spread: "📏",
+  countAbove: "✅",
 };
 
 // --- Consequence evaluation ---
@@ -130,8 +95,7 @@ export function evaluateOutcome(
     return "deferred";
   }
 
-  // Did the player ever pin a revealing tool on the outlier team?
-  const revealingTools: ToolId[] = ["median", "dotplot", "boxplot", "countAbove", "sd"];
+  const revealingTools: ToolId[] = ["median", "spread", "countAbove"];
   const usedRevealingOnOutlier = pinnedTools.some(
     (t) => t.team === dataset.outlierTeam && revealingTools.includes(t.tool),
   );
@@ -142,13 +106,11 @@ export function evaluateOutcome(
       Math.abs(t.thresholdValue - dataset.threshold) <= 5,
   );
 
-  // "Uninformed" = rewarded outlier team without ever digging beneath the mean.
   if (outlierAction === "reward" && !usedRevealingOnOutlier && !draggedToThreshold) {
     return "uninformed";
   }
 
   if (healthyAction === "reward" && outlierAction === "training") {
-    // Correct decision; was it informed?
     if (usedRevealingOnOutlier || draggedToThreshold) return "correct";
     return "lucky-correct";
   }
@@ -307,21 +269,8 @@ export const actionDescription: Record<Action, string> = {
   defer: "البيانات الحالية مش كافية لقرار قاطع، نراجع الربع الجاي.",
 };
 
-// --- Legacy compat (kept so old imports don't break) ---
+// --- Legacy compat ---
 export const performanceThreshold = 85;
 export type SliceOutcome = OutcomeKind | "pending";
 export const getDecisionLabel = (a?: Action) => (a ? actionLabel[a] : "");
-export const getTeamReadout = (teamId: TeamId) => {
-  const t = datasetVariants[0][teamId];
-  const above = countAbove(
-    t.reps.map((r) => r.performance),
-    85,
-  );
-  return {
-    totalReps: t.reps.length,
-    aboveThreshold: above,
-    belowThreshold: t.reps.length - above,
-    highOutliers: t.reps.filter((r) => r.performance >= 120).length,
-  };
-};
 export const evaluateDecision = (): SliceOutcome => "pending";
