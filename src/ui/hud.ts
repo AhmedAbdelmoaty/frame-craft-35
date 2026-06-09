@@ -1,692 +1,896 @@
-import { evidenceLibrary, performanceThreshold, salesTeams, stationCopy } from "../data/salesCase";
+// HUD = Game phase orchestrator for The Analyst: First Quarter
+// Phases: cold-open → field → lab → memo → cutscene → retrospective
+//
+// The Phaser scene runs continuously in #game-root behind the HUD.
+// During "field" phase, only a minimal HUD overlay is visible (HQ branding +
+// remaining NPCs to visit). For all other phases, a full-screen panel
+// covers the office.
+
+import { company, datasetVariants, dialogues, getInspectNote, npcs } from "../data/salesCase";
 import { gameEvents } from "../game/events";
-import { evaluateDecision, getDecisionLabel, getTeamReadout } from "../game/simulation";
+import {
+  actionLabel,
+  buildOutcome,
+  countAbove,
+  evaluateOutcome,
+  getDataset,
+  mean,
+  median,
+  range,
+  round1,
+  sd,
+  toolLabel,
+  type ToolUse,
+} from "../game/simulation";
 import type {
-  DecisionType,
-  EvidenceId,
-  HotspotId,
-  PlayerDecision,
+  Action,
+  Dataset,
+  DatasetVariantId,
+  GamePhase,
+  GutCheck,
+  NPCId,
+  NotebookCard,
+  Outcome,
   PlayerProfile,
-  StationId,
+  Recommendation,
   TeamId,
+  ToolId,
 } from "../game/types";
 
-const stationOrder: StationId[] = ["lobby", "desk", "sales", "hr", "decision"];
-
-const stationLabels: Record<StationId, string> = {
-  lobby: "الاستقبال",
-  desk: "مكتبي",
-  sales: "المبيعات",
-  hr: "HR",
-  decision: "القرار",
+type State = {
+  profile: PlayerProfile;
+  variantId: DatasetVariantId;
+  phase: GamePhase;
+  // Cold open
+  gutCheck?: GutCheck;
+  // Field
+  visited: Set<NPCId>;
+  // Lab
+  toolUses: ToolUse[];
+  notebook: NotebookCard[];
+  selectedToolTeam: TeamId;
+  thresholdValue: number;
+  thresholdEverDragged: boolean;
+  distributionOpened: Set<TeamId>;
+  // Memo
+  recommendation?: Recommendation;
+  // Cutscene
+  outcome?: Outcome;
 };
 
-const decisionLabels: Record<DecisionType, string> = {
-  reward: "مكافأة",
-  training: "تدريب",
-  review: "مراجعة",
-};
-
-type HudState = {
-  station: StationId;
-  evidence: Set<EvidenceId>;
-  markedReps: Set<string>;
-  decisions: PlayerDecision;
-  submitted: boolean;
-  briefingOpen: boolean;
-  notebookOpen: boolean;
-  activeHotspot?: HotspotId;
-  recentEvidence?: EvidenceId;
-};
+let root: HTMLElement;
+let state: State;
 
 export function createHud(profile: PlayerProfile) {
-  const root = document.querySelector<HTMLElement>("#hud-root");
+  const el = document.querySelector<HTMLElement>("#hud-root");
+  if (!el) throw new Error("Missing HUD root");
+  root = el;
 
-  if (!root) {
-    throw new Error("Missing HUD root");
-  }
+  state = freshState(profile, 0);
 
-  const state: HudState = {
-    station: "lobby",
-    evidence: new Set(["missionBrief"]),
-    markedReps: new Set(),
-    decisions: {},
-    submitted: false,
-    briefingOpen: true,
-    notebookOpen: false,
-    activeHotspot: "reception",
-    recentEvidence: "missionBrief",
-  };
-
-  const render = () => {
-    root.innerHTML = `
-      <div class="top-hud" dir="rtl">
-        <div class="identity-chip">
-          <span class="mini-avatar mini-avatar--${profile.avatar}"></span>
-          <span><strong>${escapeHtml(profile.name)}</strong><small>محلل بيانات - مدار</small></span>
-        </div>
-        <div class="objective-chip">
-          <strong>المهمة</strong>
-          <span>${getObjectiveLine(state)}</span>
-        </div>
-      </div>
-
-      <button class="notebook-fab ${state.notebookOpen ? "is-active" : ""}" data-toggle-notebook aria-expanded="${state.notebookOpen}">
-        <strong>دفتر الأدلة</strong>
-        <span>${state.evidence.size}/6</span>
-      </button>
-
-      <aside class="context-panel ${state.notebookOpen ? "context-panel--notebook" : ""}" dir="rtl">
-        ${state.notebookOpen ? renderNotebook(state) : `${renderMissionGuide(state)}${renderStation(state)}`}
-      </aside>
-
-      <nav class="mini-map" dir="rtl" aria-label="خريطة الشركة المصغرة">
-        ${stationOrder
-          .map(
-            (station) => `
-              <button class="map-node ${state.station === station ? "is-active" : ""}" data-move="${station}">
-                <span></span>${stationLabels[station]}
-              </button>
-            `,
-          )
-          .join("")}
-      </nav>
-
-      <section class="dialogue-strip" dir="rtl">
-        <span class="speaker">${stationCopy[state.station].speaker}</span>
-        <p>${getCoachLine(state)}</p>
-      </section>
-
-      ${state.briefingOpen ? renderBriefing() : ""}
-    `;
-
-    root.querySelectorAll<HTMLButtonElement>("[data-move]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.notebookOpen = false;
-        gameEvents.emit("movetostation", { station: button.dataset.move as StationId });
-      });
-    });
-
-    root.querySelector<HTMLButtonElement>("[data-toggle-notebook]")?.addEventListener("click", () => {
-      state.notebookOpen = !state.notebookOpen;
-      render();
-    });
-
-    root.querySelector<HTMLButtonElement>("[data-close-notebook]")?.addEventListener("click", () => {
-      state.notebookOpen = false;
-      render();
-    });
-
-    root.querySelectorAll<HTMLButtonElement>("[data-interact]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const hotspot = button.dataset.interact as HotspotId;
-        const station = hotspotToStation(hotspot);
-        state.notebookOpen = false;
-        gameEvents.emit("movetostation", { station });
-        applyHotspot(state, hotspot);
-        render();
-      });
-    });
-
-    root.querySelectorAll<HTMLButtonElement>("[data-marker]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const repId = button.dataset.marker ?? "";
-        if (state.markedReps.has(repId)) {
-          state.markedReps.delete(repId);
-        } else {
-          state.markedReps.add(repId);
-        }
-        render();
-      });
-    });
-
-    root.querySelectorAll<HTMLElement>("[data-decision-chip]").forEach((chip) => {
-      chip.addEventListener("dragstart", (event) => {
-        event.dataTransfer?.setData("text/plain", chip.dataset.decisionChip ?? "");
-      });
-    });
-
-    root.querySelectorAll<HTMLElement>("[data-team-drop]").forEach((dropZone) => {
-      dropZone.addEventListener("dragover", (event) => {
-        event.preventDefault();
-        dropZone.classList.add("is-over");
-      });
-      dropZone.addEventListener("dragleave", () => dropZone.classList.remove("is-over"));
-      dropZone.addEventListener("drop", (event) => {
-        event.preventDefault();
-        const decision = event.dataTransfer?.getData("text/plain") as DecisionType;
-        const teamId = dropZone.dataset.teamDrop as TeamId;
-        if (decision && teamId) {
-          state.decisions[teamId] = decision;
-          state.submitted = false;
-          render();
-        }
-      });
-    });
-
-    root.querySelectorAll<HTMLButtonElement>("[data-quick-decision]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const [teamId, decision] = String(button.dataset.quickDecision).split(":") as [TeamId, DecisionType];
-        state.decisions[teamId] = decision;
-        state.submitted = false;
-        render();
-      });
-    });
-
-    root.querySelector<HTMLButtonElement>("[data-submit-decision]")?.addEventListener("click", () => {
-      if (!state.decisions.teamA || !state.decisions.teamB) return;
-      state.submitted = true;
-      addEvidence(state, "decisionSubmitted");
-      gameEvents.emit("decisionsubmitted", { decisions: state.decisions });
-      render();
-    });
-
-    root.querySelector<HTMLButtonElement>("[data-reset-decision]")?.addEventListener("click", () => {
-      state.decisions = {};
-      state.submitted = false;
-      gameEvents.emit("resetdecision", undefined);
-      render();
-    });
-
-    root.querySelector<HTMLButtonElement>("[data-close-briefing]")?.addEventListener("click", () => {
-      state.briefingOpen = false;
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-      render();
-    });
-  };
-
-  gameEvents.on("stationchange", (event) => {
-    state.station = event.detail.station;
-    state.activeHotspot = stationToDefaultHotspot(state.station);
-    render();
+  gameEvents.on("npcinteract", (e) => {
+    if (!e.detail) return;
+    openDialogue(e.detail.npc);
   });
-
-  gameEvents.on("hotspotinteract", (event) => {
-    applyHotspot(state, event.detail.hotspot);
-    render();
+  gameEvents.on("opendesk", () => {
+    setPhase("lab");
   });
 
   render();
 }
 
-function renderBriefing() {
-  return `
-    <section class="briefing-overlay" dir="rtl" role="dialog" aria-label="مقدمة المهمة">
-      <article class="briefing-card">
-        <p class="eyebrow">ابدأ المهمة</p>
-        <h2>أول يوم لك داخل شركة مدار</h2>
-        <p>
-          الإدارة على وشك اتخاذ قرار مكافآت وتدريب لفريقي مبيعات. دورك أن تتحرك داخل الشركة،
-          تجمع الأدلة الكافية، ثم تقدم توصية مهنية يمكن الدفاع عنها.
-        </p>
-        <div class="briefing-steps">
-          <span>تحرك بين الغرف</span>
-          <span>افتح الملفات</span>
-          <span>قابل المسؤولين</span>
-          <span>اجمع الأدلة</span>
-          <span>اعتمد القرار</span>
-        </div>
-        <p class="briefing-note">
-          لن تخبرك اللعبة أين المشكلة. ستمنحك موقف عمل، وأنت من يقرر ما يكفي من الفحص قبل التوصية.
-        </p>
-        <button class="primary-button" data-close-briefing>ادخل الشركة</button>
-      </article>
-    </section>
-  `;
+function freshState(profile: PlayerProfile, variantId: DatasetVariantId): State {
+  return {
+    profile,
+    variantId,
+    phase: "cold-open",
+    visited: new Set(),
+    toolUses: [],
+    notebook: [],
+    selectedToolTeam: "teamA",
+    thresholdValue: 85,
+    thresholdEverDragged: false,
+    distributionOpened: new Set(),
+  };
 }
 
-function renderStation(state: HudState) {
-  switch (state.station) {
-    case "lobby":
-      return renderLobby(state);
-    case "desk":
-      return renderDesk(state);
-    case "sales":
-      return renderSales(state);
-    case "hr":
-      return renderHr(state);
-    case "decision":
-      return renderDecisionRoom(state);
+function setPhase(phase: GamePhase) {
+  state.phase = phase;
+  gameEvents.emit("phasechange", { phase });
+  render();
+}
+
+function dataset(): Dataset {
+  return getDataset(state.variantId);
+}
+
+// ───────────────────────────── RENDER ─────────────────────────────
+
+function render() {
+  switch (state.phase) {
+    case "cold-open":
+      renderColdOpen();
+      break;
+    case "field":
+      renderField();
+      break;
+    case "lab":
+      renderLab();
+      break;
+    case "memo":
+      renderMemo();
+      break;
+    case "cutscene":
+      renderCutscene();
+      break;
+    case "retrospective":
+      renderRetrospective();
+      break;
   }
 }
 
-function renderMissionGuide(state: HudState) {
-  const steps: Array<{ key: string; label: string; done: boolean; current: boolean }> = [
-    {
-      key: "brief",
-      label: "استلم التكليف",
-      done: state.evidence.has("missionBrief"),
-      current: !state.evidence.has("missionBrief"),
-    },
-    {
-      key: "summary",
-      label: "افتح التقرير المختصر",
-      done: state.evidence.has("summaryReport"),
-      current: state.evidence.has("missionBrief") && !state.evidence.has("summaryReport"),
-    },
-    {
-      key: "policy",
-      label: "اعرف قاعدة HR",
-      done: state.evidence.has("hrPolicy"),
-      current: state.evidence.has("summaryReport") && !state.evidence.has("hrPolicy"),
-    },
-    {
-      key: "reps",
-      label: "افتح بطاقات المندوبين",
-      done: state.evidence.has("repCards"),
-      current: state.evidence.has("hrPolicy") && !state.evidence.has("repCards"),
-    },
-    {
-      key: "decision",
-      label: "اعتمد التوصية",
-      done: state.submitted,
-      current: state.evidence.has("repCards") && !state.submitted,
-    },
-  ];
+// ─── Cold Open ───
 
-  return `
-    <section class="mission-guide" aria-label="مسار المهمة">
-      <header>
-        <span>مسار المهمة</span>
-        <strong>${getCurrentStepTitle(state)}</strong>
-      </header>
-      <ol>
-        ${steps
-          .map(
-            (step) => `
-              <li class="${step.done ? "is-done" : ""} ${step.current ? "is-current" : ""}">
-                <span></span>
-                <strong>${step.label}</strong>
-              </li>
-            `,
-          )
-          .join("")}
-      </ol>
-    </section>
-  `;
-}
-
-function renderLobby(state: HudState) {
-  return `
-    ${renderPanelHeader("الاستقبال", "هنا تبدأ المهمة قبل الدخول إلى تفاصيل الأرقام.")}
-    ${renderNewEvidence(state)}
-    <div class="action-stack">
-      <button class="action-card" data-interact="reception">
-        <strong>استلم تكليف المراجعة</strong>
-        <span>افهم المطلوب منك بدون أي تلميح للحل.</span>
-      </button>
-      <button class="action-card" data-interact="summaryReport">
-        <strong>اذهب إلى مكتب التحليل</strong>
-        <span>ابدأ من الملف الموجود على مكتبك.</span>
-      </button>
+function renderColdOpen() {
+  root.innerHTML = `
+    <div class="phase-overlay phase-overlay--dark" dir="rtl">
+      <article class="email-card">
+        <header class="email-card__header">
+          <div>
+            <strong>${npcs.karim.name}</strong>
+            <span>${npcs.karim.role} — ${company.name}</span>
+          </div>
+          <span class="email-card__time">8:42 ص</span>
+        </header>
+        <h2>Subject: مراجعة Q2 — محتاج رأيك بسرعة</h2>
+        <p>أهلاً ${state.profile.name}،</p>
+        <p>
+          الإدارة هتقرر بعد بكره مين ياخد بونص Q2 ومين يدخل خطة تطوير.
+          الملفات هتلاقيها على مكتبك. <strong>قبل ما تفتح أي حاجة</strong> —
+          حدسك بيقولك إيه؟ أنا مش هلزمك برأيك ده، بس عايز أعرفه.
+        </p>
+        <p class="email-card__signoff">— Karim</p>
+        <div class="gut-check-row">
+          <button data-gut="A" class="gut-btn">Team A أحسن</button>
+          <button data-gut="B" class="gut-btn">Team B أحسن</button>
+          <button data-gut="unsure" class="gut-btn gut-btn--ghost">مش قادر أحكم دلوقتي</button>
+        </div>
+      </article>
     </div>
   `;
+  root.querySelectorAll<HTMLButtonElement>("[data-gut]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.gutCheck = btn.dataset.gut as GutCheck;
+      setPhase("field");
+    });
+  });
 }
 
-function renderDesk(state: HudState) {
-  const hasReport = state.evidence.has("summaryReport");
-  return `
-    ${renderPanelHeader("مكتب التحليل", "ملف التقرير المختصر موجود على المكتب. افتحه كبداية للتحقيق.")}
-    ${renderNewEvidence(state)}
-    <div class="action-stack">
-      <button class="action-card" data-interact="summaryReport">
-        <strong>افتح التقرير المختصر</strong>
-        <span>يعرض صورة عامة عن فريقي المبيعات.</span>
-      </button>
-    </div>
-    ${hasReport ? renderSummaryReport() : renderLockedHint("افتح الملف أولًا حتى تظهر أرقامه في دفتر الأدلة.")}
-  `;
-}
+// ─── Field Visit (minimal HUD over Phaser scene) ───
 
-function renderSummaryReport() {
-  return `
-    <section class="evidence-card">
-      <header>
-        <span>ملف داخلي</span>
-        <strong>تقرير الأداء المختصر</strong>
-      </header>
-      <div class="summary-grid">
-        ${renderSummaryCard("teamA")}
-        ${renderSummaryCard("teamB")}
+function renderField() {
+  const remaining: NPCId[] = (["karim", "hala", "tarek", "alex"] as NPCId[]).filter(
+    (id) => !state.visited.has(id),
+  );
+  const canEnterLab = state.visited.has("hala"); // must know HR policy
+
+  root.innerHTML = `
+    <div class="field-hud" dir="rtl">
+      <div class="field-hud__top">
+        <div class="field-hud__brand">
+          <strong>${company.name}</strong>
+          <small>${company.arabicName} · ${dataset().label}</small>
+        </div>
+        <div class="field-hud__objective">
+          <span>المهمة</span>
+          <strong>${
+            canEnterLab
+              ? "ادخل مكتبك (The Lab) وقدّم التوصية"
+              : "اتكلم مع الفريق — على الأقل HR Director"
+          }</strong>
+        </div>
       </div>
-    </section>
+      <aside class="field-hud__roster">
+        <h3>اللي في المكتب</h3>
+        <ul>
+          ${(["karim", "hala", "tarek", "alex"] as NPCId[])
+            .map((id) => {
+              const seen = state.visited.has(id);
+              return `<li class="${seen ? "is-seen" : ""}" data-npc="${id}">
+                <strong>${npcs[id].name}</strong>
+                <small>${npcs[id].role}</small>
+                <span>${seen ? "✓ اتكلمت معاه" : "اضغط للتكلم"}</span>
+              </li>`;
+            })
+            .join("")}
+        </ul>
+        <button class="primary-button ${canEnterLab ? "" : "is-disabled"}" data-open-lab ${
+          canEnterLab ? "" : "disabled"
+        }>
+          ${canEnterLab ? "ادخل The Lab" : "اتكلم مع HR الأول"}
+        </button>
+      </aside>
+      ${remaining.length === 0 ? "" : ""}
+    </div>
   `;
+
+  root.querySelectorAll<HTMLLIElement>("[data-npc]").forEach((li) => {
+    li.addEventListener("click", () => openDialogue(li.dataset.npc as NPCId));
+  });
+  root.querySelector<HTMLButtonElement>("[data-open-lab]")?.addEventListener("click", () => {
+    setPhase("lab");
+  });
 }
 
-function renderSummaryCard(teamId: TeamId) {
-  const team = salesTeams[teamId];
-  return `
-    <article class="team-summary ${teamId === "teamA" ? "team-summary--a" : "team-summary--b"}">
-      <span class="team-label">${team.name}</span>
-      <strong>${team.averagePerformance}%</strong>
-      <small>متوسط الأداء</small>
-      <strong>${team.totalSalesK}K</strong>
-      <small>إجمالي المبيعات</small>
+function openDialogue(id: NPCId) {
+  state.visited.add(id);
+  const lines = dialogues[id];
+  const npc = npcs[id];
+  const modal = document.createElement("div");
+  modal.className = "phase-overlay phase-overlay--soft";
+  modal.dir = "rtl";
+  modal.innerHTML = `
+    <article class="dialogue-card">
+      <header>
+        <strong>${npc.name}</strong>
+        <span>${npc.role}</span>
+      </header>
+      <ol class="dialogue-lines">
+        ${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}
+      </ol>
+      <button class="primary-button" data-close>تمام</button>
     </article>
   `;
+  document.body.appendChild(modal);
+  modal.querySelector<HTMLButtonElement>("[data-close]")?.addEventListener("click", () => {
+    modal.remove();
+    if (state.phase === "field") render();
+  });
 }
 
-function renderHr(state: HudState) {
-  const hasPolicy = state.evidence.has("hrPolicy");
-  return `
-    ${renderPanelHeader("إدارة HR", "سارة تحتفظ بملف سياسة المراجعة لهذه الدورة.")}
-    ${renderNewEvidence(state)}
-    <div class="action-stack">
-      <button class="action-card" data-interact="hrFolder">
-        <strong>افتح ملف سياسة HR</strong>
-        <span>اعرف قاعدة الحكم قبل تفسير النتائج.</span>
-      </button>
+// ─── The Lab ───
+
+function renderLab() {
+  const d = dataset();
+  const teamA = d.teamA;
+  const teamB = d.teamB;
+  const team = state.selectedToolTeam;
+  const usedTools = new Set(state.toolUses.map((u) => `${u.tool}-${u.team}`));
+
+  root.innerHTML = `
+    <div class="phase-overlay phase-overlay--full" dir="rtl">
+      <header class="lab__header">
+        <div>
+          <span class="eyebrow">${company.name} · The Lab</span>
+          <h2>${d.label} — بيانات الأداء الخام</h2>
+          <small>الهدف الشهري لكل مندوب: ${d.targetK}K · سياسة HR: Good Performer ≥ ${d.threshold}%</small>
+        </div>
+        <div class="lab__alex">
+          <strong>Alex (المنافس)</strong>
+          <p>"${alexLine()}"</p>
+        </div>
+      </header>
+
+      <div class="lab__grid">
+        <section class="lab__col lab__col--data">
+          <h3>البيانات الخام</h3>
+          ${renderRawTeam(teamA)}
+          ${renderRawTeam(teamB)}
+        </section>
+
+        <section class="lab__col lab__col--canvas">
+          <h3>لوحة العمل</h3>
+          <div class="canvas-area" id="canvas-area">
+            ${renderCanvas()}
+          </div>
+        </section>
+
+        <section class="lab__col lab__col--tools">
+          <h3>صندوق الأدوات</h3>
+          <div class="team-toggle">
+            <button class="${team === "teamA" ? "is-on" : ""}" data-team-toggle="teamA">${teamA.name}</button>
+            <button class="${team === "teamB" ? "is-on" : ""}" data-team-toggle="teamB">${teamB.name}</button>
+          </div>
+          <div class="tool-list">
+            ${renderToolBtn("average", "📊", "Compute Average", usedTools.has(`average-${team}`))}
+            ${renderToolBtn("median", "📍", "Find Middle Value", usedTools.has(`median-${team}`))}
+            ${renderToolBtn("spread", "📏", "Measure Spread", usedTools.has(`spread-${team}`))}
+            ${renderToolBtn("countAbove", "🎯", "Count Above Target", usedTools.has(`countAbove-${team}`))}
+            ${renderToolBtn("distribution", "📈", "Plot Distribution", usedTools.has(`distribution-${team}`))}
+            ${renderToolBtn("inspect", "🔍", "Inspect Individual", false)}
+          </div>
+
+          <h3 class="notebook-title">Notebook (${state.notebook.length})</h3>
+          <div class="notebook">
+            ${
+              state.notebook.length === 0
+                ? `<p class="notebook__empty">استخدم أداة عشان نتيجتها تتسجل هنا.</p>`
+                : state.notebook
+                    .slice()
+                    .reverse()
+                    .map(
+                      (c) => `
+                <article class="note-card note-card--${c.tool}">
+                  <header>
+                    <strong>${c.title}</strong>
+                    <span>${dataset()[c.team].name}</span>
+                  </header>
+                  <p>${c.summary}</p>
+                </article>`,
+                    )
+                    .join("")
+            }
+          </div>
+
+          <button class="primary-button" data-go-memo>
+            اكتب التوصية الرسمية ←
+          </button>
+        </section>
+      </div>
     </div>
-    ${
-      hasPolicy
-        ? `<div class="policy-card"><span>حد الأداء الجيد</span><strong>${performanceThreshold}%+</strong><small>هدف كل مندوب شهريًا هو 100K.</small></div>`
-        : renderLockedHint("ملف السياسة لم يفتح بعد.")
-    }
+  `;
+
+  // Tool bar
+  root.querySelectorAll<HTMLButtonElement>("[data-team-toggle]").forEach((b) => {
+    b.addEventListener("click", () => {
+      state.selectedToolTeam = b.dataset.teamToggle as TeamId;
+      render();
+    });
+  });
+  root.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
+    b.addEventListener("click", () => useTool(b.dataset.tool as ToolId));
+  });
+  root.querySelector<HTMLButtonElement>("[data-go-memo]")?.addEventListener("click", () => {
+    setPhase("memo");
+  });
+
+  // Threshold slider
+  const slider = root.querySelector<HTMLInputElement>("#threshold-slider");
+  slider?.addEventListener("input", () => {
+    state.thresholdValue = Number(slider.value);
+    state.thresholdEverDragged = true;
+    updateCountAboveLive();
+  });
+
+  // Inspect dropdown
+  root.querySelector<HTMLSelectElement>("#inspect-select")?.addEventListener("change", (e) => {
+    const select = e.target as HTMLSelectElement;
+    const repId = select.value;
+    if (!repId) return;
+    runInspect(repId);
+    select.value = "";
+  });
+}
+
+function renderToolBtn(id: ToolId, icon: string, label: string, used: boolean) {
+  return `
+    <button class="tool-btn ${used ? "is-used" : ""}" data-tool="${id}">
+      <span class="tool-btn__icon">${icon}</span>
+      <span class="tool-btn__label">${label}</span>
+      ${used ? `<span class="tool-btn__check">✓</span>` : ""}
+    </button>
   `;
 }
 
-function renderSales(state: HudState) {
-  const hasContext = state.evidence.has("salesContext");
-  const hasCards = state.evidence.has("repCards");
+function renderRawTeam(team: { id: TeamId; name: string; region: string; reps: { id: string; name: string; performance: number }[] }) {
   return `
-    ${renderPanelHeader("قسم المبيعات", "هنا تسمع سياق الفريق وتفتح بطاقات أداء الأفراد.")}
-    ${renderNewEvidence(state)}
-    <div class="action-stack">
-      <button class="action-card" data-interact="salesBoard">
-        <strong>تحدث مع عمر وافحص اللوحة</strong>
-        <span>اجمع سياقًا قبل النظر إلى التفاصيل.</span>
-      </button>
-      <button class="action-card" data-interact="repCabinet">
-        <strong>افتح درج بطاقات المندوبين</strong>
-        <span>راجع أداء الأفراد وعلّم ما تراه مهمًا.</span>
-      </button>
-    </div>
-    ${hasContext ? `<article class="note-card">عمر: "أحتاج توصية عادلة. لا أريد رقمًا سريعًا يخلق اعتراضات داخل الفريق."</article>` : ""}
-    ${hasCards ? renderRepCards(state) : renderLockedHint("بطاقات المندوبين مغلقة حتى تفتح الدرج داخل قسم المبيعات.")}
-  `;
-}
-
-function renderRepCards(state: HudState) {
-  return `
-    <div class="team-detail-stack">
-      ${renderTeamDetail("teamA", state)}
-      ${renderTeamDetail("teamB", state)}
-    </div>
-  `;
-}
-
-function renderTeamDetail(teamId: TeamId, state: HudState) {
-  const team = salesTeams[teamId];
-  const readout = getTeamReadout(teamId);
-  return `
-    <section class="team-detail">
+    <div class="raw-team">
       <header>
         <strong>${team.name}</strong>
-        <span>${readout.aboveThreshold}/${readout.totalReps} عند ${performanceThreshold}% أو أكثر</span>
+        <small>${team.region}</small>
       </header>
-      <div class="rep-grid">
-        ${team.reps
-          .map((rep) => {
-            const below = rep.performance < performanceThreshold;
-            const marked = state.markedReps.has(rep.id);
-            return `
-              <button class="rep-card ${below ? "is-below" : "is-above"} ${marked ? "is-marked" : ""}" data-marker="${rep.id}">
-                <span>${rep.label}</span>
-                <strong>${rep.performance}%</strong>
-                <small>${marked ? "تم التعليم" : below ? "تحت الخط" : "على المسار"}</small>
-              </button>
-            `;
-          })
-          .join("")}
+      <table class="raw-table">
+        <thead>
+          <tr><th>المندوب</th><th>الاسم</th><th>الأداء %</th></tr>
+        </thead>
+        <tbody>
+          ${team.reps
+            .map(
+              (r) =>
+                `<tr><td>${r.id.toUpperCase()}</td><td>${r.name}</td><td>${r.performance}%</td></tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function alexLine(): string {
+  if (state.notebook.length === 0) return "بتضيع وقت. المتوسط واضح من البيانات الخام.";
+  if (state.distributionOpened.size > 0)
+    return "بتبص في الرسومات؟ أنا قدّمت من ساعة بالأرقام الأساسية.";
+  if (state.thresholdEverDragged)
+    return "ليه بتعد الناس فوق وتحت خط؟ المتوسط هو الـ KPI الوحيد.";
+  return "أنا بقالي خلصت. ليه بتعقّد الموضوع؟";
+}
+
+// ─ Canvas (visualization area) ─
+
+function renderCanvas(): string {
+  if (state.notebook.length === 0) {
+    return `<div class="canvas-empty">
+      <p>اللوحة فاضية.</p>
+      <p>كل أداة بتستخدمها، نتيجتها هتظهر هنا.</p>
+    </div>`;
+  }
+
+  const d = dataset();
+  const showA = state.distributionOpened.has("teamA");
+  const showB = state.distributionOpened.has("teamB");
+
+  let html = "";
+  if (showA || showB) {
+    html += `<div class="dot-plot-wrap">
+      <h4>Distribution Plot</h4>
+      ${showA ? renderDotPlot(d.teamA) : ""}
+      ${showB ? renderDotPlot(d.teamB) : ""}
+      <div class="threshold-control">
+        <label>خط القياس: <strong id="threshold-display">${state.thresholdValue}%</strong></label>
+        <input id="threshold-slider" type="range" min="0" max="200" step="5" value="${state.thresholdValue}" />
+        <div class="threshold-counts" id="threshold-counts">${renderThresholdCounts()}</div>
       </div>
-    </section>
+    </div>`;
+  }
+
+  // Recent stat panels
+  const recentStats = state.notebook.slice(-4).reverse();
+  html += `<div class="stat-strip">${recentStats
+    .map((c) => `<div class="stat-pill stat-pill--${c.tool}"><strong>${c.title}</strong><span>${c.summary}</span></div>`)
+    .join("")}</div>`;
+
+  // Inspect dropdown
+  html += `<div class="inspect-row">
+    <label>فحص فردي:</label>
+    <select id="inspect-select">
+      <option value="">-- اختر مندوب --</option>
+      <optgroup label="${d.teamA.name}">
+        ${d.teamA.reps.map((r) => `<option value="${r.id}">${r.id.toUpperCase()} — ${r.name} (${r.performance}%)</option>`).join("")}
+      </optgroup>
+      <optgroup label="${d.teamB.name}">
+        ${d.teamB.reps.map((r) => `<option value="${r.id}">${r.id.toUpperCase()} — ${r.name} (${r.performance}%)</option>`).join("")}
+      </optgroup>
+    </select>
+  </div>`;
+
+  return html;
+}
+
+function renderDotPlot(team: { id: TeamId; name: string; reps: { id: string; performance: number }[] }): string {
+  const maxX = 200;
+  const dots = team.reps
+    .map((r) => {
+      const left = (r.performance / maxX) * 100;
+      const below = r.performance < state.thresholdValue;
+      return `<span class="dot ${below ? "dot--below" : "dot--above"}" style="left:${left}%" title="${r.id.toUpperCase()}: ${r.performance}%"></span>`;
+    })
+    .join("");
+  const thresholdLeft = (state.thresholdValue / maxX) * 100;
+  return `
+    <div class="dot-plot">
+      <header>${team.name}</header>
+      <div class="dot-plot__axis">
+        ${dots}
+        <span class="dot-plot__threshold" style="left:${thresholdLeft}%"></span>
+        <div class="dot-plot__ticks">
+          ${[0, 50, 85, 100, 150, 200].map((v) => `<span style="left:${(v / maxX) * 100}%">${v}%</span>`).join("")}
+        </div>
+      </div>
+    </div>
   `;
 }
 
-function renderDecisionRoom(state: HudState) {
-  const enoughEvidence = state.evidence.has("summaryReport") && state.evidence.has("hrPolicy") && state.evidence.has("repCards");
+function renderThresholdCounts(): string {
+  const d = dataset();
+  const a = countAbove(d.teamA.reps.map((r) => r.performance), state.thresholdValue);
+  const b = countAbove(d.teamB.reps.map((r) => r.performance), state.thresholdValue);
   return `
-    ${renderPanelHeader("غرفة القرار", "هنا تقدم التوصية النهائية. القرار متاح حتى لو لم تجمع كل شيء، لكن العواقب ستظهر.")}
-    ${renderNewEvidence(state)}
-    ${!enoughEvidence ? `<article class="warning-card">دفتر الأدلة ليس مكتملًا بعد. يمكنك الاعتماد الآن، لكنك تتحمل عاقبة قرار ناقص.</article>` : ""}
-    ${renderDecision(state)}
+    <span><strong>${d.teamA.name}:</strong> ${a}/10 فوق ${state.thresholdValue}%</span>
+    <span><strong>${d.teamB.name}:</strong> ${b}/10 فوق ${state.thresholdValue}%</span>
   `;
 }
 
-function renderDecision(state: HudState) {
-  const outcome = evaluateDecision(state.decisions);
+function updateCountAboveLive() {
+  const disp = document.getElementById("threshold-display");
+  const counts = document.getElementById("threshold-counts");
+  if (disp) disp.textContent = `${state.thresholdValue}%`;
+  if (counts) counts.innerHTML = renderThresholdCounts();
+  // Move threshold line in any visible dot plots
+  root.querySelectorAll<HTMLElement>(".dot-plot__threshold").forEach((line) => {
+    line.style.left = `${(state.thresholdValue / 200) * 100}%`;
+  });
+  root.querySelectorAll<HTMLElement>(".dot").forEach((dot) => {
+    const title = dot.getAttribute("title") || "";
+    const m = title.match(/(\d+(?:\.\d+)?)%/);
+    if (!m) return;
+    const v = Number(m[1]);
+    dot.classList.toggle("dot--below", v < state.thresholdValue);
+    dot.classList.toggle("dot--above", v >= state.thresholdValue);
+  });
+}
 
-  return `
-    <div class="decision-bank">
-      ${(["reward", "training", "review"] as DecisionType[])
-        .map(
-          (decision) => `
-            <div class="decision-chip decision-chip--${decision}" draggable="true" data-decision-chip="${decision}">
-              ${decisionLabels[decision]}
+// ─ Tools ─
+
+function useTool(tool: ToolId) {
+  const team = state.selectedToolTeam;
+  const d = dataset();
+  const perfs = d[team].reps.map((r) => r.performance);
+
+  if (tool === "inspect") {
+    // Inspect is handled via the dropdown in the canvas.
+    if (!state.distributionOpened.has(team)) {
+      // Surface the dropdown by recording a "view" intent.
+      addNotebookCard({
+        id: nid(),
+        tool: "inspect",
+        team,
+        title: "Inspect جاهز",
+        summary: "اختر مندوب من القائمة في اللوحة.",
+      });
+      state.toolUses.push({ tool, team });
+      render();
+    }
+    return;
+  }
+
+  let card: NotebookCard;
+  switch (tool) {
+    case "average": {
+      const v = round1(mean(perfs));
+      card = {
+        id: nid(),
+        tool,
+        team,
+        title: "Average",
+        summary: `متوسط ${d[team].name} = ${v}%`,
+      };
+      state.toolUses.push({ tool, team });
+      break;
+    }
+    case "median": {
+      const v = round1(median(perfs));
+      card = {
+        id: nid(),
+        tool,
+        team,
+        title: "Median",
+        summary: `وسيط ${d[team].name} = ${v}%`,
+      };
+      state.toolUses.push({ tool, team });
+      break;
+    }
+    case "spread": {
+      const r = round1(range(perfs));
+      const s = round1(sd(perfs));
+      card = {
+        id: nid(),
+        tool,
+        team,
+        title: "Spread",
+        summary: `Range = ${r} · SD = ${s}`,
+      };
+      state.toolUses.push({ tool, team });
+      break;
+    }
+    case "countAbove": {
+      const c = countAbove(perfs, state.thresholdValue);
+      card = {
+        id: nid(),
+        tool,
+        team,
+        title: "Count Above",
+        summary: `${c}/${perfs.length} مندوب فوق ${state.thresholdValue}%`,
+      };
+      state.toolUses.push({ tool, team, thresholdValue: state.thresholdValue });
+      state.distributionOpened.add(team); // unlock dot plot too so slider is visible
+      break;
+    }
+    case "distribution": {
+      state.distributionOpened.add(team);
+      card = {
+        id: nid(),
+        tool,
+        team,
+        title: "Distribution",
+        summary: `مخطط ${d[team].name} ظاهر على اللوحة.`,
+      };
+      state.toolUses.push({ tool, team });
+      break;
+    }
+    default:
+      return;
+  }
+  addNotebookCard(card);
+  render();
+}
+
+function runInspect(repId: string) {
+  const d = dataset();
+  const allReps = [...d.teamA.reps, ...d.teamB.reps];
+  const rep = allReps.find((r) => r.id === repId);
+  if (!rep) return;
+  const team: TeamId = d.teamA.reps.some((r) => r.id === repId) ? "teamA" : "teamB";
+  const note = getInspectNote(d, repId);
+  addNotebookCard({
+    id: nid(),
+    tool: "inspect",
+    team,
+    title: `Inspect ${rep.id.toUpperCase()}`,
+    summary: note,
+  });
+  state.toolUses.push({ tool: "inspect", team });
+  render();
+}
+
+function addNotebookCard(card: NotebookCard) {
+  // de-dup: replace previous card with same tool+team
+  state.notebook = state.notebook.filter((c) => !(c.tool === card.tool && c.team === card.team && card.tool !== "inspect"));
+  state.notebook.push(card);
+}
+
+function nid() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
+// ─── Memo (Commitment Gate) ───
+
+function renderMemo() {
+  const d = dataset();
+  const metricsUsed = uniqueMetricsUsed();
+  const a: Action = state.recommendation?.teamA ?? "hold";
+  const b: Action = state.recommendation?.teamB ?? "hold";
+  const metric: ToolId = state.recommendation?.primaryMetric ?? metricsUsed[0] ?? "average";
+  const canSubmit = metricsUsed.length > 0;
+
+  root.innerHTML = `
+    <div class="phase-overlay phase-overlay--full" dir="rtl">
+      <article class="memo-card">
+        <header>
+          <span class="eyebrow">${company.name} · Internal Memo</span>
+          <h2>توصية مراجعة الأداء — ${d.label}</h2>
+          <small>إلى: Karim Halim (VP Sales) · من: ${state.profile.name} (Senior Data Analyst)</small>
+        </header>
+
+        <section class="memo-body">
+          <p>بناءً على تحليل بيانات الفريقين، توصيتي كما يلي:</p>
+
+          <div class="memo-grid">
+            <div class="memo-field">
+              <label>قراري لـ ${d.teamA.name} (${d.teamA.region})</label>
+              <div class="action-grid">
+                ${(["reward", "training", "restructure", "hold"] as Action[])
+                  .map(
+                    (act) =>
+                      `<button data-team-action="teamA:${act}" class="${a === act ? "is-on" : ""}">${actionLabel[act]}</button>`,
+                  )
+                  .join("")}
+              </div>
             </div>
-          `,
-        )
-        .join("")}
-    </div>
-    <div class="drop-grid">
-      ${(["teamA", "teamB"] as TeamId[]).map((teamId) => renderTeamDrop(teamId, state)).join("")}
-    </div>
-    <button class="primary-button" data-submit-decision ${!state.decisions.teamA || !state.decisions.teamB ? "disabled" : ""}>
-      اعتماد التوصية
-    </button>
-    <button class="text-button" data-reset-decision>إعادة الاختيار</button>
-    ${state.submitted ? renderOutcome(outcome) : ""}
-  `;
-}
 
-function renderTeamDrop(teamId: TeamId, state: HudState) {
-  const team = salesTeams[teamId];
-  const decision = state.decisions[teamId];
-  return `
-    <section class="team-drop" data-team-drop="${teamId}">
-      <strong>${team.name}</strong>
-      <span class="assigned-action">${getDecisionLabel(decision)}</span>
-      <div class="quick-actions">
-        ${(["reward", "training", "review"] as DecisionType[])
-          .map(
-            (item) => `
-              <button data-quick-decision="${teamId}:${item}" class="${decision === item ? "is-selected" : ""}">
-                ${decisionLabels[item]}
-              </button>
-            `,
-          )
-          .join("")}
-      </div>
-    </section>
-  `;
-}
+            <div class="memo-field">
+              <label>قراري لـ ${d.teamB.name} (${d.teamB.region})</label>
+              <div class="action-grid">
+                ${(["reward", "training", "restructure", "hold"] as Action[])
+                  .map(
+                    (act) =>
+                      `<button data-team-action="teamB:${act}" class="${b === act ? "is-on" : ""}">${actionLabel[act]}</button>`,
+                  )
+                  .join("")}
+              </div>
+            </div>
 
-function renderOutcome(outcome: ReturnType<typeof evaluateDecision>) {
-  const copy = {
-    strong: {
-      title: "توصية قوية",
-      text: "الإدارة اعتمدت مكافأة للفريق المستقر، وخطة تدريب للفريق الذي يحتاج دعمًا. الاعتراضات قليلة لأن التوصية مبنية على تفاصيل واضحة.",
-      meters: ["الثقة +", "العدالة +", "الاستقرار +"],
-      scene: "سارة ترسل القرار بهدوء، وعمر يطلب خطة متابعة للنجوم الفرديين.",
-    },
-    surface: {
-      title: "قرار سريع",
-      text: "الرقم الأعلى بدا مقنعًا في البداية، لكن HR تلقى اعتراضات بعد إعلان التوصية. بعض الموظفين شعروا أن القرار لم ير تفاصيل الأداء.",
-      meters: ["الثقة -", "العدالة -", "الاستقرار -"],
-      scene: "تظهر رسائل اعتراض على لوحة HR، ويتوقف اجتماع المبيعات لمراجعة القرار.",
-    },
-    mixed: {
-      title: "توصية جزئية",
-      text: "القرار ليس عشوائيًا، لكنه لم يربط بوضوح بين سياسة HR وتفاصيل أداء الأفراد.",
-      meters: ["الثقة ~", "العدالة ~", "الاستقرار ~"],
-      scene: "الإدارة تطلب منك توضيحًا إضافيًا قبل تثبيت القرار.",
-    },
-    pending: {
-      title: "غير مكتملة",
-      text: "ضع إجراءً على كل فريق قبل الاعتماد.",
-      meters: [],
-      scene: "",
-    },
-  }[outcome];
+            <div class="memo-field memo-field--metric">
+              <label>المقياس الأساسي اللي بنيت عليه القرار</label>
+              ${
+                metricsUsed.length === 0
+                  ? `<p class="memo-warning">⚠ ما استخدمتش أي أداة في The Lab. ارجع وافتح ولو أداة واحدة.</p>`
+                  : `<select id="memo-metric">
+                      ${metricsUsed.map((m) => `<option value="${m}" ${m === metric ? "selected" : ""}>${toolLabel[m]}</option>`).join("")}
+                    </select>`
+              }
+            </div>
+          </div>
 
-  return `
-    <article class="outcome-card outcome-card--${outcome}">
-      <span class="cutscene-label">مشهد العاقبة</span>
-      <h3>${copy.title}</h3>
-      <p>${copy.text}</p>
-      ${copy.scene ? `<p class="scene-line">${copy.scene}</p>` : ""}
-      <div class="meter-row">${copy.meters.map((meter) => `<span>${meter}</span>`).join("")}</div>
-    </article>
-  `;
-}
+          <p class="memo-warning-soft">
+            ⚠ بعد الاعتماد، التوصية بتروح للإدارة على طول. النتايج هتظهر بعد 3 شهور. مفيش رجوع.
+          </p>
+        </section>
 
-function renderNotebook(state: HudState) {
-  const items = Object.values(evidenceLibrary);
-  return `
-    <div class="panel-title-row">
-      <div>${renderPanelHeader("دفتر الأدلة", "هذا ليس درسًا؛ هو سجل ما جمعته داخل الشركة.")}</div>
-      <button class="icon-button" data-close-notebook aria-label="إغلاق دفتر الأدلة">×</button>
-    </div>
-    <div class="progress-bar"><span style="width:${Math.round((state.evidence.size / items.length) * 100)}%"></span></div>
-    <div class="notebook-list">
-      ${items
-        .map((item) =>
-          state.evidence.has(item.id)
-            ? `<article class="notebook-entry is-found"><strong>${item.title}</strong><p>${item.note}</p></article>`
-            : `<article class="notebook-entry"><strong>دليل غير مكتشف</strong><p>اذهب إلى ${stationLabels[item.station]} وتفاعل مع العناصر هناك.</p></article>`,
-        )
-        .join("")}
+        <footer class="memo-actions">
+          <button class="text-button" data-back-lab>← رجوع للـ Lab</button>
+          <button class="primary-button" data-submit ${canSubmit ? "" : "disabled"}>اعتمد التوصية</button>
+        </footer>
+      </article>
     </div>
   `;
+
+  root.querySelectorAll<HTMLButtonElement>("[data-team-action]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const [team, act] = String(btn.dataset.teamAction).split(":") as [TeamId, Action];
+      state.recommendation = {
+        teamA: team === "teamA" ? act : (state.recommendation?.teamA ?? "hold"),
+        teamB: team === "teamB" ? act : (state.recommendation?.teamB ?? "hold"),
+        primaryMetric: state.recommendation?.primaryMetric ?? metric,
+      };
+      render();
+    });
+  });
+  root.querySelector<HTMLSelectElement>("#memo-metric")?.addEventListener("change", (e) => {
+    const sel = (e.target as HTMLSelectElement).value as ToolId;
+    state.recommendation = {
+      teamA: state.recommendation?.teamA ?? "hold",
+      teamB: state.recommendation?.teamB ?? "hold",
+      primaryMetric: sel,
+    };
+  });
+  root.querySelector<HTMLButtonElement>("[data-back-lab]")?.addEventListener("click", () => setPhase("lab"));
+  root.querySelector<HTMLButtonElement>("[data-submit]")?.addEventListener("click", () => {
+    if (!state.recommendation) return;
+    const outcomeKind = evaluateOutcome(dataset(), state.recommendation, state.toolUses);
+    state.outcome = buildOutcome(dataset(), state.recommendation, outcomeKind);
+    gameEvents.emit("submitrecommendation", { recommendation: state.recommendation });
+    setPhase("cutscene");
+  });
 }
 
-function getCurrentStepTitle(state: HudState) {
-  if (!state.evidence.has("summaryReport")) return "ابدأ من مكتبك وافتح التقرير المختصر.";
-  if (!state.evidence.has("hrPolicy")) return "لا تفسر الأرقام قبل معرفة قاعدة HR.";
-  if (!state.evidence.has("repCards")) return "اذهب للمبيعات وافتح تفاصيل أداء الأفراد.";
-  if (!state.submitted) return "قارن الأدلة ثم اتخذ قرارًا لكل فريق.";
-  return "راجع العاقبة: هل كان القرار عادلًا ومدعومًا؟";
+function uniqueMetricsUsed(): ToolId[] {
+  const set = new Set<ToolId>();
+  state.toolUses.forEach((u) => set.add(u.tool));
+  return Array.from(set);
 }
 
-function renderPanelHeader(title: string, copy: string) {
-  return `
-    <p class="panel-kicker">داخل الشركة</p>
-    <h2>${title}</h2>
-    <p class="panel-copy">${copy}</p>
+// ─── Cutscene (Q+3 Months) ───
+
+function renderCutscene() {
+  if (!state.outcome) return;
+  const o = state.outcome;
+  const tone = o.kind === "correct" ? "good" : o.kind === "mixed" ? "mixed" : "bad";
+  root.innerHTML = `
+    <div class="phase-overlay phase-overlay--dark" dir="rtl">
+      <article class="cutscene cutscene--${tone}">
+        <header>
+          <span class="eyebrow">⏩ 3 شهور بعدين</span>
+          <h2>${o.title}</h2>
+        </header>
+        <ol class="cutscene__scenes">
+          ${o.scenes.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}
+        </ol>
+        <article class="email-card email-card--compact">
+          <header class="email-card__header">
+            <div><strong>${o.finalEmail.from}</strong></div>
+            <span class="email-card__time">الآن</span>
+          </header>
+          <h3>${o.finalEmail.subject}</h3>
+          <p>${escapeHtml(o.finalEmail.body)}</p>
+        </article>
+        <button class="primary-button" data-go-retro>شوف التحليل التفصيلي ←</button>
+      </article>
+    </div>
   `;
+  root.querySelector<HTMLButtonElement>("[data-go-retro]")?.addEventListener("click", () => setPhase("retrospective"));
 }
 
-function renderNewEvidence(state: HudState) {
-  if (!state.recentEvidence) return "";
-  const item = evidenceLibrary[state.recentEvidence];
-  if (!item) return "";
-  return `
-    <article class="new-evidence">
-      <span>دليل مضاف للدفتر</span>
-      <strong>${item.title}</strong>
-      <p>${item.note}</p>
-    </article>
+// ─── Retrospective ───
+
+function renderRetrospective() {
+  const d = dataset();
+  const o = state.outcome!;
+  const usedTools = new Set(state.toolUses.map((u) => u.tool));
+  const allTools: ToolId[] = ["average", "median", "spread", "countAbove", "distribution", "inspect"];
+  const missed = allTools.filter((t) => !usedTools.has(t));
+
+  // Compute the "true" stats for reveal
+  const aPerfs = d.teamA.reps.map((r) => r.performance);
+  const bPerfs = d.teamB.reps.map((r) => r.performance);
+  const stats = {
+    aMean: round1(mean(aPerfs)),
+    bMean: round1(mean(bPerfs)),
+    aMedian: round1(median(aPerfs)),
+    bMedian: round1(median(bPerfs)),
+    aSd: round1(sd(aPerfs)),
+    bSd: round1(sd(bPerfs)),
+    aAbove: countAbove(aPerfs, d.threshold),
+    bAbove: countAbove(bPerfs, d.threshold),
+  };
+
+  const nextVariant: DatasetVariantId = ((state.variantId + 1) % 3) as DatasetVariantId;
+
+  root.innerHTML = `
+    <div class="phase-overlay phase-overlay--full" dir="rtl">
+      <article class="retro">
+        <header>
+          <span class="eyebrow">Retrospective · ${d.label}</span>
+          <h2>اللي شفته vs. اللي كانت البيانات بتقوله</h2>
+        </header>
+
+        <div class="retro__grid">
+          <section class="retro__col">
+            <h3>اللي عملته</h3>
+            <p><strong>حدسك الأول:</strong> ${gutLabel(state.gutCheck)}</p>
+            <p><strong>الأدوات اللي فتحتها:</strong></p>
+            <ul class="tool-checklist">
+              ${allTools
+                .map(
+                  (t) => `<li class="${usedTools.has(t) ? "is-done" : "is-skipped"}">
+                  ${usedTools.has(t) ? "✓" : "✗"} ${toolLabel[t]}
+                </li>`,
+                )
+                .join("")}
+            </ul>
+            ${
+              missed.length > 0
+                ? `<p class="retro__missed">⚠ ${missed.length} أداة ما فتحتهاش، وفي وسطهم أدوات كانت هتغيّر القرار.</p>`
+                : `<p class="retro__missed retro__missed--ok">استخدمت كل الأدوات المتاحة.</p>`
+            }
+            <p><strong>توصيتك:</strong></p>
+            <p>• ${d.teamA.name}: ${actionLabel[state.recommendation!.teamA]}</p>
+            <p>• ${d.teamB.name}: ${actionLabel[state.recommendation!.teamB]}</p>
+            <p><strong>بنيتها على:</strong> ${toolLabel[state.recommendation!.primaryMetric]}</p>
+          </section>
+
+          <section class="retro__col retro__col--truth">
+            <h3>اللي البيانات قالته</h3>
+            <table class="truth-table">
+              <thead><tr><th></th><th>${d.teamA.name}</th><th>${d.teamB.name}</th></tr></thead>
+              <tbody>
+                <tr><td>Mean</td><td>${stats.aMean}%</td><td>${stats.bMean}%</td></tr>
+                <tr><td>Median</td><td>${stats.aMedian}%</td><td>${stats.bMedian}%</td></tr>
+                <tr><td>SD</td><td>${stats.aSd}</td><td>${stats.bSd}</td></tr>
+                <tr class="truth-table__key"><td>≥ ${d.threshold}%</td><td>${stats.aAbove}/10</td><td>${stats.bAbove}/10</td></tr>
+              </tbody>
+            </table>
+            <div class="dot-plot-wrap retro__plots">
+              ${renderDotPlot(d.teamA)}
+              ${renderDotPlot(d.teamB)}
+            </div>
+            <p class="retro__lesson">
+              <strong>الفريق المستحق للمكافأة:</strong> ${d[d.healthyTeam].name} —
+              لأن ${stats[d.healthyTeam === "teamA" ? "aAbove" : "bAbove"]}/10 مندوبين فوق خط HR،
+              والـ SD صغير (فريق متماسك).
+              <br/>
+              <strong>الفريق المحتاج تطوير:</strong> ${d[d.outlierTeam].name} —
+              المتوسط مضلِّل بسبب 3 outliers، والـMedian = ${
+                d.outlierTeam === "teamA" ? stats.aMedian : stats.bMedian
+              }% بيكشف القصة الحقيقية.
+            </p>
+          </section>
+        </div>
+
+        <div class="retro__alex">
+          <strong>Alex:</strong> "${
+            o.kind === "correct"
+              ? "هممم. كنت متأكد من نفسي. غلطت في القراءة."
+              : "أنا قدّمت نفس توصيتك. الإدارة بتراجع الاتنين دلوقتي."
+          }"
+        </div>
+
+        <footer class="retro__actions">
+          <button class="primary-button" data-replay="${nextVariant}">
+            العب تاني (${datasetVariants[nextVariant].label}) — Dataset جديد، نفس المبدأ
+          </button>
+        </footer>
+      </article>
+    </div>
   `;
+
+  root.querySelector<HTMLButtonElement>("[data-replay]")?.addEventListener("click", (e) => {
+    const v = Number((e.currentTarget as HTMLButtonElement).dataset.replay) as DatasetVariantId;
+    state = freshState(state.profile, v);
+    setPhase("cold-open");
+  });
 }
 
-function renderLockedHint(copy: string) {
-  return `<article class="locked-detail"><strong>مغلق الآن</strong><span>${copy}</span></article>`;
+function gutLabel(g?: GutCheck): string {
+  if (g === "A") return "Team A أحسن";
+  if (g === "B") return "Team B أحسن";
+  if (g === "unsure") return "مش قادر أحكم";
+  return "—";
 }
 
-function applyHotspot(state: HudState, hotspot: HotspotId) {
-  state.activeHotspot = hotspot;
-  state.recentEvidence = undefined;
+// ─── utils ───
 
-  switch (hotspot) {
-    case "reception":
-      addEvidence(state, "missionBrief");
-      break;
-    case "summaryReport":
-      addEvidence(state, "summaryReport");
-      break;
-    case "hrFolder":
-      addEvidence(state, "hrPolicy");
-      break;
-    case "salesBoard":
-      addEvidence(state, "salesContext");
-      break;
-    case "repCabinet":
-      addEvidence(state, "repCards");
-      break;
-    case "decisionBoard":
-      break;
-  }
-}
-
-function addEvidence(state: HudState, evidence: EvidenceId) {
-  const wasKnown = state.evidence.has(evidence);
-  state.evidence.add(evidence);
-  state.recentEvidence = evidence;
-  if (wasKnown) {
-    state.recentEvidence = evidence;
-  }
-}
-
-function stationToDefaultHotspot(station: StationId): HotspotId {
-  switch (station) {
-    case "lobby":
-      return "reception";
-    case "desk":
-      return "summaryReport";
-    case "sales":
-      return "salesBoard";
-    case "hr":
-      return "hrFolder";
-    case "decision":
-      return "decisionBoard";
-  }
-}
-
-function hotspotToStation(hotspot: HotspotId): StationId {
-  switch (hotspot) {
-    case "reception":
-      return "lobby";
-    case "summaryReport":
-      return "desk";
-    case "hrFolder":
-      return "hr";
-    case "salesBoard":
-    case "repCabinet":
-      return "sales";
-    case "decisionBoard":
-      return "decision";
-  }
-}
-
-function getObjectiveLine(state: HudState) {
-  if (!state.evidence.has("summaryReport")) return "افتح ملف التقرير على مكتبك";
-  if (!state.evidence.has("hrPolicy")) return "اعرف سياسة HR قبل التفسير";
-  if (!state.evidence.has("repCards")) return "افتح بطاقات المندوبين في المبيعات";
-  if (!state.submitted) return "قدّم توصية في غرفة القرار";
-  return "راجع أثر القرار في دفتر الأدلة";
-}
-
-function getCoachLine(state: HudState) {
-  if (state.submitted) {
-    const outcome = evaluateDecision(state.decisions);
-    if (outcome === "strong") {
-      return "قرارك ربط بين السياسة وتفاصيل أداء الأشخاص، لذلك ظهر أثره بثبات أكبر.";
-    }
-    if (outcome === "surface") {
-      return "القرار السريع يبدو مريحًا لحظة الاعتماد، لكنه يترك أثرًا اجتماعيًا عندما تظهر تفاصيل الأداء.";
-    }
-    return "التوصية لها اتجاه، لكن الشركة تحتاج قرارًا أوضح أمام سياسة HR وتفاصيل الأفراد.";
-  }
-
-  if (state.station === "decision") {
-    return "يمكنك الاعتماد الآن، لكن قوة القرار تعتمد على الأدلة التي جمعتها قبل دخول الغرفة.";
-  }
-
-  return stationCopy[state.station].message;
-}
-
-function escapeHtml(value: string) {
-  return value
+function escapeHtml(v: string) {
+  return v
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
