@@ -284,55 +284,88 @@ function renderColdOpen() {
 function renderField() {
   const count = state.collected.size;
   const allDone = count >= 3;
-  const remaining: NPCId[] = (["karim", "hala", "tarek"] as NPCId[]).filter(
-    (id) => !state.visited.has(id),
-  );
+  const order: NPCId[] = ["karim", "hala", "tarek"];
+  const remaining: NPCId[] = order.filter((id) => !state.visited.has(id));
 
   root.innerHTML = `
     <div class="field-hud" dir="rtl">
-      <div class="field-hud__top">
-        <div class="field-hud__brand">
+      <header class="field-bar">
+        <div class="field-bar__brand">
           <strong>${company.name}</strong>
-          <small>${company.arabicName} · ${state.profile.name} (محلل بيانات)</small>
+          <small>${state.profile.name} · محلل بيانات</small>
         </div>
-        <div class="field-hud__objective ${allDone ? "is-ready" : ""}">
-          <span>المهمة</span>
-          <strong>${
-            allDone
-              ? "ارجع مكتبك وافتح الملفات"
-              : `جمّع ملفات من ${remaining.map((id) => npcs[id].name.split(" ")[0]).join("، ")}`
-          }</strong>
+        <div class="field-bar__count ${allDone ? "is-ready" : ""}">
+          <span>الحقيبة</span>
+          <strong>${count}/3</strong>
         </div>
-      </div>
+      </header>
 
-      <aside class="briefcase-panel">
-        <header>
-          <span>🧰 حقيبتك</span>
-          <strong>${count} / 3 ملفات</strong>
-        </header>
-        <ul class="briefcase-list">
-          ${briefcaseFiles
-            .map((f) => {
-              const got = state.collected.has(f.id);
-              return `<li class="${got ? "is-got" : "is-missing"}">
-                <span class="briefcase-icon">${f.icon}</span>
-                <div>
-                  <strong>${f.title}</strong>
-                  <small>${got ? "✓ معك" : "محتاج تاخده من " + npcs[f.source].name.split(" ")[0]}</small>
-                </div>
-              </li>`;
-            })
-            .join("")}
-        </ul>
+      <div class="field-objective ${allDone ? "is-ready" : ""}">
         ${
           allDone
-            ? `<button class="primary-button" data-open-lab>ادخل مكتبك ←</button>`
-            : `<p class="briefcase-hint">اضغط على شخصية في المكتب علشان تتكلم معاها وتاخد ملفها.</p>`
+            ? "✅ جمعت كل الملفات — افتح مكتبك من الأسفل"
+            : `🎯 المطلوب: كلّم ${remaining.map((id) => npcs[id].name.split(" ")[0]).join("، ")}`
         }
+      </div>
+
+      <nav class="npc-rail" aria-label="الشخصيات">
+        ${order
+          .map((id) => {
+            const f = briefcaseFiles.find((x) => x.source === id);
+            const done = f ? state.collected.has(f.id) : false;
+            const emoji = id === "karim" ? "👔" : id === "hala" ? "👩‍💼" : "🧑‍🔧";
+            return `<button class="npc-chip ${done ? "is-done" : ""}" data-talk="${id}">
+              <span class="npc-chip__avatar">${emoji}</span>
+              <span class="npc-chip__body">
+                <strong>${npcs[id].name.split(" ")[0]}</strong>
+                <small>${npcs[id].role}</small>
+              </span>
+              <span class="npc-chip__state">${done ? "✓ تم" : "كلّمه ←"}</span>
+            </button>`;
+          })
+          .join("")}
+      </nav>
+
+      <aside class="briefcase-sheet" data-open="${allDone ? "true" : "false"}">
+        <button class="briefcase-sheet__handle" data-toggle-sheet aria-label="فتح/قفل الحقيبة">
+          <span>🧰 حقيبتك · ${count}/3 ملفات</span>
+          <span class="briefcase-sheet__chev">▾</span>
+        </button>
+        <div class="briefcase-sheet__body">
+          <ul class="briefcase-list">
+            ${briefcaseFiles
+              .map((f) => {
+                const got = state.collected.has(f.id);
+                return `<li class="${got ? "is-got" : "is-missing"}">
+                  <span class="briefcase-icon">${f.icon}</span>
+                  <div>
+                    <strong>${f.title}</strong>
+                    <small>${got ? "✓ معك" : "من " + npcs[f.source].name.split(" ")[0]}</small>
+                  </div>
+                </li>`;
+              })
+              .join("")}
+          </ul>
+          ${
+            allDone
+              ? `<button class="primary-button" data-open-lab>📂 ادخل مكتبك وحلّل ←</button>`
+              : `<p class="briefcase-hint">اضغط على شخصية فوق علشان تتكلم معاها وتاخد ملفها.</p>`
+          }
+        </div>
       </aside>
     </div>
   `;
 
+  root.querySelectorAll<HTMLButtonElement>("[data-talk]").forEach((b) => {
+    b.addEventListener("click", () => {
+      gameEvents.emit("npcinteract", { npc: b.dataset.talk as NPCId });
+    });
+  });
+  root.querySelector<HTMLButtonElement>("[data-toggle-sheet]")?.addEventListener("click", () => {
+    const sheet = root.querySelector<HTMLElement>(".briefcase-sheet");
+    if (!sheet) return;
+    sheet.dataset.open = sheet.dataset.open === "true" ? "false" : "true";
+  });
   root.querySelector<HTMLButtonElement>("[data-open-lab]")?.addEventListener("click", () => {
     setPhase("lab");
   });
