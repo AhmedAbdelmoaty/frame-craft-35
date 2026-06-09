@@ -1,14 +1,14 @@
 # Statistics Business Game
 
-This is the clean root workspace for the new statistics/business learning game.
+This is the clean root workspace for the MADAR statistics/business learning game.
 
-The game itself has not been designed or built yet. The current repository is prepared for discovery, planning, asset workflow design, prompt organization, and future implementation.
+The repository now contains an early Phaser/Vite playable slice plus the project knowledge base, asset workflow, generated character candidates, and preserved workflow references.
 
 ## Current Structure
 
 ```text
-src/          future game source code
-public/       future runtime public files
+src/          current Phaser/Vite prototype source
+public/       current runtime public files
 assets/       new-game asset workspace
 docs/         project knowledge, workflows, plans, prompts, and decisions
 .codex/skills project-local agent skills
@@ -31,18 +31,17 @@ Use them only to learn:
 * testing methods
 * common failures and fixes
 
-## Before Building
+## Current Prototype
 
-Do not build gameplay until these are defined:
+The current slice is a 2D / 2.5D business investigation prototype inside Madar Distribution. The player is a data analyst who moves through office areas, collects evidence, reviews two sales teams, and submits a recommendation.
 
-* target learner
-* statistics/business concept
-* learning goal
-* core player decision
-* feedback model
-* win/fail condition
-* smallest playable prototype
-* art direction
+Design rules to preserve:
+
+* Arabic-first player-facing text.
+* Game-first experience, not a quiz, lecture, dashboard, or spreadsheet.
+* Statistics appears through evidence, decisions, and consequences.
+* Do not reveal early that the mean is misleading.
+* Do not copy reference-project visual style, story, characters, genre, or combat systems.
 
 ## Key Docs
 
@@ -55,6 +54,8 @@ Start with:
 * `docs/checklists/TASK_READINESS_CHECKLIST.md`
 * `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
 * `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
+* `docs/HANDOFF_CURRENT_STATE.md`
+* `assets/ASSET_INDEX.md`
 
 ## Project-Local Skills
 
@@ -63,6 +64,7 @@ The project includes these local Codex skills:
 * `.codex/skills/project-game-agent-router`
 * `.codex/skills/asset-generation-pipeline`
 * `.codex/skills/animated-spritesheet-pipeline`
+* `.codex/skills/project-walk-cycle-pipeline`
 
 Use global skills for general Phaser, Three.js, React Three Fiber, Playwright, browser testing, and generic game implementation.
 
