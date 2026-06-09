@@ -1,0 +1,3 @@
+display_name: Animated Spritesheet Pipeline
+short_description: Build clean animation sheets.
+default_prompt: Create or clean an animated spritesheet using the project workflow.

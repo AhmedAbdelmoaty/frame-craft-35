@@ -1,34 +1,27 @@
-import * as Phaser from 'phaser';
+import Phaser from "phaser";
+import { OfficeScene } from "../scenes/OfficeScene";
+import type { PlayerProfile } from "./types";
 
-import { GAME_PROFILES } from './profiles';
-import type { GameProfile } from './types';
-import { BootScene } from '../scenes/BootScene';
-import { SplashScene } from '../scenes/SplashScene';
-import { MainMenuScene } from '../scenes/MainMenuScene';
-import { SandboxScene } from '../scenes/SandboxScene';
-import { SettingsScene } from '../scenes/SettingsScene';
+export function createGame(profile: PlayerProfile) {
+  const container = document.querySelector<HTMLElement>("#game-root");
 
-export function createGame(parent: HTMLElement, profile: GameProfile): Phaser.Game {
-  const config = GAME_PROFILES[profile];
+  if (!container) {
+    throw new Error("Missing game root");
+  }
 
   return new Phaser.Game({
-    type: Phaser.WEBGL,
-    parent,
-    width: config.width,
-    height: config.height,
-    backgroundColor: '#020617',
-    transparent: true,
-    roundPixels: false,
+    type: Phaser.AUTO,
+    parent: container,
+    backgroundColor: "#e9edf2",
     scale: {
-      mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH
+      mode: Phaser.Scale.RESIZE,
+      width: container.clientWidth,
+      height: container.clientHeight,
     },
-    physics: {
-      default: 'arcade',
-      arcade: {
-        debug: false
-      }
+    render: {
+      antialias: true,
+      pixelArt: false,
     },
-    scene: [BootScene, SplashScene, MainMenuScene, SandboxScene, SettingsScene]
+    scene: [new OfficeScene(profile)],
   });
 }

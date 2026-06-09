@@ -1,0 +1,3 @@
+display_name: Project Game Agent Router
+short_description: Choose project workflows.
+default_prompt: Route this game-development request to the right workflow and skills.

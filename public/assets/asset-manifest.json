@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "characters": {
+    "playerFemale": "/assets/characters/player-female.svg",
+    "playerMale": "/assets/characters/player-male.svg",
+    "hrManager": "/assets/characters/hr-manager.svg",
+    "salesManager": "/assets/characters/sales-manager.svg",
+    "dataCoach": "/assets/characters/data-coach.svg",
+    "employee": "/assets/characters/employee.svg"
+  },
+  "props": {
+    "summaryReport": "/assets/props/summary-report.svg",
+    "hrFolder": "/assets/props/hr-folder.svg",
+    "salesBoard": "/assets/props/sales-board.svg",
+    "decisionBoard": "/assets/props/decision-board.svg",
+    "notebook": "/assets/props/notebook.svg"
+  },
+  "spritesheets": {}
+}

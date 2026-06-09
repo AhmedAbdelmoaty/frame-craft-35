@@ -1,61 +1,22 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This repository is the clean root workspace for a new statistics/business learning game.
 
-## Public repo state
+The reference projects in `references/` are workflow references only. Do not copy their visual style, genre, characters, enemies, story, combat systems, or specific game identity.
 
-This repository is published at `git@github.com:chongdashu/pirate-survival-beatemup.git` with `main` as the public tutorial starting point. Do not document or assume a public `completed` branch; the public repo intentionally ships only the starter state.
+Before major work, read:
 
-## Commands
+* `docs/PROJECT_KNOWLEDGE_INDEX.md`
+* `docs/agent-system/AGENT_OPERATING_SYSTEM.md`
+* `docs/checklists/TASK_READINESS_CHECKLIST.md`
+* `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
 
-```bash
-npm run dev        # Start dev server at http://localhost:5173
-npm run build      # Type check + production build to /dist
-npm run typecheck  # TypeScript check only (no emit)
-npm test           # Run all Vitest unit tests once
-npm run preview    # Preview production build locally
-```
+No gameplay has been built yet. Do not implement gameplay until the game vision, learning goals, core loop, and prototype plan are approved.
 
-## Architecture
+Project-local skills are available under:
 
-### Bootstrap flow
+* `.codex/skills/project-game-agent-router`
+* `.codex/skills/asset-generation-pipeline`
+* `.codex/skills/animated-spritesheet-pipeline`
 
-`index.html` → `src/main.ts` → `appShell.ts` (creates debug/settings stores, AppContext, debug panel DOM) → `createGame.ts` (Phaser.Game factory) → scenes.
-
-`appShell.ts` owns the outer shell: profile switching, play-mode toggle (ESC/Play button), and the debug sidebar. When the profile changes via the header chip, it tears down and remounts the Phaser game.
-
-### Scene graph
-
-`BootScene` → `SplashScene` → `MainMenuScene` → `SandboxScene` | `SettingsScene`
-
-All scenes extend `BaseScene`, which provides common heading, footer, and navigation helpers. Scene keys are the `SceneKey` union in `src/game/types.ts`.
-
-**`SandboxScene` is the integration point** for new gameplay. It's a placeholder with a WASD-controlled rectangle, plus debug-panel wiring (live pointer/input snapshot, honors `paused` and `showWorldBounds`). Replace its contents — or add new scenes alongside it — when implementing real features.
-
-### State management
-
-`src/game/store.ts` exports a generic `createStore<T>` with immutable `setState` / `patchState` and a subscribe/unsubscribe observer pattern. Two stores are created in `appShell.ts`:
-- **debugStore** — pointer position, input snapshot, paused, showWorldBounds, activeScene
-- **settingsStore** — volume and mute, persisted to localStorage under the key in `constants.ts`
-
-Both stores plus the active `GameProfile` are bundled into an `AppContext` singleton (`context.ts`) and passed into every scene via `this.app`.
-
-### Responsive profiles
-
-`src/game/profiles.ts` maps `"landscape"` (1280×720) and `"portrait"` (720×1280) to `GameProfileConfig`. Profile is resolved from the `?profile=` query string; defaults to landscape. Switching profile unmounts/remounts the entire Phaser game.
-
-### Asset generation
-
-`src/game/generatedAssets.ts` runs during `BootScene` and creates `ui-button`, `ui-button-active`, `ui-panel` textures via Phaser graphics. Pirate and skeleton runtime assets are included under `public/assets/lobit/` as 256x256-frame spritesheets plus manifests, but they are not wired into the starter gameplay yet. To add more assets, call `scene.load.image(...)` or the appropriate Phaser loader method in `BootScene.preload`.
-
-## TypeScript notes
-
-Strict mode is on. `noUnusedLocals` and `noUnusedParameters` are enforced — the build will fail on unused declarations. Target is ES2022/ESNext modules.
-
-## Conventions
-
-- One scene per file in `src/scenes/`.
-- Game-engine concerns (stores, types, profiles, asset generation) live in `src/game/`.
-- Outer DOM/UI lives in `src/shell/`.
-- Tests are colocated (`*.test.ts`) and use Vitest.
-- Don't add framework (React, Vue, etc.) for the shell — it's intentionally a plain DOM template.
+Use global skills for general Phaser, Three.js, React Three Fiber, Playwright, browser testing, and generic game implementation.

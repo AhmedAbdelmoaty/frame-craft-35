@@ -1,56 +1,47 @@
-export const SCENE_KEYS = {
-  Boot: 'BootScene',
-  Splash: 'SplashScene',
-  MainMenu: 'MainMenuScene',
-  Sandbox: 'SandboxScene',
-  Settings: 'SettingsScene'
-} as const;
+export type AvatarChoice = "female" | "male";
 
-export type SceneKey = (typeof SCENE_KEYS)[keyof typeof SCENE_KEYS];
+export type PlayerProfile = {
+  name: string;
+  avatar: AvatarChoice;
+};
 
-export type GameProfile = 'landscape' | 'portrait';
+export type StationId = "lobby" | "desk" | "sales" | "hr" | "decision";
 
-export interface Size {
-  width: number;
-  height: number;
-}
+export type TeamId = "teamA" | "teamB";
 
-export interface Point {
-  x: number;
-  y: number;
-}
+export type DecisionType = "reward" | "training" | "review";
 
-export interface Rect extends Point, Size {}
+export type EvidenceId =
+  | "missionBrief"
+  | "summaryReport"
+  | "hrPolicy"
+  | "salesContext"
+  | "repCards"
+  | "decisionSubmitted";
 
-export interface GameProfileConfig {
-  id: GameProfile;
+export type HotspotId = "reception" | "summaryReport" | "hrFolder" | "salesBoard" | "repCabinet" | "decisionBoard";
+
+export type SalesRep = {
+  id: string;
   label: string;
-  width: number;
-  height: number;
-}
+  performance: number;
+};
 
-export interface GameSettings {
-  volume: number;
-  muted: boolean;
-}
+export type SalesTeam = {
+  id: TeamId;
+  name: string;
+  totalSalesK: number;
+  averagePerformance: number;
+  reps: SalesRep[];
+};
 
-export interface InputSnapshot {
-  up: boolean;
-  down: boolean;
-  left: boolean;
-  right: boolean;
-  pointerDown: boolean;
-}
+export type PlayerDecision = Partial<Record<TeamId, DecisionType>>;
 
-export interface PointerSnapshot {
-  x: number;
-  y: number;
-}
+export type SliceOutcome = "pending" | "strong" | "surface" | "mixed";
 
-export interface DebugState {
-  activeScene: SceneKey;
-  paused: boolean;
-  showWorldBounds: boolean;
-  pointer: PointerSnapshot;
-  input: InputSnapshot;
-}
+export type EvidenceItem = {
+  id: EvidenceId;
+  title: string;
+  note: string;
+  station: StationId;
+};

@@ -1,0 +1,3 @@
+display_name: Asset Generation Pipeline
+short_description: Generate clean project assets.
+default_prompt: Generate or refine a game asset using the project asset pipeline.

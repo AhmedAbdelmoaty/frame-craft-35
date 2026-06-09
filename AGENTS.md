@@ -1,61 +1,108 @@
 # AGENTS.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This repository is the clean root workspace for a new statistics/business learning game.
 
-## Public repo state
+## Current State
 
-This repository is published at `git@github.com:chongdashu/pirate-survival-beatemup.git` with `main` as the public tutorial starting point. Do not document or assume a public `completed` branch; the public repo intentionally ships only the starter state.
+No gameplay has been built yet.
+
+The old Phaser starter project is preserved as a reference under:
+
+`references/imported-projects/root-phaser-starter/`
+
+Imported mentor/reference projects are preserved under:
+
+`references/imported-projects/`
+
+These references are workflow material only. Do not copy their visual style, genre, characters, enemies, story, combat systems, or specific game identity.
+
+## First Files To Read
+
+Before major work, read:
+
+* `docs/PROJECT_KNOWLEDGE_INDEX.md`
+* `docs/agent-system/AGENT_OPERATING_SYSTEM.md`
+* `docs/agent-system/READY_STATE.md`
+* `docs/checklists/TASK_READINESS_CHECKLIST.md`
+* `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
+
+Do not recursively read `docs/`, `references/`, `assets/`, or the whole workspace by default. Use the index and the task-specific skill to choose the minimum files needed.
+
+## Project-Local Skills
+
+Use these local Codex skills when relevant:
+
+* `.codex/skills/project-game-agent-router` - choose the right workflow for vague or non-technical requests.
+* `.codex/skills/asset-generation-pipeline` - generate and validate still assets.
+* `.codex/skills/animated-spritesheet-pipeline` - create, clean, normalize, and test animation sheets.
+* `.codex/skills/project-walk-cycle-pipeline` - generate, recover, review, and index one-direction character walk cycles with project-specific speed and quality rules.
+
+Prefer global skills for general Phaser, Three.js, React Three Fiber, Playwright, and browser-game implementation.
+
+For assets, also read:
+
+* `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
+* `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md`
+* `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
+
+## Agent Startup Contract
+
+Use the smallest relevant context for the task:
+
+* Asset anchors/turnarounds: read `assets/ASSET_INDEX.md`, `docs/CHARACTER_BIBLE.md`, and `.codex/skills/asset-generation-pipeline/SKILL.md`.
+* Walk cycles: read `assets/ASSET_INDEX.md`, `docs/SPRITESHEET_EXECUTION_NOTES.md`, and `.codex/skills/project-walk-cycle-pipeline/SKILL.md`.
+* General animation work outside walk cycles: read `.codex/skills/animated-spritesheet-pipeline/SKILL.md` plus only the relevant workflow/checklist.
+* Gameplay/runtime work: read `docs/GAME_SLICE_IDENTITY.md`, the relevant `src/` files, and the appropriate Game Studio/global skill.
+* Reference research: read `docs/audit/REFERENCE_PROJECTS_AUDIT.md` first; inspect `references/` only for a specific workflow question.
+
+Skip these directories unless the task explicitly requires them:
+
+* `node_modules/`
+* `dist/`
+* `tmp/`
+* `references/` recursive scans
+* old rejected/generated drafts not referenced by `assets/ASSET_INDEX.md`
+
+## User Context
+
+The user is not technical.
+
+Do not expect the user to know:
+
+* which skill to use
+* which engine to choose
+* how spritesheets work
+* how asset cleanup works
+* how to test visual bugs
+* how to structure prompts
+
+Choose the correct workflow automatically and explain decisions simply.
+
+## Core Rules
+
+* Do not build gameplay until the game vision and prototype plan are approved.
+* Do not copy reference project style or content.
+* Do not duplicate global skills unless a project-local skill adds clear value.
+* Do not delete reference material without explicit approval.
+* Use plans for multi-step work.
+* Use visual/browser testing when visual behavior matters.
+* Treat AI-generated assets as raw material until cleaned, normalized, indexed, and tested.
+
+## Project Structure
+
+```text
+src/          future game source code
+public/       future runtime public files
+assets/       new-game asset workspace
+docs/         project knowledge and decisions
+references/   imported references and old starter snapshots
+```
 
 ## Commands
 
+No app build is configured yet.
+
 ```bash
-npm run dev        # Start dev server at http://localhost:5173
-npm run build      # Type check + production build to /dist
-npm run typecheck  # TypeScript check only (no emit)
-npm test           # Run all Vitest unit tests once
-npm run preview    # Preview production build locally
+npm run check
+npm test
 ```
-
-## Architecture
-
-### Bootstrap flow
-
-`index.html` → `src/main.ts` → `appShell.ts` (creates debug/settings stores, AppContext, debug panel DOM) → `createGame.ts` (Phaser.Game factory) → scenes.
-
-`appShell.ts` owns the outer shell: profile switching, play-mode toggle (ESC/Play button), and the debug sidebar. When the profile changes via the header chip, it tears down and remounts the Phaser game.
-
-### Scene graph
-
-`BootScene` → `SplashScene` → `MainMenuScene` → `SandboxScene` | `SettingsScene`
-
-All scenes extend `BaseScene`, which provides common heading, footer, and navigation helpers. Scene keys are the `SceneKey` union in `src/game/types.ts`.
-
-**`SandboxScene` is the integration point** for new gameplay. It's a placeholder with a WASD-controlled rectangle, plus debug-panel wiring (live pointer/input snapshot, honors `paused` and `showWorldBounds`). Replace its contents — or add new scenes alongside it — when implementing real features.
-
-### State management
-
-`src/game/store.ts` exports a generic `createStore<T>` with immutable `setState` / `patchState` and a subscribe/unsubscribe observer pattern. Two stores are created in `appShell.ts`:
-- **debugStore** — pointer position, input snapshot, paused, showWorldBounds, activeScene
-- **settingsStore** — volume and mute, persisted to localStorage under the key in `constants.ts`
-
-Both stores plus the active `GameProfile` are bundled into an `AppContext` singleton (`context.ts`) and passed into every scene via `this.app`.
-
-### Responsive profiles
-
-`src/game/profiles.ts` maps `"landscape"` (1280×720) and `"portrait"` (720×1280) to `GameProfileConfig`. Profile is resolved from the `?profile=` query string; defaults to landscape. Switching profile unmounts/remounts the entire Phaser game.
-
-### Asset generation
-
-`src/game/generatedAssets.ts` runs during `BootScene` and creates `ui-button`, `ui-button-active`, `ui-panel` textures via Phaser graphics. Pirate and skeleton runtime assets are included under `public/assets/lobit/` as 256x256-frame spritesheets plus manifests, but they are not wired into the starter gameplay yet. To add more assets, call `scene.load.image(...)` or the appropriate Phaser loader method in `BootScene.preload`.
-
-## TypeScript notes
-
-Strict mode is on. `noUnusedLocals` and `noUnusedParameters` are enforced — the build will fail on unused declarations. Target is ES2022/ESNext modules.
-
-## Conventions
-
-- One scene per file in `src/scenes/`.
-- Game-engine concerns (stores, types, profiles, asset generation) live in `src/game/`.
-- Outer DOM/UI lives in `src/shell/`.
-- Tests are colocated (`*.test.ts`) and use Vitest.
-- Don't add framework (React, Vue, etc.) for the shell — it's intentionally a plain DOM template.
