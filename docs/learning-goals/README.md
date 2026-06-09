@@ -2,4 +2,6 @@
 
 Future home for the educational goals, statistics/business concepts, lesson progression, and assessment notes.
 
-This folder should be filled after the learning-goals discussion.
+Start here:
+
+* `misunderstanding-statistics-case.md` - first case brief from `Why Analysis Fails - HR.pdf`.

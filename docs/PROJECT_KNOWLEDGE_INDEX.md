@@ -23,9 +23,22 @@ Use these for project-specific asset, animation, and isometric workflows.
 ## Game Direction
 
 * `docs/GAME_SLICE_IDENTITY.md`
+* `docs/game-design/madar-analyst-core-loop.md`
 * `docs/CHARACTER_BIBLE.md`
 
 Use these as the approved identity and character direction for the MADAR analyst slice before generating or replacing game assets.
+
+## Learning Goals
+
+* `docs/learning-goals/misunderstanding-statistics-case.md`
+
+Use this to understand the first statistics case from `Why Analysis Fails - HR.pdf`, including the business rule, team data, correct interpretation, and what the game must teach without spoiling early.
+
+## Implementation Plans
+
+* `docs/plans/game-logic-next-steps.md`
+
+Use this after the user approves moving from concept alignment into gameplay implementation.
 
 ## Prompt Library
 

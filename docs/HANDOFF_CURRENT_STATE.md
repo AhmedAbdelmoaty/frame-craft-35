@@ -1,6 +1,6 @@
 # Handoff Current State - MADAR Analyst Slice
 
-Last updated: 2026-06-06.
+Last updated: 2026-06-09.
 
 This document is the starting brief for a fresh Codex chat. Read it before doing any new work.
 
@@ -24,6 +24,12 @@ The game is for IMP, a data analysis training company. The target product is a m
 `Descriptive Statistics for Data Analysts`
 
 The first playable slice is based on the `Misunderstanding Statistics` case from the presentation `Why Data Analysis Fails: The Human Factor`, focused on reviewing two sales teams' performance.
+
+The presentation case has now been captured in:
+
+- `docs/learning-goals/misunderstanding-statistics-case.md`
+- `docs/game-design/madar-analyst-core-loop.md`
+- `docs/plans/game-logic-next-steps.md`
 
 The current game concept is:
 
@@ -108,6 +114,9 @@ Use global/plugin skills as needed:
 ## Current Source Of Truth Files
 
 - `docs/WORKSPACE_CLEANUP_AUDIT.md`
+- `docs/learning-goals/misunderstanding-statistics-case.md`
+- `docs/game-design/madar-analyst-core-loop.md`
+- `docs/plans/game-logic-next-steps.md`
 - `docs/reference-strategy/REFERENCE_EXTRACTION_STATUS.md`
 - `docs/CHARACTER_BIBLE.md`
 - `assets/ASSET_INDEX.md`
