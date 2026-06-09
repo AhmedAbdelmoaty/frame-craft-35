@@ -308,23 +308,7 @@ function renderField() {
         }
       </div>
 
-      <nav class="npc-rail" aria-label="الشخصيات">
-        ${order
-          .map((id) => {
-            const f = briefcaseFiles.find((x) => x.source === id);
-            const done = f ? state.collected.has(f.id) : false;
-            const emoji = id === "karim" ? "👔" : id === "hala" ? "👩‍💼" : "🧑‍🔧";
-            return `<button class="npc-chip ${done ? "is-done" : ""}" data-talk="${id}">
-              <span class="npc-chip__avatar">${emoji}</span>
-              <span class="npc-chip__body">
-                <strong>${npcs[id].name.split(" ")[0]}</strong>
-                <small>${npcs[id].role}</small>
-              </span>
-              <span class="npc-chip__state">${done ? "✓ تم" : "كلّمه ←"}</span>
-            </button>`;
-          })
-          .join("")}
-      </nav>
+      <p class="field-hint">👆 دوس على أي شخصية في المكتب علشان تكلّمها</p>
 
       <aside class="briefcase-sheet" data-open="${allDone ? "true" : "false"}">
         <button class="briefcase-sheet__handle" data-toggle-sheet aria-label="فتح/قفل الحقيبة">
