@@ -1,10 +1,11 @@
-import type { GamePhase, NPCId, Recommendation } from "./types";
+import type { BriefcaseFileId, GamePhase, NPCId, Recommendation } from "./types";
 
 type GameEventMap = {
   phasechange: CustomEvent<{ phase: GamePhase }>;
   enterphase: CustomEvent<{ phase: GamePhase }>;
   npcinteract: CustomEvent<{ npc: NPCId }>;
   opendesk: CustomEvent<undefined>;
+  filecollected: CustomEvent<{ file: BriefcaseFileId }>;
   submitrecommendation: CustomEvent<{ recommendation: Recommendation }>;
   replay: CustomEvent<undefined>;
 };

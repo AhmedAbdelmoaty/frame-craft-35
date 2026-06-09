@@ -1,4 +1,4 @@
-// NovaPharm Distribution — Q2 Performance Review Case
+// NovaPharm Distribution — Quarterly Performance Review Case
 // Source case: "Misunderstanding Statistics" (Why Analysis Fails, IMP)
 //
 // Three dataset variants share the same statistical structure:
@@ -7,7 +7,7 @@
 // The "trap team" (outlierTeam) rotates across variants so replays don't
 // rely on memorization.
 
-import type { Dataset, NPCId, Rep, Team } from "../game/types";
+import type { BriefcaseFile, Dataset, NPCId, Rep, Team } from "../game/types";
 
 const arabicNamesPool = [
   "أحمد سامي",
@@ -130,55 +130,94 @@ export const company = {
   arabicName: "نوفافارم للتوزيع الدوائي",
 };
 
-export const npcs: Record<NPCId, { name: string; role: string; tone: string }> = {
+export const npcs: Record<NPCId, { name: string; role: string; tone: string; location: string }> = {
+  ceo: {
+    name: "Nader Sami",
+    role: "الرئيس التنفيذي (CEO)",
+    tone: "صاحب القرار النهائي، بيبعت ويستقبل عبر الإيميل",
+    location: "الإدارة العليا",
+  },
   karim: {
     name: "Karim Halim",
-    role: "VP of Sales",
+    role: "مدير المبيعات",
     tone: "مباشر، تحت ضغط، عايز قرار بسرعة",
+    location: "مكتب مدير المبيعات",
   },
   hala: {
     name: "Hala Mostafa",
-    role: "HR Director",
+    role: "مديرة الموارد البشرية",
     tone: "هادية، بتفكر في صحة الفرق على المدى الطويل",
+    location: "غرفة اجتماعات الموارد البشرية",
   },
   tarek: {
     name: "Tarek Anwar",
-    role: "Sales Operations Manager",
+    role: "مشرف العمليات الميدانية",
     tone: "خبير ميدان، عنده شك بس مش متأكد",
+    location: "مكتب العمليات الميدانية",
   },
   alex: {
-    name: "Alex (Analyst منافس)",
-    role: "Senior Data Analyst",
+    name: "Alex Mounir",
+    role: "محلل بيانات (زميل)",
     tone: "واثق من نفسه، بيستعجل، بيشوف المتوسط بس",
+    location: "مكتب اللاب",
   },
 };
 
-// Dialogues — Context only, no statistical hints.
+// Story-driven dialogues. No statistical hints.
+// Each NPC's last line gives the player a tangible file for their briefcase.
 export const dialogues: Record<NPCId, string[]> = {
+  ceo: [],
   karim: [
-    "أهلاً. أنا محتاجك تخلّص المراجعة دي قبل بكره.",
-    "كل مندوب تارجته 100 ألف في الشهر. ده الرقم اللي بنحاسب عليه.",
-    "أنا شخصياً شايف Team A أحسن، بس مش هفرض عليك رأيي. اشتغل بياناتك.",
+    "أهلاً. عارف إنك لسه جديد، بس عندنا قرار بونص الربع لازم يطلع الأسبوع ده.",
+    "كل مندوب تارجته 100 ألف في الشهر. أنا شخصياً مرشّح Team A — أرقامهم مذهلة.",
+    "بس مش هلزمك برأيي. خد ملف بيانات المبيعات الخام واشتغل عليه براحتك.",
+    "📂 [Karim سلّمك: ملف بيانات المبيعات الخام]",
   ],
   hala: [
-    "أهم حاجة عندي إن القرار يبقى عادل. أي اعتراض من الفريق هيرجعلي.",
-    "في Pharma، فقدان مندوب واحد ممكن يخسّرنا منطقة كاملة لشهور.",
-    "سياسة المكافآت بتاعتنا: المندوب اللي بيحقق 85% أو أكتر من تارجته يعتبر Good Performer.",
+    "أهلاً. أنا قلقانة من القرار ده، مش من زاوية الأرقام، من زاوية تأثيره على الناس.",
+    "في صناعة الدوا، فقدان مندوب واحد ممكن يخسّرنا منطقة كاملة لشهور.",
+    "خدت الملف ده، فيه سياسة المكافآت بتاعتنا بالضبط ومعدلات الترك الموثّقة.",
+    "📂 [Hala سلّمتك: ملف سياسة الموارد البشرية]",
   ],
   tarek: [
-    "أنا في الميدان من 12 سنة. شايف الفرق على الأرض.",
-    "خد بالك من Team A. عندي إحساس مش كويس، بس ما عنديش دليل أقولك عليه.",
-    "البيانات الخام موجودة على مكتبك. اشتغل عليها لوحدك.",
+    "أنا في الميدان من 12 سنة. بشوف الأمور اللي ما بتطلعش في الأرقام.",
+    "خد بالك — في Team A أو Team B، أنا حاسس بحاجة مش مظبوطة، بس مش هقولك مين.",
+    "كتبتلك ملاحظاتي على المندوبين اللي زرتهم الشهر ده. اقراها بنفسك.",
+    "📂 [Tarek سلّمك: ملف الملاحظات الميدانية]",
   ],
   alex: [
-    "أنا خلّصت التحليل من ساعة. المتوسط واضح، مش محتاج كل ده.",
-    "أنا قدّمت توصيتي للإدارة. Team A المتوسط بتاعهم أعلى، خلاص.",
+    "أنا خلّصت التحليل من بدري. المتوسط واضح، مش محتاج كل ده.",
+    "أنا قدّمت توصيتي للإدارة. اللي متوسطه أعلى، خلاص.",
     "بتضيع وقتك في تفاصيل. القرار بسيط.",
   ],
 };
 
-// Per-rep inspection notes (for the Inspect tool).
-// Only outlier reps in the outlier team get a meaningful business story.
+// Files the player collects in the field, then opens at the desk
+export const briefcaseFiles: BriefcaseFile[] = [
+  {
+    id: "salesData",
+    title: "بيانات المبيعات الخام",
+    source: "karim",
+    icon: "📊",
+    description: "جدول أداء كل المندوبين في الفريقين خلال الربع.",
+  },
+  {
+    id: "hrPolicy",
+    title: "سياسة الموارد البشرية",
+    source: "hala",
+    icon: "📑",
+    description: "معايير الـGood Performer ومعدلات الترك التاريخية.",
+  },
+  {
+    id: "fieldNotes",
+    title: "ملاحظات Tarek الميدانية",
+    source: "tarek",
+    icon: "🗒️",
+    description: "تعليقات قصيرة على مندوبين بعينهم من زيارات الميدان.",
+  },
+];
+
+// Per-rep inspection notes. Shown in a side panel; never auto-saved to the notebook.
 export function getInspectNote(dataset: Dataset, repId: string): string {
   const allReps = [...dataset.teamA.reps, ...dataset.teamB.reps];
   const rep = allReps.find((r) => r.id === repId);
@@ -186,7 +225,7 @@ export function getInspectNote(dataset: Dataset, repId: string): string {
 
   const outlierReps = dataset[dataset.outlierTeam].reps.filter((r) => r.performance >= 120);
   if (outlierReps.some((r) => r.id === repId)) {
-    return `${rep.name}: قفل صفقة كبيرة مع شبكة صيدليات هذا الربع. حسب Sales Ops, تلقى عرض توظيف من منافس الأسبوع الماضي ولم يرد بعد.`;
+    return `${rep.name}: قفل صفقة كبيرة مع شبكة صيدليات هذا الربع. حسب ملاحظات Tarek، تلقى عرض توظيف من منافس الأسبوع الماضي ولم يرد بعد.`;
   }
 
   const healthyReps = dataset[dataset.healthyTeam].reps;
