@@ -262,8 +262,6 @@ input[name="name"] {
   pointer-events: none;
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
   padding: 16px;
 }
 
@@ -301,9 +299,12 @@ input[name="name"] {
 }
 
 .top-hud {
+  position: absolute;
+  z-index: 20;
+  inset: 16px 16px auto 206px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
 }
 
@@ -328,7 +329,16 @@ input[name="name"] {
   font-weight: 800;
 }
 
-.notebook-button {
+.notebook-fab {
+  position: absolute;
+  z-index: 22;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 174px;
   min-height: 48px;
   padding: 0 14px;
   border: 1px solid var(--line);
@@ -339,19 +349,18 @@ input[name="name"] {
   font-weight: 900;
 }
 
-.notebook-button span {
+.notebook-fab span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
+  min-width: 42px;
   min-height: 26px;
-  margin-right: 8px;
   border-radius: 999px;
   color: #fff;
   background: var(--green);
 }
 
-.notebook-button.is-active {
+.notebook-fab.is-active {
   color: #fff;
   background: #27313c;
 }
@@ -401,8 +410,10 @@ input[name="name"] {
 }
 
 .context-panel {
-  align-self: center;
-  justify-self: end;
+  position: absolute;
+  z-index: 12;
+  top: 86px;
+  left: 16px;
   width: min(430px, 35vw);
   max-height: min(680px, calc(100vh - 150px));
   overflow: auto;
@@ -418,8 +429,10 @@ input[name="name"] {
 }
 
 .mini-map {
-  align-self: end;
-  justify-self: start;
+  position: absolute;
+  z-index: 14;
+  right: 16px;
+  bottom: 112px;
   display: grid;
   gap: 8px;
   width: min(260px, 28vw);
@@ -462,14 +475,113 @@ input[name="name"] {
 }
 
 .dialogue-strip {
-  align-self: end;
-  justify-self: center;
+  position: absolute;
+  z-index: 16;
+  right: 50%;
+  bottom: 16px;
+  transform: translateX(50%);
   width: min(900px, 100%);
   padding: 14px 18px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 12px 35px rgba(23, 32, 42, 0.12);
+}
+
+.mission-guide {
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid rgba(43, 120, 197, 0.22);
+  border-radius: 8px;
+  background: rgba(43, 120, 197, 0.07);
+}
+
+.mission-guide header {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.mission-guide header span {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.mission-guide header strong {
+  color: #27313c;
+  line-height: 1.45;
+}
+
+.mission-guide ol {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mission-guide li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  color: #607083;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.mission-guide li span {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 2px solid #9aa8b8;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.mission-guide li strong {
+  font-size: 13px;
+}
+
+.mission-guide li.is-current {
+  color: #17202a;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px rgba(43, 120, 197, 0.2);
+}
+
+.mission-guide li.is-current span {
+  border-color: var(--blue);
+  background: var(--blue);
+}
+
+.mission-guide li.is-done {
+  color: #2f6f37;
+}
+
+.mission-guide li.is-done span {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.panel-title-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.icon-button {
+  width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #27313c;
+  background: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .action-stack {
@@ -852,6 +964,8 @@ input[name="name"] {
   .hud-root {
     position: relative;
     gap: 12px;
+    display: grid;
+    grid-template-rows: auto auto auto auto;
   }
 
   .game-root {
@@ -861,20 +975,42 @@ input[name="name"] {
   }
 
   .context-panel {
+    position: relative;
+    top: auto;
+    left: auto;
     width: 100%;
     max-height: none;
     justify-self: stretch;
   }
 
   .top-hud {
+    position: relative;
+    inset: auto;
     align-items: stretch;
     flex-direction: column;
   }
 
+  .notebook-fab {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+  }
+
   .objective-chip,
   .mini-map {
+    position: relative;
+    right: auto;
+    bottom: auto;
     width: 100%;
     min-width: 0;
+  }
+
+  .dialogue-strip {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    transform: none;
   }
 
   .station-nav {

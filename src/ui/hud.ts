@@ -69,13 +69,15 @@ export function createHud(profile: PlayerProfile) {
           <strong>المهمة</strong>
           <span>${getObjectiveLine(state)}</span>
         </div>
-        <button class="notebook-button ${state.notebookOpen ? "is-active" : ""}" data-toggle-notebook>
-          دفتر الأدلة <span>${state.evidence.size}/6</span>
-        </button>
       </div>
 
+      <button class="notebook-fab ${state.notebookOpen ? "is-active" : ""}" data-toggle-notebook aria-expanded="${state.notebookOpen}">
+        <strong>دفتر الأدلة</strong>
+        <span>${state.evidence.size}/6</span>
+      </button>
+
       <aside class="context-panel ${state.notebookOpen ? "context-panel--notebook" : ""}" dir="rtl">
-        ${state.notebookOpen ? renderNotebook(state) : renderStation(state)}
+        ${state.notebookOpen ? renderNotebook(state) : `${renderMissionGuide(state)}${renderStation(state)}`}
       </aside>
 
       <nav class="mini-map" dir="rtl" aria-label="خريطة الشركة المصغرة">
@@ -107,6 +109,11 @@ export function createHud(profile: PlayerProfile) {
 
     root.querySelector<HTMLButtonElement>("[data-toggle-notebook]")?.addEventListener("click", () => {
       state.notebookOpen = !state.notebookOpen;
+      render();
+    });
+
+    root.querySelector<HTMLButtonElement>("[data-close-notebook]")?.addEventListener("click", () => {
+      state.notebookOpen = false;
       render();
     });
 
@@ -183,6 +190,7 @@ export function createHud(profile: PlayerProfile) {
 
     root.querySelector<HTMLButtonElement>("[data-close-briefing]")?.addEventListener("click", () => {
       state.briefingOpen = false;
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       render();
     });
   };
@@ -240,6 +248,62 @@ function renderStation(state: HudState) {
     case "decision":
       return renderDecisionRoom(state);
   }
+}
+
+function renderMissionGuide(state: HudState) {
+  const steps: Array<{ key: string; label: string; done: boolean; current: boolean }> = [
+    {
+      key: "brief",
+      label: "استلم التكليف",
+      done: state.evidence.has("missionBrief"),
+      current: !state.evidence.has("missionBrief"),
+    },
+    {
+      key: "summary",
+      label: "افتح التقرير المختصر",
+      done: state.evidence.has("summaryReport"),
+      current: state.evidence.has("missionBrief") && !state.evidence.has("summaryReport"),
+    },
+    {
+      key: "policy",
+      label: "اعرف قاعدة HR",
+      done: state.evidence.has("hrPolicy"),
+      current: state.evidence.has("summaryReport") && !state.evidence.has("hrPolicy"),
+    },
+    {
+      key: "reps",
+      label: "افتح بطاقات المندوبين",
+      done: state.evidence.has("repCards"),
+      current: state.evidence.has("hrPolicy") && !state.evidence.has("repCards"),
+    },
+    {
+      key: "decision",
+      label: "اعتمد التوصية",
+      done: state.submitted,
+      current: state.evidence.has("repCards") && !state.submitted,
+    },
+  ];
+
+  return `
+    <section class="mission-guide" aria-label="مسار المهمة">
+      <header>
+        <span>مسار المهمة</span>
+        <strong>${getCurrentStepTitle(state)}</strong>
+      </header>
+      <ol>
+        ${steps
+          .map(
+            (step) => `
+              <li class="${step.done ? "is-done" : ""} ${step.current ? "is-current" : ""}">
+                <span></span>
+                <strong>${step.label}</strong>
+              </li>
+            `,
+          )
+          .join("")}
+      </ol>
+    </section>
+  `;
 }
 
 function renderLobby(state: HudState) {
@@ -479,7 +543,10 @@ function renderOutcome(outcome: ReturnType<typeof evaluateDecision>) {
 function renderNotebook(state: HudState) {
   const items = Object.values(evidenceLibrary);
   return `
-    ${renderPanelHeader("دفتر الأدلة", "هذا ليس درسًا؛ هو سجل ما جمعته داخل الشركة.")}
+    <div class="panel-title-row">
+      <div>${renderPanelHeader("دفتر الأدلة", "هذا ليس درسًا؛ هو سجل ما جمعته داخل الشركة.")}</div>
+      <button class="icon-button" data-close-notebook aria-label="إغلاق دفتر الأدلة">×</button>
+    </div>
     <div class="progress-bar"><span style="width:${Math.round((state.evidence.size / items.length) * 100)}%"></span></div>
     <div class="notebook-list">
       ${items
@@ -491,6 +558,14 @@ function renderNotebook(state: HudState) {
         .join("")}
     </div>
   `;
+}
+
+function getCurrentStepTitle(state: HudState) {
+  if (!state.evidence.has("summaryReport")) return "ابدأ من مكتبك وافتح التقرير المختصر.";
+  if (!state.evidence.has("hrPolicy")) return "لا تفسر الأرقام قبل معرفة قاعدة HR.";
+  if (!state.evidence.has("repCards")) return "اذهب للمبيعات وافتح تفاصيل أداء الأفراد.";
+  if (!state.submitted) return "قارن الأدلة ثم اتخذ قرارًا لكل فريق.";
+  return "راجع العاقبة: هل كان القرار عادلًا ومدعومًا؟";
 }
 
 function renderPanelHeader(title: string, copy: string) {

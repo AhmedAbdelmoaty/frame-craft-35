@@ -69,6 +69,8 @@ function renderProfileScreen() {
 }
 
 function bootSlice(profile: PlayerProfile) {
+  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+
   appRoot.innerHTML = `
     <main class="game-shell">
       <section id="game-root" class="game-root" aria-label="خريطة الشركة"></section>
