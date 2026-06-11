@@ -1,57 +1,88 @@
-# MADAR Analyst Slice
+# Statistics Business Game
 
-Arabic-first Vite + Phaser prototype for a statistics/business learning game.
+This is the clean root workspace for the new statistics/business learning game.
 
-Read first:
+The game itself has not been designed or built yet. The current repository is prepared for discovery, planning, asset workflow design, prompt organization, and future implementation.
 
-1. `PROJECT_BRIEF.md`
-2. `AGENT_PLAYBOOK.md`
-3. `package.json`
-4. `src/data/salesCase.ts`
-5. `src/game/simulation.ts`
-6. `src/ui/hud.ts`
-7. `src/scenes/OfficeScene.ts`
+## Current Structure
 
-## What This Is
-
-The player is a data analyst inside Madar Distribution. The first playable slice teaches the `Misunderstanding Statistics` case from `Why Analysis Fails - HR.pdf`.
-
-The player collects evidence, learns the HR performance rule, inspects two sales teams, submits a recommendation, and sees consequences.
-
-Correct case interpretation:
-
-- Team A has the higher average but only 3/10 reps meet the 85% threshold.
-- Team B has the lower average but 10/10 reps meet the 85% threshold.
-- Strong recommendation: train/coach Team A and reward Team B.
-
-## Rules
-
-- Game-first, not quiz-first.
-- Arabic-first player-facing text.
-- Do not reveal early that the mean is misleading.
-- Do not copy old reference projects.
-- Next priority: improve game logic and player clarity before more assets.
-
-## Run
-
-```bash
-npm install
-npm run dev
+```text
+src/          future game source code
+public/       future runtime public files
+assets/       new-game asset workspace
+docs/         project knowledge, workflows, plans, prompts, and decisions
+.codex/skills project-local agent skills
+references/   imported references and archived setup snapshots
 ```
 
-## Check
+## Important Rule
+
+All imported projects are workflow references only.
+
+Do not copy their visual style, genre, characters, enemies, combat systems, story, or specific game identity into this project.
+
+Use them only to learn:
+
+* planning habits
+* prompt patterns
+* skill-selection logic
+* asset-generation pipelines
+* animated spritesheet workflows
+* testing methods
+* common failures and fixes
+
+## Before Building
+
+Do not build gameplay until these are defined:
+
+* target learner
+* statistics/business concept
+* learning goal
+* core player decision
+* feedback model
+* win/fail condition
+* smallest playable prototype
+* art direction
+
+## Key Docs
+
+Start with:
+
+* `docs/agent-system/AGENT_OPERATING_SYSTEM.md`
+* `docs/agent-system/READY_STATE.md`
+* `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
+* `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md`
+* `docs/checklists/TASK_READINESS_CHECKLIST.md`
+* `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
+* `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
+
+## Project-Local Skills
+
+The project includes these local Codex skills:
+
+* `.codex/skills/project-game-agent-router`
+* `.codex/skills/asset-generation-pipeline`
+* `.codex/skills/animated-spritesheet-pipeline`
+
+Use global skills for general Phaser, Three.js, React Three Fiber, Playwright, browser testing, and generic game implementation.
+
+## Commands
+
+No application build is configured yet.
 
 ```bash
 npm run check
+npm test
 ```
 
-## Notes For Lovable
+The previous Phaser starter project is preserved under:
 
-This is a Vite app. Preview route is `/`.
+```text
+references/imported-projects/root-phaser-starter/
+```
 
-If Lovable preview does not show the game, switch to the latest version/commit and run:
+Old setup snapshots are preserved under:
 
-```bash
-npm install
-npm run dev
+```text
+references/archive/internal-workspace-snapshots/
 ```

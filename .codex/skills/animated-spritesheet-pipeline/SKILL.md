@@ -11,7 +11,10 @@ Use this skill for animation sheets. Keep it focused on frame quality, consisten
 
 1. Identify the animation: idle, walk, talk, thinking, point/explain, interact, success, failure, or another non-combat action.
 2. Start from an approved character anchor when possible.
-3. Read `PROJECT_BRIEF.md` and `assets/ASSET_INDEX.md` only as needed.
+3. Read the project workflow only as needed:
+   - `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md`
+   - `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
+   - `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
 4. Decide the safest generation route:
    - pose sheet from image generation
    - video-to-frames followed by recovery
@@ -26,7 +29,7 @@ Use this skill for animation sheets. Keep it focused on frame quality, consisten
    - no fake transparency
    - no cropped extremities
 7. Pack into a fixed-cell spritesheet only after curation.
-8. Update `assets/ASSET_INDEX.md` only for current useful candidates.
+8. Update any asset index or manifest when the project has one.
 9. Run a visual/in-game preview before marking ready.
 
 ## Common Failure Checks

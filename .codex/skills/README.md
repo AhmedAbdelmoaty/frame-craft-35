@@ -1,12 +1,13 @@
 # Project-Local Codex Skills
 
-These small skills are kept for Codex only.
+These skills are customized for this statistics/business game workspace.
 
-Read `PROJECT_BRIEF.md` and `AGENT_PLAYBOOK.md` first, then use the relevant skill:
+Use global Codex/Game Studio skills for general Phaser, Three.js, React Three Fiber, Playwright, and browser-game implementation.
 
-- `project-game-agent-router`
-- `asset-generation-pipeline`
-- `animated-spritesheet-pipeline`
-- `project-walk-cycle-pipeline`
+Project-local skills currently cover:
 
-Use global Game Studio / Phaser / browser-testing skills for general implementation.
+* `project-game-agent-router`
+* `asset-generation-pipeline`
+* `animated-spritesheet-pipeline`
+
+They exist to apply this project's extracted mentor workflow without copying reference-project style or content.

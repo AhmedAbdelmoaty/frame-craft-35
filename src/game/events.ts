@@ -1,19 +1,18 @@
-import type { BriefcaseFileId, GamePhase, NPCId, Recommendation } from "./types";
+import type { HotspotId, PlayerDecision, StationId } from "./types";
 
 type GameEventMap = {
-  phasechange: CustomEvent<{ phase: GamePhase }>;
-  enterphase: CustomEvent<{ phase: GamePhase }>;
-  npcinteract: CustomEvent<{ npc: NPCId }>;
-  opendesk: CustomEvent<undefined>;
-  filecollected: CustomEvent<{ file: BriefcaseFileId }>;
-  submitrecommendation: CustomEvent<{ recommendation: Recommendation }>;
-  replay: CustomEvent<undefined>;
+  stationchange: CustomEvent<{ station: StationId }>;
+  movetostation: CustomEvent<{ station: StationId }>;
+  hotspotinteract: CustomEvent<{ hotspot: HotspotId; station: StationId }>;
+  decisionsubmitted: CustomEvent<{ decisions: PlayerDecision }>;
+  resetdecision: CustomEvent<undefined>;
 };
 
 class TypedEventBus extends EventTarget {
   emit<K extends keyof GameEventMap>(type: K, detail: GameEventMap[K]["detail"]) {
     this.dispatchEvent(new CustomEvent(type, { detail }));
   }
+
   on<K extends keyof GameEventMap>(type: K, handler: (event: GameEventMap[K]) => void) {
     this.addEventListener(type, handler as EventListener);
     return () => this.removeEventListener(type, handler as EventListener);
