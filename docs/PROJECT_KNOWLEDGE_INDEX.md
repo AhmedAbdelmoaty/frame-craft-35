@@ -1,102 +1,99 @@
 # Project Knowledge Index
 
-Use this index to choose the minimum file set. Do not read every docs folder.
+This is the customized knowledge base for the statistics/business game.
 
-## Current Active Direction
+It contains the lessons extracted from mentor transcripts and reference projects, rewritten for this project rather than copied as reference content.
 
-Active direction: `Analyst Triage`.
+## Agent System
 
-Professional game-first learning experience for IMP.
+* `docs/agent-system/AGENT_OPERATING_SYSTEM.md`
+* `docs/agent-system/READY_STATE.md`
+* `docs/WORKSPACE_CLEANUP_AUDIT.md`
 
-Topic: `Descriptive Statistics for Data Analysts`.
+Use these to understand how Codex should work with a non-technical user, choose workflows automatically, plan safely, avoid copying reference styles, and avoid scanning unnecessary folders.
 
-Player: `Data Analyst` / `Business Performance Analyst` inside a retail company.
+## Workflows
 
-Goal: teach statistics through gameplay actions and consequences, not through quiz/course/dashboard/case-study format.
+* `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
+* `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md`
+* `docs/workflows/ISOMETRIC_WORKFLOW.md`
 
-## Active Source of Truth
+Use these for project-specific asset, animation, and isometric workflows.
 
-Current Analyst Triage source of truth:
+## Game Direction
 
-- `AGENTS.md`
-- `docs/PROJECT_KNOWLEDGE_INDEX.md`
-- `docs/game-design/ANALYST_TRIAGE_MASTER_BLUEPRINT.md`
-- `docs/game-design/PROTOTYPE_V1_PLAYABLE_SPEC.md`
-- `docs/game-design/FEEDBACK_ANIMATION_RULEBOOK.md`
-- `docs/game-design/DEVELOPMENT_ROADMAP_V1_TO_FULL.md`
-- `docs/game-design/MISSIONS_PROGRESSION.md`
-- `docs/codex/CODEX_EXECUTION_MANUAL.md`
-- `docs/codex/TASK_PROMPTS_SEQUENCE.md`
-- `docs/codex/NO_GO_AND_ACCEPTANCE_CRITERIA.md`
-- `docs/codex/CREDIT_SAVER_RULES.md`
+* `docs/GAME_SLICE_IDENTITY.md`
+* `docs/CHARACTER_BIBLE.md`
 
-Use these files for Analyst Triage game design, prototype planning, feedback rules, roadmap, task sequencing, and Codex execution constraints.
+Use these as the approved identity and character direction for the MADAR analyst slice before generating or replacing game assets.
 
-## Analyst Triage Project Skills
+## Prompt Library
 
-Use these project-local skills only when their task matches:
+* `docs/prompt-library/ASSET_PROMPT_PATTERNS.md`
+* `docs/mentor-playbook/PROMPT_PATTERNS.md`
 
-- `.codex/skills/analyst-triage-prototype-task/`
-- `.codex/skills/gameplay-feedback-review/`
-- `.codex/skills/credit-safe-codex-task/`
+Use these as starting patterns, then customize prompts for the actual game concept.
 
-## Legacy / Reference-Only Material
+## Checklists
 
-These files and notes are reference-only and are not final design if they conflict with Analyst Triage:
+* `docs/checklists/TASK_READINESS_CHECKLIST.md`
+* `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
 
-- `docs/HANDOFF_CURRENT_STATE.md`
-- `docs/GAME_SLICE_IDENTITY.md`
-- older B2B Distribution / Madar Distribution notes
-- old prototype/handoff notes
-- reference-strategy docs
-- mentor-playbook docs
-- old workflow docs
+Use before and after tasks to avoid common mistakes.
 
-Do not delete these files. Use them only when their historical or workflow context is directly relevant.
+## Skill Planning
 
-## Workflow References
+* `docs/skill-plans/SKILL_CONSOLIDATION_RECOMMENDATION.md`
+* `docs/skill-plans/SKILL_DECISION_MATRIX.md`
+* `docs/mentor-playbook/SKILL_ACTION_PLAN.md`
+* `docs/mentor-playbook/SKILLS_INVENTORY.md`
 
-Use only when the task needs them:
-
-- Asset workflows only for asset tasks:
-  - `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
-  - `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
-- Animation workflows only for animation tasks:
-  - `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md`
-  - `docs/workflows/ISOMETRIC_WORKFLOW.md`
-- Reference audits only for reference cleanup or workflow lookup tasks:
-  - `docs/audit/REFERENCE_PROJECTS_AUDIT.md`
-  - `docs/reference-strategy/REFERENCE_EXTRACTION_STATUS.md`
-- Mentor playbook only for workflow questions:
-  - `docs/mentor-playbook/AI_GAME_DEV_MENTOR_PLAYBOOK.md`
-  - `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
-  - `docs/mentor-playbook/ASSET_PIPELINE.md`
-  - `docs/mentor-playbook/COMMON_FAILURES_AND_FIXES.md`
-- Skills docs only for skill planning tasks:
-  - `docs/skill-plans/SKILL_CONSOLIDATION_RECOMMENDATION.md`
-  - `docs/skill-plans/SKILL_DECISION_MATRIX.md`
-  - `docs/mentor-playbook/SKILL_ACTION_PLAN.md`
-  - `docs/mentor-playbook/SKILLS_INVENTORY.md`
+Use these before copying, converting, or creating project-local skills.
 
 ## Project-Local Skills
 
-Project-local Codex skills are stored under `.codex/skills/`.
+Project-local Codex skills are stored under:
 
-Use them only when relevant to the active task. Use global Codex/Game Studio skills for general Phaser, Three.js, React Three Fiber, Playwright, browser testing, and generic game implementation.
+* `.codex/skills/project-game-agent-router/`
+* `.codex/skills/asset-generation-pipeline/`
+* `.codex/skills/animated-spritesheet-pipeline/`
+* `.codex/skills/project-walk-cycle-pipeline/`
+
+Use these for project-specific routing, asset generation, spritesheet workflow, and one-direction walk-cycle generation. Use global Codex/Game Studio skills for general Phaser, Three.js, React Three Fiber, Playwright, browser testing, and generic sprite generation.
+
+## Audits
+
+* `docs/audit/REFERENCE_PROJECTS_AUDIT.md`
+* `docs/audit/SKILLS_AUDIT.md`
+* `docs/audit/PROMPTS_AND_PLANS_AUDIT.md`
+
+Use these to understand what was learned from references and what still needs decisions.
+
+## Mentor Playbook
+
+* `docs/mentor-playbook/AI_GAME_DEV_MENTOR_PLAYBOOK.md`
+* `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
+* `docs/mentor-playbook/ASSET_PIPELINE.md`
+* `docs/mentor-playbook/COMMON_FAILURES_AND_FIXES.md`
+
+Use these as the long-term memory of the extracted AI game-development workflow.
 
 ## References
 
 Reference projects are stored under:
 
-- `references/imported-projects/`
-- `references/archive/internal-workspace-snapshots/`
+* `references/imported-projects/`
+* `references/archive/internal-workspace-snapshots/`
+* `docs/reference-strategy/REFERENCE_EXTRACTION_STATUS.md`
 
-References are workflow-only. They are not final style, story, genre, mechanics, characters, or game identity.
+References are not final style. They exist for traceability and workflow inspection only.
 
-Do not recursively inspect `references/` by default. If a named workflow lookup is needed, read the reference audit/status docs first, then open only the specific named reference path.
+Do not recursively inspect `references/` by default. Read `docs/audit/REFERENCE_PROJECTS_AUDIT.md` and `docs/reference-strategy/REFERENCE_EXTRACTION_STATUS.md`, then open only the specific reference path needed for the task.
+
+The original root Phaser starter is stored at:
+
+* `references/imported-projects/root-phaser-starter/`
 
 ## Default Reading Discipline
 
-Start with `AGENTS.md`, this index, and the specific task/design file named by the user.
-
-Skip `node_modules/`, `dist/`, `tmp/`, broad docs scans, broad asset scans, and recursive reference scans unless the task explicitly requires them.
+Do not read every file in the workspace. Start with this index, `AGENTS.md`, and the task-specific local skill. Skip `node_modules/`, `dist/`, `tmp/`, and recursive reference scans unless the task explicitly requires them.

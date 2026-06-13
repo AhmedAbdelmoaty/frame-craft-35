@@ -1,95 +1,106 @@
 # AGENTS.md
 
-This repository is the workspace for the IMP educational game project.
+This repository is the clean root workspace for a new statistics/business learning game.
 
-## Project Direction
+## Current State
 
-- Current approved game direction: `Analyst Triage`.
-- IMP professional game-first learning experience.
-- Topic: `Descriptive Statistics for Data Analysts`.
-- Player: `Data Analyst` / `Business Performance Analyst` inside a retail company.
-- Older B2B Distribution / Madar Distribution / investigation-slice framing is legacy unless explicitly re-approved.
+No gameplay has been built yet.
 
-## Default Reading Rule
+The old Phaser starter project is preserved as a reference under:
 
-Before any task, read only:
+`references/imported-projects/root-phaser-starter/`
 
-- `AGENTS.md`
-- `docs/PROJECT_KNOWLEDGE_INDEX.md`
-- the specific active task file or design file named by the user
+Imported mentor/reference projects are preserved under:
 
-Do NOT read all docs.
-Do NOT recursively scan references.
-Do NOT scan assets unless the task is asset-related.
-Do NOT inspect `node_modules`, `dist`, or `tmp`.
+`references/imported-projects/`
 
-## Current Source of Truth
+These references are workflow material only. Do not copy their visual style, genre, characters, enemies, story, combat systems, or specific game identity.
 
-For any Analyst Triage game-design, prototype, feedback, roadmap, or Codex execution task, the main source of truth is now:
+## First Files To Read
 
-- `docs/game-design/ANALYST_TRIAGE_MASTER_BLUEPRINT.md`
-- `docs/game-design/PROTOTYPE_V1_PLAYABLE_SPEC.md`
-- `docs/game-design/FEEDBACK_ANIMATION_RULEBOOK.md`
-- `docs/game-design/DEVELOPMENT_ROADMAP_V1_TO_FULL.md`
-- `docs/game-design/MISSIONS_PROGRESSION.md`
-- `docs/codex/CODEX_EXECUTION_MANUAL.md`
-- `docs/codex/TASK_PROMPTS_SEQUENCE.md`
-- `docs/codex/NO_GO_AND_ACCEPTANCE_CRITERIA.md`
-- `docs/codex/CREDIT_SAVER_RULES.md`
+Before major work, read:
 
-Use `AGENTS.md` and `docs/PROJECT_KNOWLEDGE_INDEX.md` as the reading router and guardrails.
+* `docs/PROJECT_KNOWLEDGE_INDEX.md`
+* `docs/agent-system/AGENT_OPERATING_SYSTEM.md`
+* `docs/agent-system/READY_STATE.md`
+* `docs/checklists/TASK_READINESS_CHECKLIST.md`
+* `docs/mentor-playbook/FINAL_MENTOR_WORKFLOW_SUMMARY.md`
+
+Do not recursively read `docs/`, `references/`, `assets/`, or the whole workspace by default. Use the index and the task-specific skill to choose the minimum files needed.
+
+## Project-Local Skills
+
+Use these local Codex skills when relevant:
+
+* `.codex/skills/project-game-agent-router` - choose the right workflow for vague or non-technical requests.
+* `.codex/skills/asset-generation-pipeline` - generate and validate still assets.
+* `.codex/skills/animated-spritesheet-pipeline` - create, clean, normalize, and test animation sheets.
+* `.codex/skills/project-walk-cycle-pipeline` - generate, recover, review, and index one-direction character walk cycles with project-specific speed and quality rules.
+
+Prefer global skills for general Phaser, Three.js, React Three Fiber, Playwright, and browser-game implementation.
+
+For assets, also read:
+
+* `docs/workflows/ASSET_GENERATION_WORKFLOW.md`
+* `docs/workflows/ANIMATED_SPRITESHEET_WORKFLOW.md`
+* `docs/checklists/ASSET_QUALITY_CHECKLIST.md`
+
+## Agent Startup Contract
+
+Use the smallest relevant context for the task:
+
+* Asset anchors/turnarounds: read `assets/ASSET_INDEX.md`, `docs/CHARACTER_BIBLE.md`, and `.codex/skills/asset-generation-pipeline/SKILL.md`.
+* Walk cycles: read `assets/ASSET_INDEX.md`, `docs/SPRITESHEET_EXECUTION_NOTES.md`, and `.codex/skills/project-walk-cycle-pipeline/SKILL.md`.
+* General animation work outside walk cycles: read `.codex/skills/animated-spritesheet-pipeline/SKILL.md` plus only the relevant workflow/checklist.
+* Gameplay/runtime work: read `docs/GAME_SLICE_IDENTITY.md`, the relevant `src/` files, and the appropriate Game Studio/global skill.
+* Reference research: read `docs/audit/REFERENCE_PROJECTS_AUDIT.md` first; inspect `references/` only for a specific workflow question.
+
+Skip these directories unless the task explicitly requires them:
+
+* `node_modules/`
+* `dist/`
+* `tmp/`
+* `references/` recursive scans
+* old rejected/generated drafts not referenced by `assets/ASSET_INDEX.md`
 
 ## User Context
 
-The user is non-technical.
+The user is not technical.
 
-Do not ask the user technical questions about engines, file architecture, sprite frame counts, or workflows.
+Do not expect the user to know:
 
-Choose workflow automatically and explain simply.
+* which skill to use
+* which engine to choose
+* how spritesheets work
+* how asset cleanup works
+* how to test visual bugs
+* how to structure prompts
+
+Choose the correct workflow automatically and explain decisions simply.
 
 ## Core Rules
 
-- Game-first, not quiz-first.
-- Do not convert the case study into clickable slides or reports.
-- Do not use walking between rooms as the core gameplay.
-- Do not use NPC dialogue as the core gameplay.
-- Do not build gameplay before the approved prototype spec is added.
-- Do not generate assets before the core playable prototype requires them.
-- Do not copy reference project style/content.
-- Use small scoped tasks.
-- Every implementation task must state:
-  - Goal
-  - Files to read
-  - Files to edit
-  - Constraints
-  - Done when
+* Do not build gameplay until the game vision and prototype plan are approved.
+* Do not copy reference project style or content.
+* Do not duplicate global skills unless a project-local skill adds clear value.
+* Do not delete reference material without explicit approval.
+* Use plans for multi-step work.
+* Use visual/browser testing when visual behavior matters.
+* Treat AI-generated assets as raw material until cleaned, normalized, indexed, and tested.
 
-## References Rule
+## Project Structure
 
-`references/` are workflow-only.
-
-Do not delete references.
-Do not read them unless the current task explicitly asks for a named workflow lookup.
-
-If needed, read `docs/audit/REFERENCE_PROJECTS_AUDIT.md` and `docs/reference-strategy/REFERENCE_EXTRACTION_STATUS.md` first, then inspect only the named reference path.
-
-## Skills Rule
-
-Use existing project-local skills only when relevant.
-
-Analyst Triage project-local skills are available for scoped prototype, feedback, and credit-safe Codex tasks:
-
-- `.codex/skills/analyst-triage-prototype-task/`
-- `.codex/skills/gameplay-feedback-review/`
-- `.codex/skills/credit-safe-codex-task/`
-
-Do not create new skills in this task.
-Do not copy skills from references in this task.
+```text
+src/          future game source code
+public/       future runtime public files
+assets/       new-game asset workspace
+docs/         project knowledge and decisions
+references/   imported references and old starter snapshots
+```
 
 ## Commands
 
-Run commands only when relevant.
-Do not run build/server for docs-only tasks.
+No app build is configured yet.
 
 ```bash
 npm run check

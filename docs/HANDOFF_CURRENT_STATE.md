@@ -1,13 +1,5 @@
 # Handoff Current State - MADAR Analyst Slice
 
-> STATUS NOTE:
-> This file is partially outdated and must NOT be used as the final game design source of truth.
-> It preserves useful asset/workflow history only.
-> The approved current direction is Analyst Triage:
-> a game-first Descriptive Statistics for Data Analysts experience set inside a Retail company, with the player as a Data Analyst / Business Performance Analyst.
-> Any older B2B Distribution / Madar Distribution / investigation-slice framing is legacy unless explicitly re-approved.
-> Do not use this handoff to override AGENTS.md or the future Analyst Triage design files.
-
 Last updated: 2026-06-06.
 
 This document is the starting brief for a fresh Codex chat. Read it before doing any new work.
