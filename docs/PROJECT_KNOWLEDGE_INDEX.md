@@ -16,14 +16,29 @@ Goal: teach statistics through gameplay actions and consequences, not through qu
 
 ## Active Source of Truth
 
-Current:
+Current Analyst Triage source of truth:
 
 - `AGENTS.md`
 - `docs/PROJECT_KNOWLEDGE_INDEX.md`
+- `docs/game-design/ANALYST_TRIAGE_MASTER_BLUEPRINT.md`
+- `docs/game-design/PROTOTYPE_V1_PLAYABLE_SPEC.md`
+- `docs/game-design/FEEDBACK_ANIMATION_RULEBOOK.md`
+- `docs/game-design/DEVELOPMENT_ROADMAP_V1_TO_FULL.md`
+- `docs/game-design/MISSIONS_PROGRESSION.md`
+- `docs/codex/CODEX_EXECUTION_MANUAL.md`
+- `docs/codex/TASK_PROMPTS_SEQUENCE.md`
+- `docs/codex/NO_GO_AND_ACCEPTANCE_CRITERIA.md`
+- `docs/codex/CREDIT_SAVER_RULES.md`
 
-Later:
+Use these files for Analyst Triage game design, prototype planning, feedback rules, roadmap, task sequencing, and Codex execution constraints.
 
-- `docs/game-design/...` Analyst Triage files will become the main design source of truth once added.
+## Analyst Triage Project Skills
+
+Use these project-local skills only when their task matches:
+
+- `.codex/skills/analyst-triage-prototype-task/`
+- `.codex/skills/gameplay-feedback-review/`
+- `.codex/skills/credit-safe-codex-task/`
 
 ## Legacy / Reference-Only Material
 

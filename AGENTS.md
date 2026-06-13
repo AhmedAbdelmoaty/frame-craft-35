@@ -25,9 +25,19 @@ Do NOT inspect `node_modules`, `dist`, or `tmp`.
 
 ## Current Source of Truth
 
-Until Analyst Triage design files are added, the current direction comes from this `AGENTS.md` and `docs/PROJECT_KNOWLEDGE_INDEX.md`.
+For any Analyst Triage game-design, prototype, feedback, roadmap, or Codex execution task, the main source of truth is now:
 
-When Analyst Triage design files are added later, they become the main design source of truth.
+- `docs/game-design/ANALYST_TRIAGE_MASTER_BLUEPRINT.md`
+- `docs/game-design/PROTOTYPE_V1_PLAYABLE_SPEC.md`
+- `docs/game-design/FEEDBACK_ANIMATION_RULEBOOK.md`
+- `docs/game-design/DEVELOPMENT_ROADMAP_V1_TO_FULL.md`
+- `docs/game-design/MISSIONS_PROGRESSION.md`
+- `docs/codex/CODEX_EXECUTION_MANUAL.md`
+- `docs/codex/TASK_PROMPTS_SEQUENCE.md`
+- `docs/codex/NO_GO_AND_ACCEPTANCE_CRITERIA.md`
+- `docs/codex/CREDIT_SAVER_RULES.md`
+
+Use `AGENTS.md` and `docs/PROJECT_KNOWLEDGE_INDEX.md` as the reading router and guardrails.
 
 ## User Context
 
@@ -66,6 +76,12 @@ If needed, read `docs/audit/REFERENCE_PROJECTS_AUDIT.md` and `docs/reference-str
 ## Skills Rule
 
 Use existing project-local skills only when relevant.
+
+Analyst Triage project-local skills are available for scoped prototype, feedback, and credit-safe Codex tasks:
+
+- `.codex/skills/analyst-triage-prototype-task/`
+- `.codex/skills/gameplay-feedback-review/`
+- `.codex/skills/credit-safe-codex-task/`
 
 Do not create new skills in this task.
 Do not copy skills from references in this task.
