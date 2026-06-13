@@ -3,6 +3,9 @@ import { createGame } from "./game/createGame";
 import { createHud } from "./ui/hud";
 import type { PlayerProfile } from "./game/types";
 
+const APP_VERSION = "MADAR-ANALYST-2026-06-13-LATEST";
+const CACHE_CLEANUP_KEY = `madar-cache-cleaned:${APP_VERSION}`;
+
 const app = document.querySelector<HTMLDivElement>("#app");
 
 if (!app) {
@@ -10,6 +13,10 @@ if (!app) {
 }
 
 const appRoot = app;
+
+document.documentElement.dataset.appVersion = APP_VERSION;
+
+void clearStalePreviewCache();
 
 const defaultProfile: PlayerProfile = {
   name: "نور",
@@ -73,11 +80,39 @@ function bootSlice(profile: PlayerProfile) {
     <main class="game-shell">
       <section id="game-root" class="game-root" aria-label="خريطة الشركة"></section>
       <section id="hud-root" class="hud-root" aria-label="أدوات اللعبة"></section>
+      <span class="version-badge" aria-label="نسخة اللعبة الحالية">آخر نسخة · ${APP_VERSION}</span>
     </main>
   `;
 
   createHud(profile);
   createGame(profile);
+}
+
+async function clearStalePreviewCache() {
+  if (sessionStorage.getItem(CACHE_CLEANUP_KEY) === "done") return;
+
+  const cleanupTasks: Promise<unknown>[] = [];
+
+  if ("serviceWorker" in navigator) {
+    cleanupTasks.push(
+      navigator.serviceWorker.getRegistrations().then((registrations) => Promise.all(registrations.map((item) => item.unregister()))),
+    );
+  }
+
+  if ("caches" in window) {
+    cleanupTasks.push(caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))));
+  }
+
+  if (!cleanupTasks.length) {
+    sessionStorage.setItem(CACHE_CLEANUP_KEY, "done");
+    return;
+  }
+
+  try {
+    await Promise.allSettled(cleanupTasks);
+  } finally {
+    sessionStorage.setItem(CACHE_CLEANUP_KEY, "done");
+  }
 }
 
 renderProfileScreen();
