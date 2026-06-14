@@ -894,3 +894,78 @@ body.l1-room-open #game-root {
 .l1-tabcard__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .l1-tabcard__head h4 { margin: 0; }
 
+
+/* ---------- Phase 6 Polish ---------- */
+
+/* Toast (top-center, slides down) */
+.l1-toast {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  background: linear-gradient(180deg, #1a3a5c 0%, #0f2740 100%);
+  color: #fff8d8;
+  border: 1px solid rgba(255, 200, 80, 0.5);
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-family: "Tajawal", "Cairo", "Inter", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 14px 32px -10px rgba(0,0,0,0.45), 0 0 0 4px rgba(255,200,80,0.08);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3000;
+  transition: opacity 240ms ease, transform 280ms cubic-bezier(.2,.8,.2,1);
+}
+.l1-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Mission File last-update chip */
+.l1-mission__last-update {
+  margin-inline-start: auto;
+  margin-inline-end: 12px;
+  background: var(--l1-accent-soft);
+  color: var(--l1-accent);
+  border: 1px solid rgba(43, 120, 197, 0.25);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: l1-update-flash 600ms ease-out;
+}
+@keyframes l1-update-flash {
+  0% { transform: scale(0.92); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Level complete banner */
+.l1-result__complete {
+  display: inline-block;
+  background: linear-gradient(90deg, #f5c542, #f7e08c, #f5c542);
+  color: #4a3300;
+  font-weight: 900;
+  font-size: 16px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 20px -8px rgba(245, 197, 66, 0.6);
+  animation: l1-complete-pop 520ms cubic-bezier(.2,.9,.2,1.1);
+}
+@keyframes l1-complete-pop {
+  0% { transform: scale(0) rotate(-8deg); opacity: 0; }
+  70% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* Meeting unlock ready glow already exists; reinforce subtle pulse */
+.l1-topbar__meeting-btn--ready {
+  animation: l1-ready-glow 2.2s ease-in-out infinite;
+}
+@keyframes l1-ready-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 197, 66, 0.0); }
+  50%      { box-shadow: 0 0 0 6px rgba(245, 197, 66, 0.25); }
+}
