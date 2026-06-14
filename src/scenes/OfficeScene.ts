@@ -557,7 +557,18 @@ export class OfficeScene extends Phaser.Scene {
       decision: s.finalOutcome !== null,
     };
     this.stationBadges.forEach((badge, id) => {
-      badge.setVisible(Boolean(completion[id]));
+      const shouldShow = Boolean(completion[id]);
+      const wasShowing = badge.visible;
+      badge.setVisible(shouldShow);
+      if (shouldShow && !wasShowing) {
+        badge.setScale(0);
+        this.tweens.add({
+          targets: badge,
+          scale: 1,
+          duration: 380,
+          ease: "Back.easeOut",
+        });
+      }
     });
   }
 
