@@ -79,13 +79,12 @@ function bootSlice(profile: PlayerProfile) {
   appRoot.innerHTML = `
     <main class="game-shell">
       <section id="game-root" class="game-root" aria-label="خريطة الشركة"></section>
-      <section id="hud-root" class="hud-root" aria-label="أدوات اللعبة"></section>
       <span class="version-badge" aria-label="نسخة اللعبة الحالية">آخر نسخة · ${APP_VERSION}</span>
     </main>
   `;
 
-  createHud(profile);
   createGame(profile);
+  initLevel1();
 }
 
 async function clearStalePreviewCache() {
