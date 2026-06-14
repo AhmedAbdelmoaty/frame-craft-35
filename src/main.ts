@@ -1,6 +1,6 @@
 import "./styles.css";
 import { createGame } from "./game/createGame";
-import { createHud } from "./ui/hud";
+import { initLevel1 } from "./level1";
 import type { PlayerProfile } from "./game/types";
 
 const APP_VERSION = "MADAR-ANALYST-2026-06-13-LATEST";
