@@ -67,6 +67,8 @@ const initialState: Level1State = {
   missionFileOpen: false,
   missionFileTab: "brief",
   notesText: "",
+  meetingUnlockSeen: false,
+  lastMissionUpdate: null,
 };
 
 type Listener = (state: Level1State) => void;
