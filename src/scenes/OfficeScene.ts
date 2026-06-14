@@ -197,11 +197,11 @@ export class OfficeScene extends Phaser.Scene {
     graphics.fillStyle(0x3d8644, 1);
     graphics.fillCircle(135, 101, 15);
 
-    this.add.text(168, 85, "شركة مدار للتوزيع", this.labelStyle(24, "#17202a", "900"));
-    this.add.text(168, 112, "مهمة مراجعة أداء شهرية", this.labelStyle(13, "#607083", "700"));
+    this.add.text(168, 85, "مجموعة رواج للتجزئة", this.labelStyle(24, "#17202a", "900"));
+    this.add.text(168, 112, "اجتماع اعتماد مكافآت الفروع", this.labelStyle(13, "#607083", "700"));
 
-    this.add.text(1118, 82, "MADAR HQ", this.labelStyle(22, "#27313c", "900"));
-    this.add.text(1118, 110, "B2B Distribution", this.labelStyle(13, "#607083", "700"));
+    this.add.text(1118, 82, "RIWAJ HQ", this.labelStyle(22, "#27313c", "900"));
+    this.add.text(1118, 110, "Retail Group", this.labelStyle(13, "#607083", "700"));
   }
 
   private drawRooms() {
