@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { stationCopy } from "../data/salesCase";
 import { gameEvents } from "../game/events";
 import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types";
+import { getState, subscribe } from "../level1/state/store";
 
 const STATION_TO_ROOM: Record<StationId, RoomId> = {
   lobby: "office",
@@ -125,11 +126,13 @@ export class OfficeScene extends Phaser.Scene {
   private playerLabel?: Phaser.GameObjects.Text;
   private prompt?: Phaser.GameObjects.Container;
   private stationHighlights = new Map<StationId, Phaser.GameObjects.Rectangle>();
+  private stationBadges = new Map<StationId, Phaser.GameObjects.Container>();
   private hotspots = new Map<HotspotId, HotspotView>();
   private currentStation: StationId = "lobby";
   private moving = false;
   private unsubscribeMove?: () => void;
   private unsubscribeDecision?: () => void;
+  private unsubscribeStore?: () => void;
 
   constructor(private readonly profile: PlayerProfile) {
     super("OfficeScene");
@@ -169,9 +172,13 @@ export class OfficeScene extends Phaser.Scene {
       this.playDecisionPulse();
     });
 
+    this.unsubscribeStore = subscribe(() => this.refreshBadges());
+    this.refreshBadges();
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeMove?.();
       this.unsubscribeDecision?.();
+      this.unsubscribeStore?.();
     });
   }
 
