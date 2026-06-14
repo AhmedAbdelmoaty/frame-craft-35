@@ -3,7 +3,8 @@
 import type { BranchId } from "../data/branches";
 
 export type Branch = BranchId;
-export type Outcome = "strong_success" | "partial_success" | "failure" | null;
+export type Outcome = "success" | "failure" | null;
+export type FailureReason = "chose_corniche" | "midan_weak_evidence" | "incomplete" | null;
 export type RoomLocation = "office" | "sales" | "hr" | "meeting" | "map";
 export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
 export type ToolId = "mean" | "threshold" | "median" | "stability";
