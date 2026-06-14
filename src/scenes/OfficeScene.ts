@@ -435,6 +435,7 @@ export class OfficeScene extends Phaser.Scene {
   private interactWith(hotspot: HotspotView) {
     this.setStation(hotspot.station, true, () => {
       gameEvents.emit("hotspotinteract", { hotspot: hotspot.id, station: hotspot.station });
+      gameEvents.emit("enterRoom", { roomId: STATION_TO_ROOM[hotspot.station] });
       this.showPrompt(hotspot);
     });
   }
