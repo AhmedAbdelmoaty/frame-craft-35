@@ -322,9 +322,9 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private drawNpcs() {
-    this.drawNpc(875, 280, assetKeys.salesManager, "عمر", "مدير المبيعات");
-    this.drawNpc(780, 612, assetKeys.hrManager, "سارة", "مديرة HR");
-    this.drawNpc(220, 604, assetKeys.dataCoach, "ليلى", "Data Coach");
+    this.drawNpc(875, 280, assetKeys.salesManager, "عماد", "مدير المبيعات");
+    this.drawNpc(780, 612, assetKeys.hrManager, "ليلى", "مديرة HR");
+    this.drawNpc(1180, 305, assetKeys.dataCoach, "نادر", "المدير المالي");
     this.animateWorker(this.drawNpc(510, 412, assetKeys.employee, "موظف", "عمليات", false), [
       { x: 510, y: 412 },
       { x: 650, y: 412 },
