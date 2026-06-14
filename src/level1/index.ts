@@ -4,11 +4,14 @@
 import "./styles/level1.css";
 import { gameEvents } from "../game/events";
 import type { RoomId } from "../game/types";
-import { setState } from "./state/store";
+import { setState, startTimer } from "./state/store";
 import { createAnalystOfficeScreen } from "./screens/AnalystOfficeScreen";
 import { createSalesOfficeScreen } from "./screens/SalesOfficeScreen";
 import { createHROfficeScreen } from "./screens/HROfficeScreen";
 import { createMeetingRoomScreen } from "./screens/MeetingRoomScreen";
+import { mountTopBar } from "./components/TopBar";
+import { mountMissionFileOverlay } from "./components/MissionFileOverlay";
+import { startTimerLoop } from "./logic/timer";
 
 type ScreenInstance = { root: HTMLElement; destroy: () => void };
 type ScreenFactory = () => ScreenInstance;
@@ -21,6 +24,7 @@ const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
 };
 
 let active: { roomId: RoomId; instance: ScreenInstance } | null = null;
+let booted = false;
 
 function openRoom(roomId: RoomId) {
   if (active?.roomId === roomId) return;
@@ -34,6 +38,7 @@ function openRoom(roomId: RoomId) {
   document.body.classList.add("l1-room-open");
   active = { roomId, instance };
   setState({ currentLocation: roomId });
+  startTimer();
 }
 
 function closeRoom() {
@@ -45,6 +50,14 @@ function closeRoom() {
 }
 
 export function initLevel1() {
+  if (booted) return;
+  booted = true;
+
+  mountTopBar(document.body);
+  mountMissionFileOverlay(document.body);
+  startTimerLoop();
+  startTimer();
+
   gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId));
   gameEvents.on("exitRoom", () => closeRoom());
 }

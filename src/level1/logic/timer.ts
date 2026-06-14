@@ -1,0 +1,25 @@
+import { getState, tickTimer } from "../state/store";
+
+let intervalId: number | null = null;
+
+export function startTimerLoop() {
+  if (intervalId !== null) return;
+  intervalId = window.setInterval(() => {
+    if (!getState().timerRunning) return;
+    tickTimer();
+  }, 1000);
+}
+
+export function stopTimerLoop() {
+  if (intervalId !== null) {
+    window.clearInterval(intervalId);
+    intervalId = null;
+  }
+}
+
+export function formatTime(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}

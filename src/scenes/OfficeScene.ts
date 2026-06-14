@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { stationCopy } from "../data/salesCase";
 import { gameEvents } from "../game/events";
 import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types";
+import { getState, subscribe } from "../level1/state/store";
 
 const STATION_TO_ROOM: Record<StationId, RoomId> = {
   lobby: "office",
@@ -125,11 +126,13 @@ export class OfficeScene extends Phaser.Scene {
   private playerLabel?: Phaser.GameObjects.Text;
   private prompt?: Phaser.GameObjects.Container;
   private stationHighlights = new Map<StationId, Phaser.GameObjects.Rectangle>();
+  private stationBadges = new Map<StationId, Phaser.GameObjects.Container>();
   private hotspots = new Map<HotspotId, HotspotView>();
   private currentStation: StationId = "lobby";
   private moving = false;
   private unsubscribeMove?: () => void;
   private unsubscribeDecision?: () => void;
+  private unsubscribeStore?: () => void;
 
   constructor(private readonly profile: PlayerProfile) {
     super("OfficeScene");
@@ -169,9 +172,13 @@ export class OfficeScene extends Phaser.Scene {
       this.playDecisionPulse();
     });
 
+    this.unsubscribeStore = subscribe(() => this.refreshBadges());
+    this.refreshBadges();
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeMove?.();
       this.unsubscribeDecision?.();
+      this.unsubscribeStore?.();
     });
   }
 
@@ -225,6 +232,10 @@ export class OfficeScene extends Phaser.Scene {
 
       const hotspot = this.addHotspot(station);
       this.hotspots.set(station.hotspot, hotspot);
+
+      // Phase 2: completion badge anchored to top of station
+      const badge = this.createBadge(station.x + station.width / 2 - 22, station.y - station.height / 2 + 14);
+      this.stationBadges.set(station.id, badge);
 
       if (station.id === "sales") {
         const cabinet = this.addHotspot({
@@ -522,6 +533,35 @@ export class OfficeScene extends Phaser.Scene {
       onComplete: () => pulse.destroy(),
     });
   }
+
+  private createBadge(x: number, y: number) {
+    const bg = this.add.circle(0, 0, 16, 0x2f8a4e, 1);
+    bg.setStrokeStyle(3, 0xffffff, 1);
+    const check = this.add.text(0, -1, "✓", {
+      color: "#ffffff",
+      fontFamily: "Tajawal, Inter, Arial, sans-serif",
+      fontSize: "20px",
+      fontStyle: "900",
+    }).setOrigin(0.5);
+    const container = this.add.container(x, y, [bg, check]).setDepth(2200);
+    container.setVisible(false);
+    return container;
+  }
+
+  private refreshBadges() {
+    const s = getState();
+    const completion: Partial<Record<StationId, boolean>> = {
+      lobby: s.hasReadBrief,
+      desk: s.hasReadBrief,
+      sales: s.hasSavedSalesSummary,
+      hr: s.hasSavedHRPolicy,
+      decision: s.finalOutcome !== null,
+    };
+    this.stationBadges.forEach((badge, id) => {
+      badge.setVisible(Boolean(completion[id]));
+    });
+  }
+
 
   private labelStyle(size = 16, color = "#17202a", weight = "900") {
     return {
