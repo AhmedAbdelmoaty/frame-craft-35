@@ -79,10 +79,18 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
     }
   };
 
+  const lastUpdateEl = root.querySelector<HTMLElement>("[data-last-update]")!;
+
   const render = () => {
     const s = getState();
     root.hidden = !s.missionFileOpen;
     tabBtns.forEach((b) => b.classList.toggle("l1-mission__tab--active", b.dataset.tab === s.missionFileTab));
+    if (s.lastMissionUpdate) {
+      lastUpdateEl.hidden = false;
+      lastUpdateEl.textContent = `آخر تحديث: ${s.lastMissionUpdate}`;
+    } else {
+      lastUpdateEl.hidden = true;
+    }
     if (s.missionFileOpen) renderActiveTab(s.missionFileTab);
   };
 
