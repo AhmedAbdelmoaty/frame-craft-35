@@ -534,6 +534,35 @@ export class OfficeScene extends Phaser.Scene {
     });
   }
 
+  private createBadge(x: number, y: number) {
+    const bg = this.add.circle(0, 0, 16, 0x2f8a4e, 1);
+    bg.setStrokeStyle(3, 0xffffff, 1);
+    const check = this.add.text(0, -1, "✓", {
+      color: "#ffffff",
+      fontFamily: "Tajawal, Inter, Arial, sans-serif",
+      fontSize: "20px",
+      fontStyle: "900",
+    }).setOrigin(0.5);
+    const container = this.add.container(x, y, [bg, check]).setDepth(2200);
+    container.setVisible(false);
+    return container;
+  }
+
+  private refreshBadges() {
+    const s = getState();
+    const completion: Partial<Record<StationId, boolean>> = {
+      lobby: s.hasReadBrief,
+      desk: s.hasReadBrief,
+      sales: s.hasSavedSalesSummary,
+      hr: s.hasSavedHRPolicy,
+      decision: s.finalOutcome !== null,
+    };
+    this.stationBadges.forEach((badge, id) => {
+      badge.setVisible(Boolean(completion[id]));
+    });
+  }
+
+
   private labelStyle(size = 16, color = "#17202a", weight = "900") {
     return {
       color,
