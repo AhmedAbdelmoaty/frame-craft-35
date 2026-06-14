@@ -1,6 +1,6 @@
 import { getState, setActiveTab, setMissionFileOpen, subscribe, type MissionTabId } from "../state/store";
 import { renderBriefTab } from "./tabs/BriefTab";
-import { renderPlaceholderTab } from "./tabs/PlaceholderTab";
+
 import { renderNotesTab } from "./tabs/NotesTab";
 import { renderBranchesTab } from "./tabs/BranchesTab";
 import { renderPolicyTab } from "./tabs/PolicyTab";
