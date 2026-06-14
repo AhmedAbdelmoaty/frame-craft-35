@@ -36,6 +36,8 @@ export interface Level1State {
   missionFileOpen: boolean;
   missionFileTab: MissionTabId;
   notesText: string;
+  meetingUnlockSeen: boolean;
+  lastMissionUpdate: string | null;
 }
 
 const initialState: Level1State = {
