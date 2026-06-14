@@ -154,3 +154,31 @@ export function isMeetingUnlocked(s: Level1State = state): boolean {
     (s.usedTypicalPerformance || s.usedStability || s.usedQuickNumber)
   );
 }
+
+// ----- Meeting -----
+export function setMeetingStage(stage: Level1State["meetingStage"]) {
+  setState({ meetingStage: stage });
+}
+export function selectBranch(branch: Branch) {
+  setState({ selectedBranch: branch });
+}
+export function toggleEvidence(id: string) {
+  const cur = state.selectedEvidenceIds;
+  if (cur.includes(id)) {
+    setState({ selectedEvidenceIds: cur.filter((x) => x !== id) });
+  } else if (cur.length < 2) {
+    setState({ selectedEvidenceIds: [...cur, id] });
+  }
+}
+export function submitRecommendation(outcome: Outcome, reason: FailureReason) {
+  setState({ finalOutcome: outcome, failureReason: reason, meetingStage: "result", timerRunning: false });
+}
+export function resetMeeting() {
+  setState({
+    selectedBranch: null,
+    selectedEvidenceIds: [],
+    finalOutcome: null,
+    failureReason: null,
+    meetingStage: "intro",
+  });
+}
