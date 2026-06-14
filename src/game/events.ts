@@ -1,4 +1,4 @@
-import type { HotspotId, PlayerDecision, StationId } from "./types";
+import type { HotspotId, PlayerDecision, RoomId, StationId } from "./types";
 
 type GameEventMap = {
   stationchange: CustomEvent<{ station: StationId }>;
@@ -6,6 +6,8 @@ type GameEventMap = {
   hotspotinteract: CustomEvent<{ hotspot: HotspotId; station: StationId }>;
   decisionsubmitted: CustomEvent<{ decisions: PlayerDecision }>;
   resetdecision: CustomEvent<undefined>;
+  enterRoom: CustomEvent<{ roomId: RoomId }>;
+  exitRoom: CustomEvent<{ roomId: RoomId }>;
 };
 
 class TypedEventBus extends EventTarget {

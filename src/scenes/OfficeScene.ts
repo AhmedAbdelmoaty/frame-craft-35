@@ -1,7 +1,15 @@
 import Phaser from "phaser";
 import { stationCopy } from "../data/salesCase";
 import { gameEvents } from "../game/events";
-import type { HotspotId, PlayerProfile, StationId } from "../game/types";
+import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types";
+
+const STATION_TO_ROOM: Record<StationId, RoomId> = {
+  lobby: "office",
+  desk: "office",
+  sales: "sales",
+  hr: "hr",
+  decision: "meeting",
+};
 
 type StationView = {
   id: StationId;
@@ -35,8 +43,8 @@ const stations: StationView[] = [
     width: 320,
     height: 190,
     color: 0xe8edf1,
-    label: "الاستقبال",
-    sublabel: "نقطة البداية",
+    label: "مكتب المحلل",
+    sublabel: "نقطة البداية · رسالة نادر",
     hotspot: "reception",
   },
   {
@@ -46,8 +54,8 @@ const stations: StationView[] = [
     width: 330,
     height: 230,
     color: 0xddebf5,
-    label: "مكتب التحليل",
-    sublabel: "التقرير المختصر",
+    label: "مكتب المحلل · طاولة التحليل",
+    sublabel: "بطاقات الأداء والأدوات",
     hotspot: "summaryReport",
     propKey: "summaryReport",
   },
@@ -58,8 +66,8 @@ const stations: StationView[] = [
     width: 380,
     height: 240,
     color: 0xf3dfcf,
-    label: "قسم المبيعات",
-    sublabel: "لوحة الأداء والبطاقات",
+    label: "مكتب المبيعات",
+    sublabel: "عماد · لوحة الأداء",
     hotspot: "salesBoard",
     propKey: "salesBoard",
   },
@@ -70,8 +78,8 @@ const stations: StationView[] = [
     width: 330,
     height: 190,
     color: 0xe8e0f4,
-    label: "إدارة HR",
-    sublabel: "ملف السياسة",
+    label: "مكتب HR",
+    sublabel: "ليلى · سياسة الأداء",
     hotspot: "hrFolder",
     propKey: "hrFolder",
   },
@@ -82,8 +90,8 @@ const stations: StationView[] = [
     width: 330,
     height: 300,
     color: 0xe0f0dc,
-    label: "غرفة القرار",
-    sublabel: "اعتماد التوصية",
+    label: "غرفة الاجتماع",
+    sublabel: "اعتماد المكافأة",
     hotspot: "decisionBoard",
     propKey: "decisionBoard",
   },
@@ -189,11 +197,11 @@ export class OfficeScene extends Phaser.Scene {
     graphics.fillStyle(0x3d8644, 1);
     graphics.fillCircle(135, 101, 15);
 
-    this.add.text(168, 85, "شركة مدار للتوزيع", this.labelStyle(24, "#17202a", "900"));
-    this.add.text(168, 112, "مهمة مراجعة أداء شهرية", this.labelStyle(13, "#607083", "700"));
+    this.add.text(168, 85, "مجموعة رواج للتجزئة", this.labelStyle(24, "#17202a", "900"));
+    this.add.text(168, 112, "اجتماع اعتماد مكافآت الفروع", this.labelStyle(13, "#607083", "700"));
 
-    this.add.text(1118, 82, "MADAR HQ", this.labelStyle(22, "#27313c", "900"));
-    this.add.text(1118, 110, "B2B Distribution", this.labelStyle(13, "#607083", "700"));
+    this.add.text(1118, 82, "RIWAJ HQ", this.labelStyle(22, "#27313c", "900"));
+    this.add.text(1118, 110, "Retail Group", this.labelStyle(13, "#607083", "700"));
   }
 
   private drawRooms() {
@@ -314,9 +322,9 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private drawNpcs() {
-    this.drawNpc(875, 280, assetKeys.salesManager, "عمر", "مدير المبيعات");
-    this.drawNpc(780, 612, assetKeys.hrManager, "سارة", "مديرة HR");
-    this.drawNpc(220, 604, assetKeys.dataCoach, "ليلى", "Data Coach");
+    this.drawNpc(875, 280, assetKeys.salesManager, "عماد", "مدير المبيعات");
+    this.drawNpc(780, 612, assetKeys.hrManager, "ليلى", "مديرة HR");
+    this.drawNpc(1180, 305, assetKeys.dataCoach, "نادر", "المدير المالي");
     this.animateWorker(this.drawNpc(510, 412, assetKeys.employee, "موظف", "عمليات", false), [
       { x: 510, y: 412 },
       { x: 650, y: 412 },
@@ -427,6 +435,7 @@ export class OfficeScene extends Phaser.Scene {
   private interactWith(hotspot: HotspotView) {
     this.setStation(hotspot.station, true, () => {
       gameEvents.emit("hotspotinteract", { hotspot: hotspot.id, station: hotspot.station });
+      gameEvents.emit("enterRoom", { roomId: STATION_TO_ROOM[hotspot.station] });
       this.showPrompt(hotspot);
     });
   }

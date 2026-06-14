@@ -7,6 +7,8 @@ export type PlayerProfile = {
 
 export type StationId = "lobby" | "desk" | "sales" | "hr" | "decision";
 
+export type RoomId = "office" | "sales" | "hr" | "meeting";
+
 export type TeamId = "teamA" | "teamB";
 
 export type DecisionType = "reward" | "training" | "review";

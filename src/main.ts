@@ -1,6 +1,6 @@
 import "./styles.css";
 import { createGame } from "./game/createGame";
-import { createHud } from "./ui/hud";
+import { initLevel1 } from "./level1";
 import type { PlayerProfile } from "./game/types";
 
 const APP_VERSION = "MADAR-ANALYST-2026-06-13-LATEST";
@@ -30,14 +30,14 @@ function renderProfileScreen() {
         <p class="eyebrow">محاكاة تدريبية من IMP</p>
         <h1>المحلل</h1>
         <p class="intro">
-          أنت محلل بيانات في شركة <strong>مدار للتوزيع</strong>. اليوم هو يوم مراجعة الأداء الشهرية.
-          تحرك داخل الشركة، قابل أصحاب القرار، افحص ما يكفي من البيانات، ثم قدّم توصية قبل إغلاق دورة المكافآت.
+          أنت محلل أداء في شركة <strong>مجموعة رواج للتجزئة</strong>. اجتماع اعتماد مكافآت الفروع يبدأ بعد دقائق،
+          وهناك خلاف بين المبيعات وHR. تحرّك بين المكاتب، اجمع ما يكفي من الأدلة، ثم قدّم توصية قابلة للدفاع.
         </p>
         <div class="mission-strip">
-          <span>تحرك بين الأماكن</span>
-          <span>افتح الأدلة</span>
-          <span>اتخذ قرارًا</span>
-          <span>شاهد العواقب</span>
+          <span>تحرّك بين المكاتب</span>
+          <span>اجمع الأدلة</span>
+          <span>حلّل البيانات</span>
+          <span>قدّم توصيتك</span>
         </div>
 
         <form id="profile-form" class="profile-form">
@@ -79,13 +79,12 @@ function bootSlice(profile: PlayerProfile) {
   appRoot.innerHTML = `
     <main class="game-shell">
       <section id="game-root" class="game-root" aria-label="خريطة الشركة"></section>
-      <section id="hud-root" class="hud-root" aria-label="أدوات اللعبة"></section>
       <span class="version-badge" aria-label="نسخة اللعبة الحالية">آخر نسخة · ${APP_VERSION}</span>
     </main>
   `;
 
-  createHud(profile);
   createGame(profile);
+  initLevel1();
 }
 
 async function clearStalePreviewCache() {
