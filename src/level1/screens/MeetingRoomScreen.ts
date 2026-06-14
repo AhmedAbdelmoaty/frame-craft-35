@@ -173,6 +173,7 @@ export function createMeetingRoomScreen() {
         const isSuccess = s.finalOutcome === "success";
         host.innerHTML = `
           <div class="l1-result l1-result--${isSuccess ? "success" : "failure"}">
+            ${isSuccess ? `<div class="l1-result__complete">🏆 المستوى الأول مكتمل — فخ المتوسط</div>` : ""}
             <div class="l1-result__stamp">${isSuccess ? "✓" : "✗"}</div>
             <span class="l1-result__badge">${d.badge}</span>
             <h3 class="l1-result__title">${d.title}</h3>
@@ -189,13 +190,22 @@ export function createMeetingRoomScreen() {
             </div>
 
             <div class="l1-meeting__cta">
-              <button class="l1-btn l1-btn--ghost" type="button" data-retry>أعد المحاولة</button>
-              <button class="l1-btn l1-btn--primary" type="button" data-exit>إنهاء — العودة للخريطة</button>
+              ${
+                isSuccess
+                  ? `<button class="l1-btn l1-btn--ghost" type="button" data-replay>↻ إعادة اللعب من البداية</button>
+                     <button class="l1-btn l1-btn--primary" type="button" data-exit>إنهاء — العودة للخريطة</button>`
+                  : `<button class="l1-btn l1-btn--ghost" type="button" data-retry>أعد المحاولة</button>
+                     <button class="l1-btn l1-btn--primary" type="button" data-exit>العودة للخريطة</button>`
+              }
             </div>
           </div>
         `;
-        host.querySelector<HTMLButtonElement>("[data-retry]")!.addEventListener("click", () => {
+        host.querySelector<HTMLButtonElement>("[data-retry]")?.addEventListener("click", () => {
           resetMeeting();
+        });
+        host.querySelector<HTMLButtonElement>("[data-replay]")?.addEventListener("click", () => {
+          resetLevel();
+          gameEvents.emit("exitRoom", { roomId: "meeting" });
         });
         host.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener("click", () =>
           gameEvents.emit("exitRoom", { roomId: "meeting" }),
