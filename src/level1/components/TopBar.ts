@@ -1,4 +1,11 @@
-import { getState, isMeetingUnlocked, setMissionFileOpen, subscribe, type RoomLocation } from "../state/store";
+import {
+  getState,
+  isMeetingUnlocked,
+  markMeetingUnlockSeen,
+  setMissionFileOpen,
+  subscribe,
+  type RoomLocation,
+} from "../state/store";
 import { formatTime } from "../logic/timer";
 import { gameEvents } from "../../game/events";
 
