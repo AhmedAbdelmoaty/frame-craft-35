@@ -31,6 +31,8 @@ export interface Level1State {
   selectedBranch: Branch | null;
   selectedEvidenceIds: string[];
   finalOutcome: Outcome;
+  failureReason: FailureReason;
+  meetingStage: "intro" | "branch" | "evidence" | "result";
   missionFileOpen: boolean;
   missionFileTab: MissionTabId;
   notesText: string;
