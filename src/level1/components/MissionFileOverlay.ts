@@ -2,6 +2,8 @@ import { getState, setActiveTab, setMissionFileOpen, subscribe, type MissionTabI
 import { renderBriefTab } from "./tabs/BriefTab";
 import { renderPlaceholderTab } from "./tabs/PlaceholderTab";
 import { renderNotesTab } from "./tabs/NotesTab";
+import { renderBranchesTab } from "./tabs/BranchesTab";
+import { renderPolicyTab } from "./tabs/PolicyTab";
 
 const TABS: { id: MissionTabId; label: string; icon: string }[] = [
   { id: "brief", label: "الملخّص", icon: "📋" },
@@ -61,25 +63,17 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
         renderBriefTab(contentEl);
         break;
       case "branches":
-        renderPlaceholderTab(contentEl, {
-          title: "بطاقات الفروع",
-          hint: "ستظهر هنا تلقائيًا بعد زيارة مكتب المبيعات وفتح بطاقات الأداء.",
-          items: ["فرع الكورنيش — في الانتظار", "فرع الميدان — في الانتظار"],
-        });
+        renderBranchesTab(contentEl);
         break;
       case "evidence":
         renderPlaceholderTab(contentEl, {
           title: "الأدلة المُجمَّعة",
-          hint: "كل دليل تلتقطه أثناء التحقيق سيُسجَّل هنا تلقائيًا.",
+          hint: "ستُضاف الأدلة هنا في مرحلة لاحقة من التحقيق.",
           items: ["لم تُجمَع أدلة بعد"],
         });
         break;
       case "policy":
-        renderPlaceholderTab(contentEl, {
-          title: "سياسة الأداء",
-          hint: "ستظهر بعد زيارة مكتب الموارد البشرية وفتح ملف السياسة.",
-          items: ["حد الأداء الأدنى — لم يُكشف بعد"],
-        });
+        renderPolicyTab(contentEl);
         break;
       case "notes":
         renderNotesTab(contentEl);
