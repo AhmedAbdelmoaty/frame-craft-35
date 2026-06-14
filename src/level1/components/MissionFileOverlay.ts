@@ -24,6 +24,7 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
     <section class="l1-mission__panel" role="dialog" aria-label="ملف المهمة">
       <header class="l1-mission__header">
         <h2>📁 ملف المهمة</h2>
+        <span class="l1-mission__last-update" data-last-update hidden></span>
         <button class="l1-mission__close" type="button" data-close aria-label="إغلاق">×</button>
       </header>
       <div class="l1-mission__layout">
@@ -78,10 +79,18 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
     }
   };
 
+  const lastUpdateEl = root.querySelector<HTMLElement>("[data-last-update]")!;
+
   const render = () => {
     const s = getState();
     root.hidden = !s.missionFileOpen;
     tabBtns.forEach((b) => b.classList.toggle("l1-mission__tab--active", b.dataset.tab === s.missionFileTab));
+    if (s.lastMissionUpdate) {
+      lastUpdateEl.hidden = false;
+      lastUpdateEl.textContent = `آخر تحديث: ${s.lastMissionUpdate}`;
+    } else {
+      lastUpdateEl.hidden = true;
+    }
     if (s.missionFileOpen) renderActiveTab(s.missionFileTab);
   };
 

@@ -1,109 +1,90 @@
+## ما المتبقي بالظبط لإنهاء المستوى الأول؟
 
-# Phase 3+4 (مُنفَّذة) — مكاتب المبيعات/HR + بطاقات الأداء + الأدوات الأربع
+اللعبة دلوقتي شغّالة من البداية للنهاية: الخريطة → المكاتب الثلاثة → بطاقات الأداء والأدوات → غرفة الاجتماع → النتيجة (نجاح/فشل). الـ Core Loop مكتمل ✅.
 
-> أرقام Master Prompt الحرفية. أدوات: المتوسط، خط ٨٥٪، الوسيط، الاستقرار. الترتيب فعل مستقل. زر الاجتماع ظاهر معطّلًا بلا نص يكسر الإحساس.
+اللي ناقص فعليًا = **Phase أخيرة واحدة** (Polish + Cleanup + QA). بعدها المستوى الأول يبقى Production-ready ونقفل عليه.
 
-## Phase 2 (سابقة)
+---
 
-> السياق محفوظ: Hybrid (Phaser map + DOM interiors)، Riwaj Retail Group، نادر/عماد/ليلى، 18 متغير state، 4 محطات (office/sales/hr/meeting)، الأدوات الـ4 لم تُبنَ بعد، Phase 1 جاهزة (bridge + stubs).
+## Phase 6 (الأخيرة) — Cleanup + Polish + QA
 
-## 1. هدف Phase 2
-بناء **الإطار العام الثابت للعبة** (TopBar + Mission File) + **تفعيل أول مكتب فعليًا (مكتب المحلل)** برسالة نادر التي تُطلق القصة. لا أدوات تحليل بعد، لا بيانات فروع داخل المكاتب بعد — هذا Phase 3/4.
+### 1. Cleanup (حذف الكود القديم اللي مابقاش مستخدم)
 
-بعد Phase 2 اللاعب يستطيع: يرى عدّاد الـ 10 دقائق يعمل، يرى اسم المكان الحالي، يفتح "ملف المهمة" من أي مكان فيرى 5 tabs (بعضها فاضي عمدًا لأنه سيُملأ في Phases لاحقة)، يدخل مكتب المحلل فيقرأ رسالة نادر على شاشة الكمبيوتر ويضغط "قرأت" → `hasReadBrief=true` → badge "✓" يظهر فوق مكتب المحلل على الخريطة.
+ملفات اتفقنا نأجل حذفها لحد ما الـ Meeting يخلص. دلوقتي وقتها:
 
-## 2. الملفات الجديدة
+- `src/game/simulation.ts` — منطق لعبة قديم.
+- `src/ui/hud.ts` — HUD قديم اتعوّض بـ `TopBar`.
+- `src/data/salesCase.ts` — بيانات قديمة اتعوّضت بـ `src/level1/data/branches.ts`.
+- مراجعة `src/level1/components/tabs/PlaceholderTab.ts` — لو مش متستخدم في أي tab يتشال.
 
-```
-src/level1/
-├── components/
-│   ├── TopBar.ts                 # عداد + اسم المكان + زر "ملف المهمة"
-│   ├── MissionFileOverlay.ts     # overlay بـ 5 tabs
-│   └── tabs/
-│       ├── BriefTab.ts           # ملخّص مهمة نادر
-│       ├── BranchesTab.ts        # placeholder (يُملأ Phase 3)
-│       ├── EvidenceTab.ts        # placeholder (يُملأ Phase 3)
-│       ├── PolicyTab.ts          # placeholder (يُملأ Phase 3)
-│       └── NotesTab.ts           # ملاحظات اللاعب (textarea بسيط)
-├── data/
-│   └── briefMessage.ts           # نص رسالة نادر (من Master Prompt)
-└── logic/
-    └── timer.ts                  # عداد 10 دقائق reactive
-```
+قبل الحذف: `rg` للتأكد إن مفيش import شغّال. لو في، ننضف الاستيراد الأول.
 
-## 3. الملفات المعدّلة
+### 2. ربط نهاية المستوى بشكل نظيف
 
-- **`src/level1/state/store.ts`**: إضافة actions: `tickTimer()`, `markBriefRead()`, `setMissionFileOpen(bool)`, `setActiveTab(tabId)`. (المتغيرات الـ18 موجودة بالفعل.)
-- **`src/level1/index.ts`**: تركيب TopBar مرة واحدة عند الإقلاع (يبقى ثابتًا فوق Phaser و فوق أي Interior). بدء العداد. تركيب MissionFileOverlay بشكل lazy عند فتحه.
-- **`src/level1/screens/AnalystOfficeScreen.ts`**: تحويل الـ stub إلى محتوى حقيقي — خلفية مكتب بسيطة (CSS gradient + إطار شاشة كمبيوتر)، الرسالة، زر "قرأت ✓". عند الضغط → `markBriefRead()` + إغلاق الشاشة + emit `exitRoom`.
-- **`src/scenes/OfficeScene.ts`**: قراءة `hasReadBrief` من store وإظهار badge ✓ صغير فوق hotspot مكتب المحلل (إعادة استخدام نمط الـ badge الذي بنيناه في Phase 1).
-- **`src/level1/styles/level1.css`**: إضافة styles لـ TopBar (sticky top, RTL, z-index:2000 ليبقى فوق Interior overlays z-index:1000)، MissionFileOverlay (modal مركزي مع شريط tabs أيمن في RTL)، شاشة الكمبيوتر داخل مكتب المحلل.
+دلوقتي زر "إنهاء — العودة للخريطة" بيرجّع للخريطة بس. هنضيف:
 
-## 4. تفاصيل المكوّنات
+- لو `finalOutcome === "success"`: شاشة صغيرة "تم اعتماد القرار ✓ — المستوى الأول مكتمل" مع زر "إعادة اللعب".
+- لو `failure`: زر "أعد المحاولة" يـ `resetMeeting()` ويرجع للمكتب يقدر يفتح بطاقات ويغيّر اختياره.
+- إعادة اللعب الكاملة: action جديد `resetLevel()` في الـ store يرجّع كل الـ flags للـ initial state.
 
-### TopBar (ارتفاع ~56px، ثابت أعلى الشاشة)
-- يمين: أيقونة + "مكتب المحلل" (يتحدّث ديناميكيًا من `currentLocation`).
-- وسط: عدّاد `MM:SS` بلون كهرماني، يصبح أحمر عند ≤ 02:00.
-- يسار: زر "📁 ملف المهمة" → يفتح MissionFileOverlay.
-- يبقى مرئيًا في كل الحالات (الخريطة + أي Interior).
+### 3. Polish (Game feel نهائي خفيف)
 
-### Timer
-- يبدأ تلقائيًا عند أول `enterRoom` (أو عند تخطّي شاشة المقدمة الموجودة).
-- `setInterval` كل ثانية، يحدّث `meetingTimeRemaining` في store.
-- عند 00:00: يقف عند الصفر، يومض، رسالة "انتهى الوقت — يمكنك الاستمرار" (Blueprint §18.3 — لا خسارة فورية في النسخة الأولى).
+- **TopBar Timer**: لو وصل ≤ 02:00 → لون أحمر + pulse خفيف (موجود جزئيًا، نتأكد).
+- **Badges على الخريطة**: animation صغير "pop-in" أول مرة تظهر بدل ما تيجي فجأة.
+- **Meeting button unlock**: لما يتفعّل لأول مرة → toast صغير "اجتماع نادر جاهز — اضغط للدخول".
+- **Result stamp**: نتأكد إن ختم النجاح/الفشل عنده animation سليم (scale + rotate).
+- **Mission File**: زر صغير "آخر تحديث: …" يعرض آخر معلومة دخلت (sales summary / HR policy / sorted) — feedback خفيف.
 
-### MissionFileOverlay
-- Modal مركزي 90vw/90vh، RTL، خلفية معتمة قابلة للنقر للإغلاق.
-- شريط tabs أيمن (RTL): الملخّص | الفروع | الأدلة | السياسة | ملاحظاتي.
-- محتوى كل tab يأتي من ملفه الخاص.
-- **BriefTab**: يعرض نص نادر المختصر + الحقائق الأساسية (10 دقائق، فرعان متنافسان، قرار مطلوب).
-- بقية الـ tabs تعرض رسالة "سيُملأ تلقائيًا أثناء التحقيق" + قائمة بنود فارغة (سيتم تفعيلها Phase 3).
+### 4. QA Run كامل (يدوي عبر preview)
 
-### رسالة نادر في مكتب المحلل
-- داخل `AnalystOfficeScreen`: إطار شاشة كمبيوتر CSS، أعلى الإطار "📧 رسالة من: نادر — المدير المالي".
-- نص الرسالة من Master Prompt (4-6 أسطر: اجتماع بعد 10 دقائق، خلاف على مكافأة، يحتاج توصية مدعومة).
-- زر "✓ قرأت — لنبدأ التحقيق" → `markBriefRead()` + إغلاق.
-- لو `hasReadBrief=true` مسبقًا: تظهر الرسالة لكن مع شارة "تمت القراءة" بدل الزر.
+- مسار النجاح: Brief → Sales (inspect + save) → HR (inspect + save) → Analyst (open cards + sort both + tools) → Meeting → Midan + 2 strong evidence → success stamp.
+- مسار الفشل #1: نفس المسار بس Corniche → failure (مع رسالة فخ المتوسط).
+- مسار الفشل #2: Midan لكن دليلين ضعيفين → failure (التوجه صحيح/الدفاع ضعيف).
+- اختبار الـ retry: بعد failure يرجع، يعدّل، ينجح.
+- اختبار الـ timer: لما يوصل 00:00 ميكسرش اللعب.
+- اختبار RTL على viewport 360px.
 
-## 5. تدفّق Phase 2
+### 5. ملفات تتعدّل/تتشال
 
-```
-بدء اللعبة → TopBar يظهر، timer يبدأ 10:00
-   ↓
-اللاعب على الخريطة → currentLocation="map"، TopBar يعرض "الخريطة"
-   ↓
-يضغط مكتب المحلل → Phaser يحرّك → enterRoom("analyst")
-   ↓
-AnalystOfficeScreen يفتح → رسالة نادر تظهر
-   ↓
-يضغط "قرأت" → hasReadBrief=true → exitRoom → badge ✓ يظهر
-   ↓
-في أي لحظة: زر "ملف المهمة" → 5 tabs (الملخّص الآن مفعّل)
-```
+**تتشال:** `src/game/simulation.ts`, `src/ui/hud.ts`, `src/data/salesCase.ts` (+ `PlaceholderTab.ts` لو مش مستخدم).
 
-## 6. ما لن يُبنى في Phase 2 (مؤجّل)
-- بيانات الفروع و10 مندوبين (Phase 3).
-- محتوى مكتب المبيعات/HR الفعلي — تبقى stubs (Phase 3).
-- بطاقات الأداء والأدوات الـ4 (Phase 4).
-- غرفة الاجتماع وEvidence picker (Phase 5).
+**تتعدّل:**
+- `src/level1/state/store.ts` → `resetLevel()`.
+- `src/level1/screens/MeetingRoomScreen.ts` → شاشة "level complete" بعد success، retry نظيف بعد failure.
+- `src/level1/components/TopBar.ts` → toast unlock + تحسين pulse للـ timer.
+- `src/level1/components/MissionFileOverlay.ts` → "آخر تحديث" indicator خفيف.
+- `src/level1/styles/level1.css` → animations الجديدة (pop-in, pulse, toast, stamp).
+- `src/scenes/OfficeScene.ts` → pop-in animation للـ badges.
 
-## 7. ما يُحذف
-لا شيء. (الحذف الكامل لـ `simulation.ts` و`hud.ts` tabs مؤجّل لـ Phase 5 كما اتفقنا.)
+### 6. مفيش حاجة من دول في Phase 6
 
-## 8. اختبار قبول Phase 2
-1. TopBar يظهر فوق كل شيء (الخريطة + أي مكتب).
-2. العداد يعدّ تنازليًا ويصبح أحمر عند ≤ 02:00.
-3. زر "ملف المهمة" يفتح overlay بـ 5 tabs، التبديل بينها يعمل، tab الملخّص يحوي رسالة نادر، الباقي placeholders.
-4. دخول مكتب المحلل → رسالة نادر واضحة، زر "قرأت" يعمل.
-5. بعد القراءة: badge ✓ يظهر فوق المحطة، فتح المكتب مرة ثانية يعرض الرسالة بحالة "تمت".
-6. لا تكدس، لا overlap، يعمل على 360px موبايل (TopBar يطوي اسم المحطة إذا ضاق).
+- مفيش features جديدة.
+- مفيش بيانات جديدة.
+- مفيش تغيير في منطق التقييم.
+- مفيش صوت (متفقين).
+- مفيش animations معقدة.
 
-## 9. حجم العمل
-- ~7 ملفات جديدة، ~5 ملفات معدّلة، ~400 سطر إجمالي.
-- لا dependencies جديدة.
+---
 
-## 10. أسئلة قبل البدء
-1. **نص رسالة نادر**: أكتبه بنفسي بنبرة Master Prompt الاحترافية (~5 أسطر) أم تريد إرسال نص محدد؟
-2. **سلوك العداد**: يبدأ مع أول تفاعل (دخول أول مكتب) أم فور تخطّي شاشة المقدمة؟ ميلي للثاني — يعطي إحساس إلحاح من اللحظة الأولى.
+## بعد Phase 6؟
 
-في انتظار موافقتك لتنفيذ Phase 2.
+المستوى الأول (فخ المتوسط) يبقى **مكتمل وقابل للنشر**. الخطوة الجاية بعدها تكون:
+- إما نبدأ تخطيط **المستوى الثاني** (Master Prompt عنده مفهوم جديد — مثلًا الـ Outliers أو Standard Deviation).
+- أو نضيف **شاشة Main Menu / Level Select** قبل المستوى.
+- أو **publish** للنسخة الحالية كـ MVP.
+
+لكن دي قرارات منفصلة — نتفق عليها بعد ما Phase 6 تخلص وتتراجع.
+
+---
+
+## ملخّص
+
+| Phase | الحالة |
+|---|---|
+| 1 — Bridge + Stubs | ✅ |
+| 2 — TopBar + Mission File + Brief | ✅ |
+| 3+4 — Sales/HR + Cards + Tools | ✅ |
+| 5 — Meeting + Evaluation + Result | ✅ |
+| **6 — Cleanup + Polish + QA** | **التالية** |
+
+Phase 6 صغيرة وآمنة — مفيش فيها مخاطرة لأنها مش بتضيف features، بتنضف وتلمّع وتختبر بس. أوافق؟

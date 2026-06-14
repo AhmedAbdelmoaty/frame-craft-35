@@ -1,4 +1,11 @@
-import { getState, isMeetingUnlocked, setMissionFileOpen, subscribe, type RoomLocation } from "../state/store";
+import {
+  getState,
+  isMeetingUnlocked,
+  markMeetingUnlockSeen,
+  setMissionFileOpen,
+  subscribe,
+  type RoomLocation,
+} from "../state/store";
 import { formatTime } from "../logic/timer";
 import { gameEvents } from "../../game/events";
 
@@ -74,6 +81,11 @@ export function mountTopBar(parent: HTMLElement = document.body) {
     const unlocked = isMeetingUnlocked(s);
     meetingBtn.disabled = !unlocked;
     meetingBtn.classList.toggle("l1-topbar__meeting-btn--ready", unlocked);
+
+    if (unlocked && !s.meetingUnlockSeen) {
+      markMeetingUnlockSeen();
+      showToast("اجتماع نادر جاهز — اضغط للدخول 🤝");
+    }
   };
 
   render();
@@ -86,4 +98,18 @@ export function mountTopBar(parent: HTMLElement = document.body) {
       bar.remove();
     },
   };
+}
+
+function showToast(message: string) {
+  const toast = document.createElement("div");
+  toast.className = "l1-toast";
+  toast.dir = "rtl";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  // trigger enter
+  requestAnimationFrame(() => toast.classList.add("l1-toast--show"));
+  window.setTimeout(() => {
+    toast.classList.remove("l1-toast--show");
+    window.setTimeout(() => toast.remove(), 320);
+  }, 3200);
 }
