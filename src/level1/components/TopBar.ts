@@ -1,5 +1,6 @@
-import { getState, setMissionFileOpen, subscribe, type RoomLocation } from "../state/store";
+import { getState, isMeetingUnlocked, setMissionFileOpen, subscribe, type RoomLocation } from "../state/store";
 import { formatTime } from "../logic/timer";
+import { gameEvents } from "../../game/events";
 
 const LOCATION_LABEL: Record<RoomLocation, string> = {
   map: "خريطة الشركة",
@@ -23,6 +24,10 @@ export function mountTopBar(parent: HTMLElement = document.body) {
       <span class="l1-topbar__timer-text" data-timer-text>10:00</span>
       <span class="l1-topbar__timer-label">حتى الاجتماع</span>
     </div>
+    <button class="l1-topbar__meeting-btn" type="button" data-meeting-btn disabled>
+      <span aria-hidden="true">🤝</span>
+      <span>اذهب للاجتماع</span>
+    </button>
     <button class="l1-topbar__mission-btn" type="button" data-mission-btn>
       <span aria-hidden="true">📁</span>
       <span>ملف المهمة</span>
@@ -34,9 +39,28 @@ export function mountTopBar(parent: HTMLElement = document.body) {
   const timerEl = bar.querySelector<HTMLElement>("[data-timer]")!;
   const timerText = bar.querySelector<HTMLElement>("[data-timer-text]")!;
   const missionBtn = bar.querySelector<HTMLButtonElement>("[data-mission-btn]")!;
+  const meetingBtn = bar.querySelector<HTMLButtonElement>("[data-meeting-btn]")!;
 
   missionBtn.addEventListener("click", () => {
     setMissionFileOpen(!getState().missionFileOpen);
+  });
+
+  meetingBtn.addEventListener("click", () => {
+    if (!isMeetingUnlocked()) {
+      meetingBtn.animate(
+        [
+          { transform: "translateX(0)" },
+          { transform: "translateX(-4px)" },
+          { transform: "translateX(4px)" },
+          { transform: "translateX(0)" },
+        ],
+        { duration: 240, easing: "ease-in-out" },
+      );
+      return;
+    }
+    if (getState().currentLocation !== "meeting") {
+      gameEvents.emit("enterRoom", { roomId: "meeting" });
+    }
   });
 
   const render = () => {
@@ -46,6 +70,10 @@ export function mountTopBar(parent: HTMLElement = document.body) {
     timerEl.classList.toggle("l1-topbar__timer--danger", s.meetingTimeRemaining <= 120);
     timerEl.classList.toggle("l1-topbar__timer--zero", s.meetingTimeRemaining <= 0);
     missionBtn.classList.toggle("l1-topbar__mission-btn--active", s.missionFileOpen);
+
+    const unlocked = isMeetingUnlocked(s);
+    meetingBtn.disabled = !unlocked;
+    meetingBtn.classList.toggle("l1-topbar__meeting-btn--ready", unlocked);
   };
 
   render();

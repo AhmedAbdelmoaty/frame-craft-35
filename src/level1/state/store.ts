@@ -3,7 +3,8 @@
 import type { BranchId } from "../data/branches";
 
 export type Branch = BranchId;
-export type Outcome = "strong_success" | "partial_success" | "failure" | null;
+export type Outcome = "success" | "failure" | null;
+export type FailureReason = "chose_corniche" | "midan_weak_evidence" | "incomplete" | null;
 export type RoomLocation = "office" | "sales" | "hr" | "meeting" | "map";
 export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
 export type ToolId = "mean" | "threshold" | "median" | "stability";
@@ -30,6 +31,8 @@ export interface Level1State {
   selectedBranch: Branch | null;
   selectedEvidenceIds: string[];
   finalOutcome: Outcome;
+  failureReason: FailureReason;
+  meetingStage: "intro" | "branch" | "evidence" | "result";
   missionFileOpen: boolean;
   missionFileTab: MissionTabId;
   notesText: string;
@@ -57,6 +60,8 @@ const initialState: Level1State = {
   selectedBranch: null,
   selectedEvidenceIds: [],
   finalOutcome: null,
+  failureReason: null,
+  meetingStage: "intro",
   missionFileOpen: false,
   missionFileTab: "brief",
   notesText: "",
@@ -148,4 +153,32 @@ export function isMeetingUnlocked(s: Level1State = state): boolean {
     s.usedThresholdLine &&
     (s.usedTypicalPerformance || s.usedStability || s.usedQuickNumber)
   );
+}
+
+// ----- Meeting -----
+export function setMeetingStage(stage: Level1State["meetingStage"]) {
+  setState({ meetingStage: stage });
+}
+export function selectBranch(branch: Branch) {
+  setState({ selectedBranch: branch });
+}
+export function toggleEvidence(id: string) {
+  const cur = state.selectedEvidenceIds;
+  if (cur.includes(id)) {
+    setState({ selectedEvidenceIds: cur.filter((x) => x !== id) });
+  } else if (cur.length < 2) {
+    setState({ selectedEvidenceIds: [...cur, id] });
+  }
+}
+export function submitRecommendation(outcome: Outcome, reason: FailureReason) {
+  setState({ finalOutcome: outcome, failureReason: reason, meetingStage: "result", timerRunning: false });
+}
+export function resetMeeting() {
+  setState({
+    selectedBranch: null,
+    selectedEvidenceIds: [],
+    finalOutcome: null,
+    failureReason: null,
+    meetingStage: "intro",
+  });
 }
