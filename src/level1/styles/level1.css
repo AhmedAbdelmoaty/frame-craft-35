@@ -1,0 +1,187 @@
+/* Level 1 — The Analyst: فخ المتوسط
+   Hybrid layer: DOM overlays mounted above the Phaser map canvas. */
+
+:root {
+  --l1-bg: #0f1e2e;
+  --l1-surface: #ffffff;
+  --l1-surface-2: #f5f7fa;
+  --l1-ink: #17202a;
+  --l1-ink-soft: #4a5868;
+  --l1-muted: #7a8896;
+  --l1-accent: #2b78c5;
+  --l1-accent-soft: #e7f1fb;
+  --l1-success: #2f8a4e;
+  --l1-warn: #d28a56;
+  --l1-border: #d8dee5;
+  --l1-shadow: 0 18px 48px -18px rgba(15, 30, 46, 0.32);
+  --l1-radius: 14px;
+  --l1-radius-sm: 8px;
+}
+
+/* When a room overlay is mounted, dim & disable the Phaser canvas behind it */
+body.l1-room-open #game-root {
+  opacity: 0.18;
+  filter: blur(2px) saturate(0.7);
+  pointer-events: none;
+  transition: opacity 220ms ease, filter 220ms ease;
+}
+
+#game-root canvas {
+  transition: opacity 220ms ease, filter 220ms ease;
+}
+
+/* ---------- Room Shell (full-screen overlay) ---------- */
+
+.room-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f7f9fc 0%, #eef2f7 100%);
+  color: var(--l1-ink);
+  font-family: "Tajawal", "Cairo", "Inter", system-ui, sans-serif;
+  animation: l1-fade-in 220ms ease-out;
+  overflow: hidden;
+}
+
+@keyframes l1-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.room-shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 28px;
+  background: var(--l1-surface);
+  border-bottom: 1px solid var(--l1-border);
+  box-shadow: 0 2px 12px -8px rgba(15, 30, 46, 0.18);
+}
+
+.room-shell__exit {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--l1-surface-2);
+  border: 1px solid var(--l1-border);
+  color: var(--l1-ink);
+  padding: 10px 16px;
+  border-radius: var(--l1-radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.room-shell__exit:hover {
+  background: var(--l1-accent-soft);
+  border-color: var(--l1-accent);
+  color: var(--l1-accent);
+}
+.room-shell__exit:focus-visible {
+  outline: 2px solid var(--l1-accent);
+  outline-offset: 2px;
+}
+
+.room-shell__title {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+.room-shell__title h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--l1-ink);
+}
+.room-shell__title p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--l1-muted);
+  font-weight: 700;
+}
+
+.room-shell__badge {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--l1-accent);
+  background: var(--l1-accent-soft);
+  padding: 6px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.room-shell__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- Stub content (Phase 1) ---------- */
+
+.room-stub {
+  max-width: 640px;
+  width: 100%;
+  background: var(--l1-surface);
+  border: 1px solid var(--l1-border);
+  border-radius: var(--l1-radius);
+  box-shadow: var(--l1-shadow);
+  padding: 28px 28px 32px;
+}
+.room-stub__eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--l1-warn);
+  text-transform: uppercase;
+}
+.room-stub h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.5;
+  color: var(--l1-ink);
+}
+.room-stub p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--l1-ink-soft);
+  line-height: 1.7;
+}
+.room-stub ul {
+  margin: 0;
+  padding-inline-start: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.room-stub li {
+  font-size: 14px;
+  color: var(--l1-ink-soft);
+  line-height: 1.6;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 640px) {
+  .room-shell__header {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .room-shell__exit span:last-child { display: none; }
+  .room-shell__exit { padding: 10px 12px; }
+  .room-shell__title h2 { font-size: 16px; }
+  .room-shell__title p { font-size: 11px; }
+  .room-shell__badge { display: none; }
+  .room-shell__body { padding: 16px 12px; }
+  .room-stub { padding: 18px 16px 22px; }
+  .room-stub h3 { font-size: 16px; }
+}
