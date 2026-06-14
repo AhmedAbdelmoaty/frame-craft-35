@@ -117,7 +117,8 @@ export function inspectSalesBoard() {
   if (!state.hasInspectedSalesBoard) setState({ hasInspectedSalesBoard: true });
 }
 export function saveSalesSummary() {
-  if (!state.hasSavedSalesSummary) setState({ hasSavedSalesSummary: true });
+  if (!state.hasSavedSalesSummary)
+    setState({ hasSavedSalesSummary: true, lastMissionUpdate: "حُفظ ملخّص المبيعات في ملف المهمة" });
 }
 export function visitHR() {
   if (!state.hasVisitedHR) setState({ hasVisitedHR: true });
@@ -126,16 +127,20 @@ export function inspectHRPolicy() {
   if (!state.hasInspectedHRPolicy) setState({ hasInspectedHRPolicy: true });
 }
 export function saveHRPolicy() {
-  if (!state.hasSavedHRPolicy) setState({ hasSavedHRPolicy: true });
+  if (!state.hasSavedHRPolicy)
+    setState({ hasSavedHRPolicy: true, lastMissionUpdate: "حُفظت سياسة الموارد البشرية" });
 }
 
 // ----- Performance cards / tools -----
 export function openPerformanceCards() {
-  if (!state.hasOpenedPerformanceCards) setState({ hasOpenedPerformanceCards: true });
+  if (!state.hasOpenedPerformanceCards)
+    setState({ hasOpenedPerformanceCards: true, lastMissionUpdate: "فُتحت بطاقات الأداء" });
 }
 export function markSorted(branch: Branch) {
-  if (branch === "corniche" && !state.hasSortedCorniche) setState({ hasSortedCorniche: true });
-  if (branch === "midan" && !state.hasSortedMidan) setState({ hasSortedMidan: true });
+  if (branch === "corniche" && !state.hasSortedCorniche)
+    setState({ hasSortedCorniche: true, lastMissionUpdate: "رُتّبت بطاقات فرع الكورنيش" });
+  if (branch === "midan" && !state.hasSortedMidan)
+    setState({ hasSortedMidan: true, lastMissionUpdate: "رُتّبت بطاقات فرع الميدان" });
 }
 export function toggleTool(tool: ToolId) {
   const next = { ...state.toolToggles, [tool]: !state.toolToggles[tool] };
@@ -145,6 +150,43 @@ export function toggleTool(tool: ToolId) {
   if (next.median) patch.usedTypicalPerformance = true;
   if (next.stability) patch.usedStability = true;
   setState(patch);
+}
+
+export function markMeetingUnlockSeen() {
+  if (!state.meetingUnlockSeen) setState({ meetingUnlockSeen: true });
+}
+
+export function resetLevel() {
+  setState({
+    currentLocation: "map",
+    meetingTimeRemaining: 600,
+    timerRunning: false,
+    hasReadBrief: false,
+    hasVisitedSales: false,
+    hasInspectedSalesBoard: false,
+    hasSavedSalesSummary: false,
+    hasVisitedHR: false,
+    hasInspectedHRPolicy: false,
+    hasSavedHRPolicy: false,
+    hasOpenedPerformanceCards: false,
+    hasSortedCorniche: false,
+    hasSortedMidan: false,
+    usedQuickNumber: false,
+    usedThresholdLine: false,
+    usedTypicalPerformance: false,
+    usedStability: false,
+    toolToggles: { mean: false, threshold: false, median: false, stability: false },
+    selectedBranch: null,
+    selectedEvidenceIds: [],
+    finalOutcome: null,
+    failureReason: null,
+    meetingStage: "intro",
+    missionFileOpen: false,
+    missionFileTab: "brief",
+    notesText: "",
+    meetingUnlockSeen: false,
+    lastMissionUpdate: null,
+  });
 }
 
 export function isMeetingUnlocked(s: Level1State = state): boolean {
