@@ -233,6 +233,10 @@ export class OfficeScene extends Phaser.Scene {
       const hotspot = this.addHotspot(station);
       this.hotspots.set(station.hotspot, hotspot);
 
+      // Phase 2: completion badge anchored to top of station
+      const badge = this.createBadge(station.x + station.width / 2 - 22, station.y - station.height / 2 + 14);
+      this.stationBadges.set(station.id, badge);
+
       if (station.id === "sales") {
         const cabinet = this.addHotspot({
           ...station,
