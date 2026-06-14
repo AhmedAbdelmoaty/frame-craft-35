@@ -1,7 +1,15 @@
 import Phaser from "phaser";
 import { stationCopy } from "../data/salesCase";
 import { gameEvents } from "../game/events";
-import type { HotspotId, PlayerProfile, StationId } from "../game/types";
+import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types";
+
+const STATION_TO_ROOM: Record<StationId, RoomId> = {
+  lobby: "office",
+  desk: "office",
+  sales: "sales",
+  hr: "hr",
+  decision: "meeting",
+};
 
 type StationView = {
   id: StationId;
