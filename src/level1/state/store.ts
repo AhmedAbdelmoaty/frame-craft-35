@@ -60,6 +60,8 @@ const initialState: Level1State = {
   selectedBranch: null,
   selectedEvidenceIds: [],
   finalOutcome: null,
+  failureReason: null,
+  meetingStage: "intro",
   missionFileOpen: false,
   missionFileTab: "brief",
   notesText: "",
