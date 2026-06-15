@@ -8,7 +8,8 @@ const STATION_TO_ROOM: Record<StationId, RoomId> = {
   desk: "office",
   sales: "sales",
   hr: "hr",
-  decision: "meeting",
+  decision: "decision",
+  meeting: "meeting",
 };
 
 type StationView = {
@@ -86,13 +87,25 @@ const stations: StationView[] = [
   {
     id: "decision",
     x: 1190,
-    y: 355,
-    width: 330,
-    height: 300,
+    y: 245,
+    width: 320,
+    height: 170,
+    color: 0xfdf2d6,
+    label: "غرفة القرار",
+    sublabel: "ابنِ التوصية واختر الأدلة",
+    hotspot: "decisionBoard",
+    propKey: "notebook",
+  },
+  {
+    id: "meeting",
+    x: 1190,
+    y: 505,
+    width: 320,
+    height: 190,
     color: 0xe0f0dc,
     label: "غرفة الاجتماع",
-    sublabel: "اعتماد المكافأة",
-    hotspot: "decisionBoard",
+    sublabel: "اعتماد المكافأة النهائي",
+    hotspot: "meetingTable",
     propKey: "decisionBoard",
   },
 ];
@@ -102,7 +115,8 @@ const stationPoints: Record<StationId, { x: number; y: number }> = {
   desk: { x: 265, y: 285 },
   sales: { x: 745, y: 295 },
   hr: { x: 830, y: 670 },
-  decision: { x: 1190, y: 450 },
+  decision: { x: 1190, y: 295 },
+  meeting: { x: 1190, y: 565 },
 };
 
 const assetKeys = {
@@ -519,7 +533,7 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private playDecisionPulse() {
-    const station = stations.find((item) => item.id === "decision");
+    const station = stations.find((item) => item.id === "meeting");
     if (!station) return;
 
     const pulse = this.add.circle(station.x, station.y, 30, 0x3d8644, 0.35).setDepth(1500);
@@ -551,10 +565,11 @@ export class OfficeScene extends Phaser.Scene {
     const s = getState();
     const completion: Partial<Record<StationId, boolean>> = {
       lobby: s.hasReadBrief,
-      desk: s.hasReadBrief,
+      desk: s.hasEnteredAnalysisRoom,
       sales: s.hasSavedSalesSummary,
       hr: s.hasSavedHRPolicy,
-      decision: s.finalOutcome !== null,
+      decision: s.hasPreparedDecision,
+      meeting: s.finalOutcome !== null,
     };
     this.stationBadges.forEach((badge, id) => {
       const shouldShow = Boolean(completion[id]);

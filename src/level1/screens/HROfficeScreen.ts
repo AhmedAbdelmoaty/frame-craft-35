@@ -12,7 +12,7 @@ import { gameEvents } from "../../game/events";
 const LAYLA_LINES = [
   "أهلًا. أنا ليلى، مديرة الموارد البشرية.",
   "سياسة الشركة تعتبر المندوب محققًا للأداء المطلوب إذا وصل إلى ٨٥٪ أو أكثر.",
-  "الملف على الطاولة يحتوي على نص السياسة الرسمي. راجعه إذا أردت.",
+  "الملف على الطاولة يحتوي على نص السياسة الرسمي.",
 ];
 
 export function createHROfficeScreen() {
@@ -58,20 +58,19 @@ export function createHROfficeScreen() {
                 <p class="l1-folder__rule">
                   المندوب يُعتبر محققًا للأداء المطلوب إذا بلغ
                   <strong class="l1-folder__num">${PERFORMANCE_THRESHOLD}٪</strong>
-                  أو أكثر.
+                  أو أكثر من الهدف الشهري.
                 </p>
                 <ul class="l1-folder__list">
                   <li>تُطبّق السياسة على جميع المندوبين دون استثناء.</li>
-                  <li>الحكم يكون على مستوى المندوب الفرد، لا على المتوسط فقط.</li>
-                  <li>اعتماد المكافأة يتطلب توصية موثّقة من المحلل.</li>
+                  <li>الحكم يكون على مستوى المندوب الفرد.</li>
                 </ul>
               </div>
               <footer class="l1-folder__foot" data-save-wrap hidden>
                 <button class="l1-btn l1-btn--save" type="button" data-save>
-                  <span aria-hidden="true">💾</span><span>احفظ السياسة في ملف المهمة</span>
+                  <span aria-hidden="true">📥</span><span>استلام سياسة الأداء</span>
                 </button>
               </footer>
-              <p class="l1-board__saved" data-saved hidden>✓ تم حفظ السياسة.</p>
+              <p class="l1-board__saved" data-saved hidden>✓ تم استلام سياسة الأداء.</p>
             </div>
           </section>
         </div>

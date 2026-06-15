@@ -48,10 +48,7 @@ export function createPerformanceCardsBoard(parent: HTMLElement) {
     </div>
 
     <footer class="l1-cards__foot">
-      <button class="l1-btn l1-btn--meeting" type="button" data-meeting>
-        <span aria-hidden="true">🤝</span>
-        <span>اذهب إلى اجتماع الاعتماد</span>
-      </button>
+      <p class="l1-cards__hint">عند الانتهاء، توجّه إلى <strong>غرفة القرار</strong> لبناء التوصية واختيار الأدلة.</p>
     </footer>
   `;
   parent.appendChild(root);
@@ -70,10 +67,6 @@ export function createPerformanceCardsBoard(parent: HTMLElement) {
       );
     });
   });
-
-  const meetingBtn = root.querySelector<HTMLButtonElement>("[data-meeting]")!;
-  meetingBtn.disabled = true;
-  meetingBtn.setAttribute("aria-disabled", "true");
 
   const renderAll = () => {
     const s = getState();
