@@ -189,13 +189,16 @@ export class OfficeScene extends Phaser.Scene {
     graphics.lineStyle(4, 0xb9c4cf, 1);
     graphics.strokeRoundedRect(48, 48, 1284, 684, 18);
 
-    graphics.fillStyle(0xd5dce3, 0.88);
-    graphics.fillRoundedRect(435, 365, 565, 92, 12);
-    graphics.fillRoundedRect(520, 105, 96, 600, 12);
-    graphics.fillRoundedRect(1010, 110, 92, 520, 12);
-    graphics.strokeRoundedRect(435, 365, 565, 92, 12);
-    graphics.strokeRoundedRect(520, 105, 96, 600, 12);
-    graphics.strokeRoundedRect(1010, 110, 92, 520, 12);
+    // Corridor between top row and bottom row
+    graphics.fillStyle(0xd5dce3, 0.85);
+    graphics.fillRoundedRect(120, 400, 1140, 60, 14);
+    graphics.strokeRoundedRect(120, 400, 1140, 60, 14);
+    // Vertical corridor between left column and middle (analyst hub)
+    graphics.fillRoundedRect(495, 110, 60, 580, 14);
+    graphics.strokeRoundedRect(495, 110, 60, 580, 14);
+    // Vertical corridor between middle and right column
+    graphics.fillRoundedRect(885, 110, 60, 580, 14);
+    graphics.strokeRoundedRect(885, 110, 60, 580, 14);
 
     graphics.fillStyle(0xffffff, 0.68);
     graphics.fillRoundedRect(76, 72, 250, 56, 10);
@@ -286,40 +289,13 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private drawFurniture() {
-    const graphics = this.add.graphics();
-
-    // Analyst desk
-    graphics.fillStyle(0x365f8c, 1);
-    graphics.fillRoundedRect(158, 280, 130, 54, 9);
-    graphics.fillStyle(0xffffff, 0.96);
-    graphics.fillRoundedRect(190, 224, 82, 48, 7);
-    graphics.fillStyle(0x9cc6e9, 1);
-    graphics.fillRect(201, 234, 60, 28);
-
-    // Sales desks and board area
-    graphics.fillStyle(0xffffff, 0.82);
-    [650, 725, 800].forEach((x) => graphics.fillRoundedRect(x, 302, 56, 54, 10));
-    graphics.fillStyle(0xd28a56, 0.8);
-    graphics.fillRoundedRect(838, 263, 132, 66, 9);
-
-    // HR table
-    graphics.fillStyle(0x7657a5, 0.86);
-    graphics.fillRoundedRect(735, 654, 155, 52, 10);
-    graphics.fillStyle(0xffffff, 0.86);
-    graphics.fillRect(765, 672, 90, 8);
-
-    // Decision table
-    graphics.fillStyle(0x3d8644, 0.9);
-    graphics.fillRoundedRect(1100, 480, 184, 92, 14);
-    graphics.fillStyle(0xffffff, 0.92);
-    graphics.fillCircle(1142, 526, 17);
-    graphics.fillCircle(1190, 526, 17);
-    graphics.fillCircle(1238, 526, 17);
-
-    // Plants and office life.
-    this.drawPlant(96, 660);
-    this.drawPlant(410, 158);
-    this.drawPlant(1290, 620);
+    // Decorative plants in the corridor only — rooms stay clean.
+    this.drawPlant(90, 110);
+    this.drawPlant(90, 700);
+    this.drawPlant(1290, 110);
+    this.drawPlant(1290, 700);
+    this.drawPlant(690, 110);
+    this.drawPlant(690, 700);
   }
 
   private drawPlant(x: number, y: number) {
@@ -333,20 +309,14 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private drawNpcs() {
-    this.drawNpc(875, 280, assetKeys.salesManager, "عماد", "مدير المبيعات");
-    this.drawNpc(780, 612, assetKeys.hrManager, "ليلى", "مديرة HR");
-    this.drawNpc(1180, 305, assetKeys.dataCoach, "نادر", "المدير المالي");
-    this.animateWorker(this.drawNpc(510, 412, assetKeys.employee, "موظف", "عمليات", false), [
-      { x: 510, y: 412 },
-      { x: 650, y: 412 },
-      { x: 730, y: 335 },
-      { x: 610, y: 335 },
-    ]);
-    this.animateWorker(this.drawNpc(1050, 405, assetKeys.employee, "موظفة", "تنسيق", false), [
-      { x: 1050, y: 405 },
-      { x: 1110, y: 405 },
-      { x: 1110, y: 520 },
-      { x: 1010, y: 520 },
+    this.drawNpc(395, 270, assetKeys.salesManager, "عماد", "مدير المبيعات");
+    this.drawNpc(395, 590, assetKeys.hrManager, "ليلى", "مديرة HR");
+    this.drawNpc(1175, 270, assetKeys.dataCoach, "نادر", "المدير المالي");
+    this.animateWorker(this.drawNpc(525, 430, assetKeys.employee, "موظف", "عمليات", false), [
+      { x: 525, y: 430 },
+      { x: 870, y: 430 },
+      { x: 870, y: 430 },
+      { x: 525, y: 430 },
     ]);
   }
 
