@@ -18,16 +18,18 @@ export function createAnalystOfficeScreen() {
       body.appendChild(wrap);
 
       let boardInstance: { destroy: () => void } | null = null;
-      let mode: "locked" | "ready" | "open" = "locked";
+      let mode: "locked" | "open" = "locked";
 
       const render = () => {
         const s = getState();
         const hasFile = s.hasReceivedIndividualPerformanceFile;
-        const desired: typeof mode = !hasFile
-          ? "locked"
-          : s.hasEnteredAnalysisRoom
-            ? "open"
-            : "ready";
+        const desired: typeof mode = hasFile ? "open" : "locked";
+
+        // Auto-enter the analysis room the moment the file is available.
+        if (hasFile && !s.hasEnteredAnalysisRoom) {
+          enterAnalysisRoom();
+          return; // store update will re-trigger render
+        }
 
         if (desired === mode) return;
         mode = desired;
@@ -40,8 +42,8 @@ export function createAnalystOfficeScreen() {
           empty.className = "l1-analyst-empty";
           empty.innerHTML = `
             <div class="l1-analyst-empty__icon" aria-hidden="true">🗂</div>
-            <h3>لا توجد ملفات أداء فردية للتحليل بعد</h3>
-            <p>استلم ملف الأداء الفردي من مكتب المبيعات لتتمكن من فتح طاولة التحليل.</p>
+            <h3>لا توجد ملفات على الطاولة الآن</h3>
+            <p>اجمع ما تحتاجه من المكاتب الأخرى ثم عد إلى هنا.</p>
             <button class="l1-btn l1-btn--ghost" type="button" data-exit>← خروج إلى الخريطة</button>
           `;
           empty.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener(
@@ -49,35 +51,6 @@ export function createAnalystOfficeScreen() {
             () => gameEvents.emit("exitRoom", { roomId: "office" }),
           );
           wrap.appendChild(empty);
-        } else if (desired === "ready") {
-          const ready = document.createElement("div");
-          ready.className = "l1-analyst-ready";
-          ready.innerHTML = `
-            <div class="l1-analyst-ready__file" aria-hidden="true">
-              <div class="l1-analyst-ready__file-tab"></div>
-              <div class="l1-analyst-ready__file-body">
-                <span>ملف الأداء الفردي</span>
-                <small>للمندوبين — الكورنيش والميدان</small>
-              </div>
-            </div>
-            <h3>الملف على الطاولة — جاهز للفحص</h3>
-            <p>افتح طاولة التحليل لمعاينة البطاقات واستخدام الأدوات.</p>
-            <div class="l1-analyst-ready__actions">
-              <button class="l1-btn l1-btn--primary l1-pulse" type="button" data-open>
-                <span aria-hidden="true">🔬</span><span>فتح طاولة التحليل</span>
-              </button>
-              <button class="l1-btn l1-btn--ghost" type="button" data-exit>← خروج</button>
-            </div>
-          `;
-          ready.querySelector<HTMLButtonElement>("[data-open]")!.addEventListener(
-            "click",
-            () => enterAnalysisRoom(),
-          );
-          ready.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener(
-            "click",
-            () => gameEvents.emit("exitRoom", { roomId: "office" }),
-          );
-          wrap.appendChild(ready);
         } else {
           boardInstance = createPerformanceCardsBoard(wrap);
         }
