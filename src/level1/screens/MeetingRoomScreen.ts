@@ -9,7 +9,7 @@ import { evaluate, EVIDENCE_DEFS, type EvidenceId } from "../logic/evaluate";
 import type { FailureReason, Outcome } from "../state/store";
 
 const CHARACTERS = [
-  { id: "nader", name: "نادر", role: "المدير المالي", initial: "ن", color: "#2b78c5" },
+  { id: "nader", name: "نادر", role: "CEO", initial: "ن", color: "#2b78c5" },
   { id: "emad", name: "عماد", role: "مدير المبيعات", initial: "ع", color: "#c56b2b" },
   { id: "layla", name: "ليلى", role: "مديرة HR", initial: "ل", color: "#7b3fb0" },
 ];
@@ -132,7 +132,7 @@ export function createMeetingRoomScreen() {
 function discussionLines(result: { outcome: Outcome; failureReason: FailureReason }): string[] {
   if (result.outcome === "success") {
     return [
-      discussionLine("nader", "نادر", "المدير المالي", "التوصية واضحة وقابلة للدفاع. عندنا قرار يمكن اعتماده بثقة."),
+      discussionLine("nader", "نادر", "CEO", "التوصية واضحة وقابلة للدفاع. عندنا قرار يمكن اعتماده بثقة."),
       discussionLine("layla", "ليلى", "مديرة HR", "الاختيار يحافظ على عدالة السياسة، لأن المكافأة تذهب لفريق حقق الأداء جماعيًا."),
       discussionLine("emad", "عماد", "مدير المبيعات", "الرقم الأعلى كان مغريًا، لكن قراءتك للفريق كانت أقوى من قراءة رقم واحد."),
     ];
@@ -140,14 +140,14 @@ function discussionLines(result: { outcome: Outcome; failureReason: FailureReaso
 
   if (result.failureReason === "chose_corniche") {
     return [
-      discussionLine("nader", "نادر", "المدير المالي", "لا أستطيع اعتماد توصية تعتمد على الرقم الأعلى وحده. القرار لن يصمد أمام الإدارة."),
+      discussionLine("nader", "نادر", "CEO", "لا أستطيع اعتماد توصية تعتمد على الرقم الأعلى وحده. القرار لن يصمد أمام الإدارة."),
       discussionLine("layla", "ليلى", "مديرة HR", "السياسة تقيس أداء الأفراد داخل الفريق، وليس متوسطًا قد يخفي المشكلة."),
       discussionLine("emad", "عماد", "مدير المبيعات", "المبيعات الإجمالية مهمة، لكن لازم نعرف هل الفريق كله قوي أم أن قلة رفعت المتوسط."),
     ];
   }
 
   return [
-    discussionLine("nader", "نادر", "المدير المالي", "اتجاهك مفهوم، لكن الدفاع غير كافٍ. أحتاج دليلين أقوى قبل اعتماد المكافأة."),
+    discussionLine("nader", "نادر", "CEO", "اتجاهك مفهوم، لكن الدفاع غير كافٍ. أحتاج دليلين أقوى قبل اعتماد المكافأة."),
     discussionLine("layla", "ليلى", "مديرة HR", "اختيار الفرع الصحيح لا يكفي وحده؛ العدالة تحتاج إثباتًا واضحًا من البيانات."),
     discussionLine("emad", "عماد", "مدير المبيعات", "هات تحليلًا يوضح صورة الفريق، لا مجرد سياق عام أو رقم سريع."),
   ];

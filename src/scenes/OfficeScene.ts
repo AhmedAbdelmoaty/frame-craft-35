@@ -139,6 +139,7 @@ export class OfficeScene extends Phaser.Scene {
   private unsubscribeDecision?: () => void;
   private unsubscribeStore?: () => void;
   private unsubscribeTimeout?: () => void;
+  private unsubscribeReset?: () => void;
   private deadline?: DeadlineCompanion;
 
 
@@ -189,12 +190,16 @@ export class OfficeScene extends Phaser.Scene {
     this.unsubscribeTimeout = gameEvents.on("timeout", () => {
       this.deadline?.pounce();
     });
+    this.unsubscribeReset = gameEvents.on("levelreset", () => {
+      this.resetSceneState();
+    });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeMove?.();
       this.unsubscribeDecision?.();
       this.unsubscribeStore?.();
       this.unsubscribeTimeout?.();
+      this.unsubscribeReset?.();
       this.cancelMove();
     });
 
@@ -329,7 +334,7 @@ export class OfficeScene extends Phaser.Scene {
   private drawNpcs() {
     this.drawNpc(395, 270, assetKeys.salesManager, "عماد", "مدير المبيعات");
     this.drawNpc(395, 590, assetKeys.hrManager, "ليلى", "مديرة HR");
-    this.drawNpc(1175, 270, assetKeys.dataCoach, "نادر", "المدير المالي");
+    this.drawNpc(1185, 595, assetKeys.dataCoach, "نادر", "CEO");
     this.animateWorker(this.drawNpc(525, 430, assetKeys.employee, "موظف", "عمليات", false), [
       { x: 525, y: 430 },
       { x: 870, y: 430 },
@@ -518,6 +523,17 @@ export class OfficeScene extends Phaser.Scene {
     this.moveCleanup?.();
     this.moveCleanup = undefined;
     this.moving = false;
+  }
+
+  private resetSceneState() {
+    this.cancelMove();
+    this.setStation("desk", false);
+    if (this.player) {
+      this.deadline?.destroy();
+      this.deadline = new DeadlineCompanion(this, this.player);
+    }
+    this.showPrompt();
+    this.refreshBadges();
   }
 
   private showPrompt(hotspot?: HotspotView) {

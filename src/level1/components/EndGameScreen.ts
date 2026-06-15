@@ -4,7 +4,6 @@
 
 import {
   getState,
-  resetLevel,
   LEVEL_DURATION_SECONDS,
 } from "../state/store";
 import { EVIDENCE_DEFS, type EvidenceId } from "../logic/evaluate";
@@ -208,7 +207,6 @@ export function mountEndGameScreen(kind: EndKind, onRetry: () => void): EndScree
   requestAnimationFrame(() => overlay.classList.add("l1-end--shown"));
 
   overlay.querySelector<HTMLButtonElement>("[data-retry]")!.addEventListener("click", () => {
-    resetLevel();
     onRetry();
   });
 

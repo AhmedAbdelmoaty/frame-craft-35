@@ -4,7 +4,7 @@
 import "./styles/level1.css";
 import { gameEvents } from "../game/events";
 import type { RoomId } from "../game/types";
-import { getState, openEndScreen, setState, subscribe } from "./state/store";
+import { getState, openEndScreen, resetLevel, setState, subscribe } from "./state/store";
 import { createAnalystOfficeScreen } from "./screens/AnalystOfficeScreen";
 import { createSalesOfficeScreen } from "./screens/SalesOfficeScreen";
 import { createHROfficeScreen } from "./screens/HROfficeScreen";
@@ -62,6 +62,18 @@ function ensureBriefing() {
   }
 }
 
+function restartLevel() {
+  if (active) closeRoom();
+  if (endHandle) {
+    const handle = endHandle;
+    endHandle = null;
+    handle.unmount();
+  }
+  resetLevel();
+  gameEvents.emit("levelreset", undefined);
+  ensureBriefing();
+}
+
 export function initLevel1() {
   const previousCleanup = (window as Window & { __level1Cleanup?: () => void }).__level1Cleanup;
   previousCleanup?.();
@@ -95,13 +107,7 @@ export function initLevel1() {
     if (s.endScreenKind && !endHandle) {
       if (active) closeRoom();
       endHandle = mountEndGameScreen(s.endScreenKind, () => {
-        // Retry: resetLevel already cleared state; clean up overlay,
-        // then re-show briefing for the new run.
-        if (endHandle) {
-          endHandle.unmount();
-          endHandle = null;
-        }
-        ensureBriefing();
+        restartLevel();
       });
     } else if (!s.endScreenKind && endHandle) {
       endHandle.unmount();
