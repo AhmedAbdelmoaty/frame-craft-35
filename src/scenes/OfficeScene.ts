@@ -1,7 +1,9 @@
 import Phaser from "phaser";
 import { gameEvents } from "../game/events";
 import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types";
-import { getState, subscribe } from "../level1/state/store";
+import { getState, isGameOver, subscribe } from "../level1/state/store";
+import { DeadlineCompanion } from "./DeadlineCompanion";
+
 
 const STATION_TO_ROOM: Record<StationId, RoomId> = {
   desk: "office",
@@ -133,6 +135,9 @@ export class OfficeScene extends Phaser.Scene {
   private unsubscribeMove?: () => void;
   private unsubscribeDecision?: () => void;
   private unsubscribeStore?: () => void;
+  private unsubscribeTimeout?: () => void;
+  private deadline?: DeadlineCompanion;
+
 
   constructor(private readonly profile: PlayerProfile) {
     super("OfficeScene");
@@ -160,6 +165,9 @@ export class OfficeScene extends Phaser.Scene {
     this.drawFurniture();
     this.drawNpcs();
     this.createPlayer();
+    if (this.player) {
+      this.deadline = new DeadlineCompanion(this, this.player);
+    }
     this.drawPrompt();
     this.setStation("desk", false);
     this.setupKeyboard();
@@ -175,11 +183,17 @@ export class OfficeScene extends Phaser.Scene {
     this.unsubscribeStore = subscribe(() => this.refreshBadges());
     this.refreshBadges();
 
+    this.unsubscribeTimeout = gameEvents.on("timeout", () => {
+      this.deadline?.pounce();
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeMove?.();
       this.unsubscribeDecision?.();
       this.unsubscribeStore?.();
+      this.unsubscribeTimeout?.();
     });
+
   }
 
   private drawOfficeShell() {
@@ -414,12 +428,15 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private interactWith(hotspot: HotspotView) {
+    if (isGameOver()) return;
     this.setStation(hotspot.station, true, () => {
+      if (isGameOver()) return;
       gameEvents.emit("hotspotinteract", { hotspot: hotspot.id, station: hotspot.station });
       gameEvents.emit("enterRoom", { roomId: STATION_TO_ROOM[hotspot.station] });
       this.showPrompt(hotspot);
     });
   }
+
 
   private setStation(station: StationId, animate: boolean, onArrive?: () => void) {
     this.currentStation = station;
