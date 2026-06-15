@@ -128,7 +128,7 @@ export class OfficeScene extends Phaser.Scene {
   private stationHighlights = new Map<StationId, Phaser.GameObjects.Rectangle>();
   private stationBadges = new Map<StationId, Phaser.GameObjects.Container>();
   private hotspots = new Map<HotspotId, HotspotView>();
-  private currentStation: StationId = "lobby";
+  private currentStation: StationId = "desk";
   private moving = false;
   private unsubscribeMove?: () => void;
   private unsubscribeDecision?: () => void;
@@ -161,7 +161,7 @@ export class OfficeScene extends Phaser.Scene {
     this.drawNpcs();
     this.createPlayer();
     this.drawPrompt();
-    this.setStation("lobby", false);
+    this.setStation("desk", false);
     this.setupKeyboard();
 
     this.unsubscribeMove = gameEvents.on("movetostation", (event) => {
