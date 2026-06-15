@@ -10,7 +10,7 @@ export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes
 export type ToolId = "mean" | "threshold" | "median" | "stability";
 export type EndScreenKind = "success" | "wrong_decision" | "timeout" | null;
 
-export const LEVEL_DURATION_SECONDS = 300; // 5:00
+export const LEVEL_DURATION_SECONDS = 180; // 3:00
 
 export interface Level1State {
   currentLocation: RoomLocation;

@@ -1,13 +1,10 @@
 import { createRoomShell } from "./RoomShell";
 import {
   getState,
-  setMeetingStage,
   submitRecommendation,
   subscribe,
 } from "../state/store";
-import { gameEvents } from "../../game/events";
 import { evaluate, EVIDENCE_DEFS, type EvidenceId } from "../logic/evaluate";
-import { NADER_OPENING } from "../data/meetingDialogue";
 
 const CHARACTERS = [
   { id: "nader", name: "نادر", role: "المدير المالي", initial: "ن", color: "#2b78c5" },
@@ -29,22 +26,16 @@ export function createMeetingRoomScreen() {
         const s = getState();
         root.innerHTML = "";
 
-        // No prepared decision yet
         if (!s.hasPreparedDecision) {
           root.innerHTML = `
             <div class="l1-analyst-empty">
               <div class="l1-analyst-empty__icon" aria-hidden="true">🤝</div>
               <h3>لا توجد توصية محضّرة بعد</h3>
-              <p>توجّه إلى غرفة القرار أولًا لبناء توصيتك واختيار الأدلة.</p>
-              <button class="l1-btn l1-btn--ghost" type="button" data-exit>← خروج إلى الخريطة</button>
+              <p>توجه إلى غرفة القرار أولًا لاختيار الفرع والأدلة.</p>
             </div>`;
-          root.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener("click", () =>
-            gameEvents.emit("exitRoom", { roomId: "meeting" }),
-          );
           return;
         }
 
-        // Table with characters
         const table = document.createElement("div");
         table.className = "l1-meeting__table";
         table.innerHTML = CHARACTERS.map(
@@ -61,33 +52,15 @@ export function createMeetingRoomScreen() {
         const stage = document.createElement("div");
         stage.className = "l1-meeting__stage";
         root.appendChild(stage);
-
-        if (s.meetingStage === "summary") renderSummary(stage);
-        else renderIntro(stage);
-        // "result" stage is handled by EndGameScreen overlay.
-      };
-
-      const renderIntro = (host: HTMLElement) => {
-        host.innerHTML = `
-          <div class="l1-bubble l1-bubble--nader">
-            <span class="l1-bubble__who">نادر</span>
-            <p>${NADER_OPENING[0]}</p>
-            <p>${NADER_OPENING[1]}</p>
-          </div>
-          <div class="l1-meeting__cta">
-            <button class="l1-btn l1-btn--primary" type="button" data-go>اعرض التوصية ›</button>
-          </div>`;
-        host.querySelector<HTMLButtonElement>("[data-go]")!.addEventListener("click", () =>
-          setMeetingStage("summary"),
-        );
+        renderSummary(stage);
       };
 
       const renderSummary = (host: HTMLElement) => {
         const s = getState();
         host.innerHTML = `
-          <h3 class="l1-meeting__prompt">التوصية المقدَّمة:</h3>
+          <h3 class="l1-meeting__prompt">التوصية المقدّمة:</h3>
           <div class="l1-meeting__summary">
-            <p class="l1-meeting__branch">الفرع الموصى به: <strong>${s.preparedBranch === "midan" ? "فرع الميدان" : "فرع الكورنيش"}</strong></p>
+            <p class="l1-meeting__branch">الفرع المرشح للمكافأة: <strong>${s.preparedBranch === "midan" ? "فرع الميدان" : "فرع الكورنيش"}</strong></p>
             <ul class="l1-decision__picks">
               ${s.preparedEvidenceIds
                 .map((id) => {
@@ -98,14 +71,10 @@ export function createMeetingRoomScreen() {
             </ul>
           </div>
           <div class="l1-meeting__cta">
-            <button class="l1-btn l1-btn--ghost" type="button" data-back>‹ رجوع</button>
             <button class="l1-btn l1-btn--primary l1-btn--stamp" type="button" data-submit>
               <span aria-hidden="true">🖋</span><span>اعتماد ومناقشة</span>
             </button>
           </div>`;
-        host.querySelector<HTMLButtonElement>("[data-back]")!.addEventListener("click", () =>
-          setMeetingStage("intro"),
-        );
         host.querySelector<HTMLButtonElement>("[data-submit]")!.addEventListener("click", () => {
           const sNow = getState();
           const r = evaluate(sNow.preparedBranch, sNow.preparedEvidenceIds);

@@ -41,27 +41,56 @@ function dialogueFor(kind: EndKind): ResultDialogue {
 
 function mascotSvg(mood: Mood): string {
   const eyeColor = mood === "calm" ? "#ffffff" : mood === "alert" ? "#ffb84a" : "#ff3a3a";
-  const bodyColor = mood === "pounce" ? "#0d0d12" : "#1a1a22";
+  const glowColor = mood === "calm" ? "#2f8a4e" : mood === "alert" ? "#ffb84a" : "#ff3a3a";
+  const bodyColor = mood === "pounce" ? "#09090d" : "#17171e";
+  const tilt = mood === "pounce" ? "rotate(-8 54 54)" : mood === "alert" ? "rotate(-3 54 54)" : "";
+  const trail =
+    mood === "calm"
+      ? `<path d="M35 43 C18 34 15 53 4 44" stroke="#16161b" stroke-width="4" fill="none" stroke-linecap="round" opacity=".45"/>`
+      : mood === "alert"
+      ? `<path d="M34 38 C14 20 12 52 -2 36" stroke="${glowColor}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>
+         <path d="M30 51 C11 61 11 36 -5 49" stroke="#111116" stroke-width="4" fill="none" stroke-linecap="round" opacity=".75"/>`
+      : `<path d="M32 35 C7 8 5 50 -12 28" stroke="#ff3a3a" stroke-width="6" fill="none" stroke-linecap="round" opacity=".7"/>
+         <path d="M27 55 C2 70 4 28 -15 52" stroke="#111116" stroke-width="5" fill="none" stroke-linecap="round" opacity=".85"/>`;
+  const eyes =
+    mood === "calm"
+      ? `<ellipse cx="58" cy="39" rx="5" ry="7" fill="${eyeColor}"/>
+         <ellipse cx="75" cy="40" rx="5" ry="7" fill="${eyeColor}"/>
+         <circle cx="59" cy="40" r="1.8" fill="#07070a"/>
+         <circle cx="74" cy="41" r="1.8" fill="#07070a"/>`
+      : `<polygon points="52,34 67,39 53,45" fill="${eyeColor}"/>
+         <polygon points="82,34 68,39 81,45" fill="${eyeColor}"/>
+         <path d="M51 29 L67 34 M83 29 L68 34" stroke="${eyeColor}" stroke-width="3" stroke-linecap="round"/>`;
   const mouth =
     mood === "pounce"
-      ? `<path d="M35 60 Q50 78 65 60 Q60 70 50 72 Q40 70 35 60 Z" fill="#ff3a3a"/>
-         <polygon points="40,62 44,68 48,62" fill="#fff"/>
-         <polygon points="52,62 56,68 60,62" fill="#fff"/>`
+      ? `<ellipse cx="67" cy="56" rx="15" ry="10" fill="#ff3a3a"/>
+         <polygon points="57,51 62,62 67,51" fill="#fff"/>
+         <polygon points="72,51 77,62 82,51" fill="#fff"/>`
       : mood === "alert"
-      ? `<path d="M42 62 Q50 66 58 62" stroke="#ffb84a" stroke-width="2.5" fill="none" stroke-linecap="round"/>`
-      : `<path d="M44 62 Q50 65 56 62" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      ? `<path d="M61 55 Q69 58 77 54" stroke="#ffb84a" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M61 55 Q68 61 76 55" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
   return `
-    <svg viewBox="0 0 100 100" class="l1-end__dl-svg" aria-hidden="true">
-      <ellipse cx="50" cy="88" rx="30" ry="5" fill="rgba(0,0,0,.25)"/>
-      <polygon points="22,38 30,10 38,38" fill="${bodyColor}"/>
-      <polygon points="78,38 70,10 62,38" fill="${bodyColor}"/>
-      <circle cx="50" cy="52" r="28" fill="${bodyColor}"/>
-      <circle cx="40" cy="48" r="5" fill="${eyeColor}"/>
-      <circle cx="60" cy="48" r="5" fill="${eyeColor}"/>
-      ${mouth}
-      <circle cx="50" cy="74" r="8" fill="#ffb84a" stroke="#7a3a00" stroke-width="1.5"/>
-      <line x1="50" y1="74" x2="50" y2="70" stroke="#7a3a00" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="50" y1="74" x2="54" y2="76" stroke="#7a3a00" stroke-width="1.5" stroke-linecap="round"/>
+    <svg viewBox="-18 0 136 108" class="l1-end__dl-svg" aria-hidden="true">
+      <ellipse cx="55" cy="94" rx="48" ry="7" fill="rgba(0,0,0,.24)"/>
+      <circle cx="68" cy="52" r="${mood === "pounce" ? 42 : 34}" fill="${glowColor}" opacity="${mood === "calm" ? ".12" : ".2"}"/>
+      <g transform="${tilt}">
+        ${trail}
+        <ellipse cx="42" cy="63" rx="30" ry="21" fill="${bodyColor}"/>
+        <circle cx="67" cy="45" r="26" fill="${bodyColor}"/>
+        <polygon points="50,29 58,5 67,29" fill="${bodyColor}"/>
+        <polygon points="82,31 95,12 91,40" fill="${bodyColor}"/>
+        <ellipse cx="25" cy="67" rx="19" ry="10" fill="#101014"/>
+        <rect x="28" y="75" width="11" height="22" rx="5" fill="#111116"/>
+        <rect x="51" y="76" width="11" height="21" rx="5" fill="#111116"/>
+        <rect x="69" y="72" width="12" height="24" rx="5" fill="#111116"/>
+        <rect x="85" y="70" width="11" height="22" rx="5" fill="#111116"/>
+        <ellipse cx="57" cy="59" rx="28" ry="18" fill="#08080b" opacity=".4"/>
+        ${eyes}
+        ${mouth}
+        <circle cx="56" cy="72" r="10" fill="${mood === "pounce" ? "#ff3a3a" : "#ffb84a"}" stroke="#6b3600" stroke-width="2"/>
+        <line x1="56" y1="72" x2="56" y2="65" stroke="#6b3600" stroke-width="2" stroke-linecap="round"/>
+        <line x1="56" y1="72" x2="62" y2="75" stroke="#6b3600" stroke-width="2" stroke-linecap="round"/>
+      </g>
     </svg>
   `;
 }

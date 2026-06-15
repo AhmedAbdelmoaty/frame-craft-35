@@ -26,7 +26,7 @@ type Phase = "calm" | "alert" | "critical" | "zero";
 function phaseOf(s: Level1State): Phase {
   const t = s.meetingTimeRemaining;
   if (t <= 0) return "zero";
-  if (t <= 60) return "critical";
+  if (t <= 45) return "critical";
   if (t <= LEVEL_DURATION_SECONDS * 0.5) return "alert";
   return "calm";
 }
@@ -42,7 +42,7 @@ export function mountTopBar(parent: HTMLElement = document.body) {
     </div>
     <div class="l1-topbar__timer" data-timer>
       <span class="l1-topbar__timer-icon" aria-hidden="true">⏱</span>
-      <span class="l1-topbar__timer-text" data-timer-text>05:00</span>
+      <span class="l1-topbar__timer-text" data-timer-text>03:00</span>
       <span class="l1-topbar__timer-label">قبل أن يلحق Deadline</span>
     </div>
     <button class="l1-topbar__meeting-btn" type="button" data-meeting-btn disabled>

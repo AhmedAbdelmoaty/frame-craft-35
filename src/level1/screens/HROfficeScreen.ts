@@ -2,18 +2,10 @@ import { createRoomShell } from "./RoomShell";
 import { PERFORMANCE_THRESHOLD } from "../data/branches";
 import {
   getState,
-  inspectHRPolicy,
   saveHRPolicy,
   subscribe,
   visitHR,
 } from "../state/store";
-import { gameEvents } from "../../game/events";
-
-const LAYLA_LINES = [
-  "أهلًا. أنا ليلى، مديرة الموارد البشرية.",
-  "سياسة الشركة تعتبر المندوب محققًا للأداء المطلوب إذا وصل إلى ٨٥٪ أو أكثر.",
-  "الملف على الطاولة يحتوي على نص السياسة الرسمي.",
-];
 
 export function createHROfficeScreen() {
   visitHR();
@@ -32,40 +24,28 @@ export function createHROfficeScreen() {
               </div>
             </div>
             <div class="l1-dialogue">
-              <p class="l1-dialogue__text" data-dialogue-text>${LAYLA_LINES[0]}</p>
-              <div class="l1-dialogue__actions">
-                <button class="l1-btn l1-btn--ghost l1-btn--sm" type="button" data-next>التالي ›</button>
-                <span class="l1-dialogue__counter" data-counter>1 / ${LAYLA_LINES.length}</span>
-              </div>
+              <p class="l1-dialogue__text">سياسة الأداء الرسمية أمامك. خذها معك قبل بناء التوصية.</p>
             </div>
           </aside>
 
           <section class="l1-office__main">
-            <div class="l1-actionbar">
-              <button class="l1-btn l1-btn--primary l1-pulse" type="button" data-inspect>
-                <span aria-hidden="true">📐</span>
-                <span>فحص سياسة الأداء</span>
-              </button>
-              <button class="l1-btn l1-btn--exit" type="button" data-exit>← خروج إلى الخريطة</button>
-            </div>
-
-            <div class="l1-folder" data-board hidden>
+            <div class="l1-folder" data-board>
               <header class="l1-folder__head">
                 <span class="l1-folder__tab">سياسة الأداء</span>
                 <h3>وثيقة سياسة المكافأة — الربع الحالي</h3>
               </header>
               <div class="l1-folder__body">
                 <p class="l1-folder__rule">
-                  المندوب يُعتبر محققًا للأداء المطلوب إذا بلغ
-                  <strong class="l1-folder__num">${PERFORMANCE_THRESHOLD}٪</strong>
+                  المندوب يعتبر محققًا للأداء المطلوب إذا بلغ
+                  <strong class="l1-folder__num">${PERFORMANCE_THRESHOLD}%</strong>
                   أو أكثر من الهدف الشهري.
                 </p>
                 <ul class="l1-folder__list">
-                  <li>تُطبّق السياسة على جميع المندوبين دون استثناء.</li>
+                  <li>تطبق السياسة على جميع المندوبين دون استثناء.</li>
                   <li>الحكم يكون على مستوى المندوب الفرد.</li>
                 </ul>
               </div>
-              <footer class="l1-folder__foot" data-save-wrap hidden>
+              <footer class="l1-folder__foot" data-save-wrap>
                 <button class="l1-btn l1-btn--save" type="button" data-save>
                   <span aria-hidden="true">📥</span><span>استلام سياسة الأداء</span>
                 </button>
@@ -76,52 +56,25 @@ export function createHROfficeScreen() {
         </div>
       `;
 
-      let idx = 0;
-      const textEl = body.querySelector<HTMLElement>("[data-dialogue-text]")!;
-      const counter = body.querySelector<HTMLElement>("[data-counter]")!;
-      body.querySelector<HTMLButtonElement>("[data-next]")!.addEventListener("click", () => {
-        idx = (idx + 1) % LAYLA_LINES.length;
-        textEl.textContent = LAYLA_LINES[idx];
-        counter.textContent = `${idx + 1} / ${LAYLA_LINES.length}`;
-      });
-
-      const board = body.querySelector<HTMLElement>("[data-board]")!;
-      const inspectBtn = body.querySelector<HTMLButtonElement>("[data-inspect]")!;
       const saveWrap = body.querySelector<HTMLElement>("[data-save-wrap]")!;
       const saveBtn = body.querySelector<HTMLButtonElement>("[data-save]")!;
       const savedMsg = body.querySelector<HTMLElement>("[data-saved]")!;
 
       const render = () => {
         const s = getState();
-        if (s.hasInspectedHRPolicy) {
-          board.hidden = false;
-          inspectBtn.classList.remove("l1-pulse");
-          inspectBtn.textContent = "✓ تمّ الفحص";
-          inspectBtn.disabled = true;
-          saveWrap.hidden = s.hasSavedHRPolicy;
-          savedMsg.hidden = !s.hasSavedHRPolicy;
-          saveBtn.disabled = s.hasSavedHRPolicy;
-        }
+        saveWrap.hidden = s.hasSavedHRPolicy;
+        savedMsg.hidden = !s.hasSavedHRPolicy;
+        saveBtn.disabled = s.hasSavedHRPolicy;
       };
       const unsub = subscribe(render);
       render();
 
-      inspectBtn.addEventListener("click", () => {
-        inspectHRPolicy();
-        board.animate(
-          [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }],
-          { duration: 380, easing: "ease-out" },
-        );
-      });
       saveBtn.addEventListener("click", () => {
         saveHRPolicy();
         saveBtn.animate(
           [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }],
-          { duration: 280, easing: "ease-out" },
+          { duration: 220, easing: "ease-out" },
         );
-      });
-      body.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener("click", () => {
-        gameEvents.emit("exitRoom", { roomId: "hr" });
       });
 
       const observer = new MutationObserver(() => {

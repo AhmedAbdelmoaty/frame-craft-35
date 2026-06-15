@@ -1,11 +1,6 @@
-// Deadline companion — a playful but threatening shadow that follows the
-// player around the map. Its visual state mirrors the level timer.
-//
-// Three phases keyed to the store:
-//   calm     ( > 50% time left )
-//   alert    ( 50%..20%        )
-//   critical ( < 20% time left )
-// Plus a one-shot `pounce()` for the timeout moment.
+// Deadline companion - a small time-pressure mascot that follows the player.
+// It stays lightweight by drawing with Phaser Graphics instead of requiring
+// production sprites, while still giving clear calm / alert / critical states.
 
 import Phaser from "phaser";
 import {
@@ -17,38 +12,75 @@ import {
 export type DeadlinePhase = "calm" | "alert" | "critical";
 
 interface PhaseConfig {
-  speed: number; // lerp factor towards target each frame
-  offset: number; // distance kept behind the player
+  speed: number;
+  offset: number;
   eye: number;
   body: number;
-  ringColor: number;
-  ringAlpha: number;
+  glow: number;
+  glowAlpha: number;
   bobMs: number;
+  trailAlpha: number;
+  jitter: number;
 }
 
+const ALERT_AT_SECONDS = LEVEL_DURATION_SECONDS * 0.5;
+const CRITICAL_AT_SECONDS = 45;
+
 const PHASE_CONFIG: Record<DeadlinePhase, PhaseConfig> = {
-  calm:     { speed: 0.05, offset: 78, eye: 0xffffff, body: 0x1a1a22, ringColor: 0xffffff, ringAlpha: 0,   bobMs: 900 },
-  alert:    { speed: 0.09, offset: 58, eye: 0xffb84a, body: 0x14141a, ringColor: 0xffb84a, ringAlpha: 0.55, bobMs: 600 },
-  critical: { speed: 0.15, offset: 38, eye: 0xff3a3a, body: 0x09090d, ringColor: 0xff3a3a, ringAlpha: 0.85, bobMs: 380 },
+  calm: {
+    speed: 0.055,
+    offset: 86,
+    eye: 0xffffff,
+    body: 0x1b1b22,
+    glow: 0x2f8a4e,
+    glowAlpha: 0,
+    bobMs: 980,
+    trailAlpha: 0.18,
+    jitter: 0,
+  },
+  alert: {
+    speed: 0.095,
+    offset: 62,
+    eye: 0xffb84a,
+    body: 0x141419,
+    glow: 0xffb84a,
+    glowAlpha: 0.5,
+    bobMs: 620,
+    trailAlpha: 0.42,
+    jitter: 0.4,
+  },
+  critical: {
+    speed: 0.15,
+    offset: 40,
+    eye: 0xff3a3a,
+    body: 0x08080c,
+    glow: 0xff3a3a,
+    glowAlpha: 0.82,
+    bobMs: 360,
+    trailAlpha: 0.7,
+    jitter: 1.4,
+  },
 };
 
 function phaseFromTime(seconds: number): DeadlinePhase {
-  if (seconds <= LEVEL_DURATION_SECONDS * 0.2) return "critical";
-  if (seconds <= LEVEL_DURATION_SECONDS * 0.5) return "alert";
+  if (seconds <= CRITICAL_AT_SECONDS) return "critical";
+  if (seconds <= ALERT_AT_SECONDS) return "alert";
   return "calm";
 }
 
 export class DeadlineCompanion {
-  private container: Phaser.GameObjects.Container;
-  private body: Phaser.GameObjects.Graphics;
-  private eyeL: Phaser.GameObjects.Arc;
-  private eyeR: Phaser.GameObjects.Arc;
-  private ring: Phaser.GameObjects.Arc;
+  private root: Phaser.GameObjects.Container;
+  private art: Phaser.GameObjects.Container;
   private shadow: Phaser.GameObjects.Ellipse;
+  private pulse: Phaser.GameObjects.Arc;
+  private trail: Phaser.GameObjects.Graphics;
+  private body: Phaser.GameObjects.Graphics;
+  private details: Phaser.GameObjects.Graphics;
+  private biteFlash?: Phaser.GameObjects.Graphics;
   private bobTween?: Phaser.Tweens.Tween;
-  private ringTween?: Phaser.Tweens.Tween;
+  private pulseTween?: Phaser.Tweens.Tween;
   private phase: DeadlinePhase = "calm";
-  private dirSign = -1; // -1 = behind to the left of player, 1 = right
+  private dirSign = -1;
   private prevPlayerX = 0;
   private pouncing = false;
   private unsub: () => void;
@@ -57,19 +89,20 @@ export class DeadlineCompanion {
     private scene: Phaser.Scene,
     private player: Phaser.GameObjects.Container,
   ) {
-    const startX = player.x - 80;
-    const startY = player.y;
+    const startX = player.x - 86;
+    const startY = player.y + 4;
     this.prevPlayerX = player.x;
 
-    this.container = scene.add.container(startX, startY).setDepth(startY + 18);
-
-    this.shadow = scene.add.ellipse(0, 38, 46, 14, 0x000000, 0.28);
-    this.ring = scene.add.circle(0, 4, 30, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0);
+    this.root = scene.add.container(startX, startY).setDepth(startY + 18);
+    this.art = scene.add.container(0, 0);
+    this.shadow = scene.add.ellipse(0, 33, 58, 16, 0x000000, 0.26);
+    this.pulse = scene.add.circle(0, -2, 34, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0);
+    this.trail = scene.add.graphics();
     this.body = scene.add.graphics();
-    this.eyeL = scene.add.circle(-8, -6, 4, 0xffffff, 1);
-    this.eyeR = scene.add.circle(8, -6, 4, 0xffffff, 1);
+    this.details = scene.add.graphics();
 
-    this.container.add([this.shadow, this.ring, this.body, this.eyeL, this.eyeR]);
+    this.art.add([this.trail, this.body, this.details]);
+    this.root.add([this.shadow, this.pulse, this.art]);
     this.applyPhase("calm", true);
 
     this.unsub = subscribe(() => {
@@ -85,71 +118,140 @@ export class DeadlineCompanion {
     this.unsub();
     this.scene.events.off(Phaser.Scenes.Events.UPDATE, this.tick, this);
     this.bobTween?.stop();
-    this.ringTween?.stop();
-    this.container.destroy();
+    this.pulseTween?.stop();
+    this.root.destroy();
   }
 
-  private drawBody(color: number, fanged: boolean) {
-    this.body.clear();
-    this.body.fillStyle(color, 1);
-    // Ears
-    this.body.fillTriangle(-20, -10, -12, -28, -6, -12);
-    this.body.fillTriangle(20, -10, 12, -28, 6, -12);
-    // Head/body
-    this.body.fillCircle(0, 0, 20);
-    // Collar watch
-    this.body.fillStyle(0xffb84a, 1);
-    this.body.fillCircle(0, 14, 6);
-    this.body.lineStyle(1.5, 0x7a3a00, 1);
-    this.body.strokeCircle(0, 14, 6);
-    // Mouth — fangs only when critical
-    if (fanged) {
-      this.body.fillStyle(0xff3a3a, 1);
-      this.body.fillTriangle(-6, 8, 6, 8, 0, 16);
-      this.body.fillStyle(0xffffff, 1);
-      this.body.fillTriangle(-4, 8, -1, 8, -2.5, 12);
-      this.body.fillTriangle(4, 8, 1, 8, 2.5, 12);
+  private drawMascot(phase: DeadlinePhase) {
+    const cfg = PHASE_CONFIG[phase];
+    const isAlert = phase === "alert";
+    const isCritical = phase === "critical";
+
+    this.trail.clear();
+    this.trail.lineStyle(isCritical ? 5 : 3, cfg.glow, cfg.trailAlpha);
+    this.trail.beginPath();
+    this.trail.moveTo(-18, -12);
+    this.trail.lineTo(-34, -25);
+    this.trail.lineTo(-48, -25);
+    this.trail.lineTo(-58, -16);
+    this.trail.strokePath();
+    this.trail.lineStyle(isCritical ? 4 : 2, 0x101014, Math.min(0.8, cfg.trailAlpha + 0.1));
+    this.trail.beginPath();
+    this.trail.moveTo(-21, 4);
+    this.trail.lineTo(-40, 12);
+    this.trail.lineTo(-54, 8);
+    this.trail.lineTo(-63, 0);
+    this.trail.strokePath();
+    if (isCritical) {
+      this.trail.lineStyle(3, 0xff3a3a, 0.55);
+      this.trail.beginPath();
+      this.trail.moveTo(-25, -24);
+      this.trail.lineTo(-43, -42);
+      this.trail.lineTo(-59, -41);
+      this.trail.lineTo(-72, -30);
+      this.trail.strokePath();
     }
+
+    this.body.clear();
+    this.body.fillStyle(cfg.body, 1);
+    this.body.fillEllipse(-4, 8, 46, 30);
+    this.body.fillCircle(20, -8, 22);
+    this.body.fillTriangle(7, -23, 14, -44, 22, -22);
+    this.body.fillTriangle(32, -22, 42, -39, 38, -15);
+    this.body.fillEllipse(-26, 13, 26, 15);
+
+    this.body.fillStyle(0x111116, 1);
+    this.body.fillRoundedRect(-24, 21, 11, 19, 5);
+    this.body.fillRoundedRect(2, 22, 11, 18, 5);
+    this.body.fillRoundedRect(20, 18, 12, 21, 5);
+    this.body.fillRoundedRect(34, 15, 11, 20, 5);
+
+    this.body.fillStyle(0x07070a, 0.45);
+    this.body.fillEllipse(14, 4, 30, 18);
+
+    this.details.clear();
+    this.details.fillStyle(cfg.eye, 1);
+    if (phase === "calm") {
+      this.details.fillEllipse(13, -12, 7, 10);
+      this.details.fillEllipse(29, -11, 7, 10);
+      this.details.fillStyle(0x0b0b0d, 1);
+      this.details.fillCircle(14, -10, 2);
+      this.details.fillCircle(28, -9, 2);
+      this.details.lineStyle(2, 0xe9e9e9, 1);
+      this.details.beginPath();
+      this.details.moveTo(18, 2);
+      this.details.lineTo(23, 6);
+      this.details.lineTo(29, 2);
+      this.details.strokePath();
+    } else {
+      this.details.fillTriangle(9, -15, 22, -11, 10, -5);
+      this.details.fillTriangle(34, -15, 23, -11, 35, -5);
+      this.details.lineStyle(3, cfg.eye, 1);
+      this.details.beginPath();
+      this.details.moveTo(7, -20);
+      this.details.lineTo(20, -17);
+      this.details.moveTo(37, -20);
+      this.details.lineTo(24, -17);
+      this.details.strokePath();
+      this.details.fillStyle(isCritical ? 0xff3a3a : 0xff8c2a, 1);
+      this.details.fillEllipse(24, 4, isCritical ? 17 : 12, isCritical ? 11 : 6);
+      if (isCritical) {
+        this.details.fillStyle(0xffffff, 1);
+        this.details.fillTriangle(18, 1, 21, 8, 24, 1);
+        this.details.fillTriangle(27, 1, 30, 8, 33, 1);
+      }
+    }
+
+    this.details.fillStyle(isCritical ? 0xff3a3a : isAlert ? 0xffb84a : 0xffcf6a, 1);
+    this.details.fillCircle(12, 23, 8);
+    this.details.lineStyle(2, 0x5c3200, 1);
+    this.details.strokeCircle(12, 23, 8);
+    this.details.lineStyle(1.5, 0x5c3200, 1);
+    this.details.beginPath();
+    this.details.moveTo(12, 23);
+    this.details.lineTo(12, 17);
+    this.details.moveTo(12, 23);
+    this.details.lineTo(17, 26);
+    this.details.strokePath();
   }
 
   private applyPhase(phase: DeadlinePhase, immediate: boolean) {
     this.phase = phase;
     const cfg = PHASE_CONFIG[phase];
-    this.drawBody(cfg.body, phase === "critical");
-    this.eyeL.setFillStyle(cfg.eye);
-    this.eyeR.setFillStyle(cfg.eye);
+    this.drawMascot(phase);
 
     this.bobTween?.stop();
     this.bobTween = this.scene.tweens.add({
-      targets: this.body,
-      y: -3,
+      targets: this.art,
+      y: phase === "critical" ? -5 : -3,
       yoyo: true,
       repeat: -1,
       duration: cfg.bobMs,
       ease: "Sine.easeInOut",
     });
 
-    this.ringTween?.stop();
-    if (cfg.ringAlpha > 0) {
-      this.ring.setStrokeStyle(3, cfg.ringColor, cfg.ringAlpha);
-      this.ring.setScale(0.7);
-      this.ringTween = this.scene.tweens.add({
-        targets: this.ring,
-        scale: { from: 0.7, to: 1.4 },
-        alpha: { from: cfg.ringAlpha, to: 0 },
-        duration: phase === "critical" ? 600 : 900,
+    this.pulseTween?.stop();
+    if (cfg.glowAlpha > 0) {
+      this.pulse.setStrokeStyle(3, cfg.glow, cfg.glowAlpha);
+      this.pulse.setScale(0.75);
+      this.pulseTween = this.scene.tweens.add({
+        targets: this.pulse,
+        scale: { from: 0.75, to: phase === "critical" ? 1.55 : 1.28 },
+        alpha: { from: cfg.glowAlpha, to: 0 },
+        duration: phase === "critical" ? 520 : 860,
         repeat: -1,
         ease: "Quad.easeOut",
       });
     } else {
-      this.ring.setStrokeStyle(3, cfg.ringColor, 0);
+      this.pulse.setStrokeStyle(3, cfg.glow, 0);
+      this.pulse.setAlpha(1);
     }
 
     if (!immediate) {
       this.scene.tweens.add({
-        targets: this.container,
-        scale: { from: 1.18, to: 1 },
-        duration: 240,
+        targets: this.root,
+        scale: { from: 1.16, to: 1 },
+        duration: 230,
         ease: "Back.easeOut",
       });
     }
@@ -164,20 +266,19 @@ export class DeadlineCompanion {
     this.prevPlayerX = this.player.x;
 
     const targetX = this.player.x + this.dirSign * cfg.offset;
-    const targetY = this.player.y;
-    this.container.x += (targetX - this.container.x) * cfg.speed;
-    this.container.y += (targetY - this.container.y) * cfg.speed;
+    const targetY = this.player.y + 3;
+    this.root.x += (targetX - this.root.x) * cfg.speed;
+    this.root.y += (targetY - this.root.y) * cfg.speed;
 
-    if (this.phase === "critical") {
-      this.container.x += Phaser.Math.Between(-1, 1);
-      this.container.y += Phaser.Math.Between(-1, 1);
+    if (cfg.jitter > 0) {
+      this.root.x += Phaser.Math.FloatBetween(-cfg.jitter, cfg.jitter);
+      this.root.y += Phaser.Math.FloatBetween(-cfg.jitter, cfg.jitter);
     }
 
-    this.container.setDepth(this.container.y + 18);
+    this.root.setDepth(this.root.y + 18);
 
-    // Face the player
-    const facingSign = this.player.x < this.container.x ? -1 : 1;
-    if (this.body.scaleX !== facingSign) this.body.setScale(facingSign, 1);
+    const facingSign = this.player.x < this.root.x ? -1 : 1;
+    this.art.setScale(facingSign, 1);
   }
 
   /** One-shot dramatic pounce for the timeout moment. */
@@ -185,26 +286,60 @@ export class DeadlineCompanion {
     if (this.pouncing) return;
     this.pouncing = true;
     this.applyPhase("critical", true);
+    this.art.setScale(this.player.x < this.root.x ? -1 : 1, 1);
 
-    this.scene.cameras.main.shake(500, 0.012);
-    this.scene.cameras.main.flash(200, 220, 40, 40);
+    this.scene.cameras.main.shake(760, 0.014);
+    this.scene.cameras.main.flash(220, 230, 42, 42);
 
-    // Leap onto the player
     this.scene.tweens.add({
-      targets: this.container,
+      targets: this.root,
       x: this.player.x,
-      y: this.player.y - 8,
-      scale: 1.7,
-      duration: 320,
+      y: this.player.y - 10,
+      scale: 1.65,
+      duration: 420,
       ease: "Back.easeIn",
       onComplete: () => {
+        this.drawBiteFlash();
         this.scene.tweens.add({
-          targets: this.container,
-          scale: { from: 1.7, to: 1.3 },
-          duration: 220,
+          targets: this.root,
+          scale: { from: 1.65, to: 1.28 },
+          angle: { from: -5, to: 5 },
+          duration: 150,
           yoyo: true,
-          repeat: 1,
+          repeat: 2,
+          ease: "Sine.easeInOut",
         });
+      },
+    });
+  }
+
+  private drawBiteFlash() {
+    this.biteFlash?.destroy();
+    this.biteFlash = this.scene.add.graphics().setDepth(this.root.depth + 2);
+    this.biteFlash.x = this.player.x;
+    this.biteFlash.y = this.player.y - 8;
+    this.biteFlash.lineStyle(4, 0xff3a3a, 0.9);
+    this.biteFlash.beginPath();
+    this.biteFlash.moveTo(-30, -18);
+    this.biteFlash.lineTo(-8, -4);
+    this.biteFlash.lineTo(-30, 10);
+    this.biteFlash.moveTo(30, -18);
+    this.biteFlash.lineTo(8, -4);
+    this.biteFlash.lineTo(30, 10);
+    this.biteFlash.strokePath();
+    this.biteFlash.fillStyle(0xfff1d0, 0.9);
+    this.biteFlash.fillTriangle(-9, -5, -1, 0, -9, 7);
+    this.biteFlash.fillTriangle(9, -5, 1, 0, 9, 7);
+
+    this.scene.tweens.add({
+      targets: this.biteFlash,
+      alpha: 0,
+      scale: 1.35,
+      duration: 360,
+      ease: "Quad.easeOut",
+      onComplete: () => {
+        this.biteFlash?.destroy();
+        this.biteFlash = undefined;
       },
     });
   }

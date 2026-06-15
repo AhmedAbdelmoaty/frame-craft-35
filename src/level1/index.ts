@@ -75,12 +75,12 @@ export function initLevel1() {
 
   // Timeout: close any open room immediately so player sees the
   // Deadline pounce on the map. EndGameScreen opens after the
-  // Phaser pounce animation (~650ms).
+  // short cartoon catch animation.
   gameEvents.on("timeout", () => {
     if (active) closeRoom();
     window.setTimeout(() => {
       if (!getState().endScreenKind) openEndScreen("timeout");
-    }, 650);
+    }, 1050);
   });
 
   // EndGameScreen sync: open/close DOM overlay when endScreenKind changes.
