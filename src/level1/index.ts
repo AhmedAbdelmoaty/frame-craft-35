@@ -4,7 +4,7 @@
 import "./styles/level1.css";
 import { gameEvents } from "../game/events";
 import type { RoomId } from "../game/types";
-import { getState, setState } from "./state/store";
+import { getState, openEndScreen, setState, subscribe } from "./state/store";
 import { createAnalystOfficeScreen } from "./screens/AnalystOfficeScreen";
 import { createSalesOfficeScreen } from "./screens/SalesOfficeScreen";
 import { createHROfficeScreen } from "./screens/HROfficeScreen";
@@ -13,6 +13,7 @@ import { createMeetingRoomScreen } from "./screens/MeetingRoomScreen";
 import { mountTopBar } from "./components/TopBar";
 import { mountMissionFileOverlay } from "./components/MissionFileOverlay";
 import { mountBriefingModal } from "./components/BriefingModal";
+import { mountEndGameScreen, type EndScreenHandle } from "./components/EndGameScreen";
 import { startTimerLoop } from "./logic/timer";
 
 type ScreenInstance = { root: HTMLElement; destroy: () => void };
@@ -28,8 +29,10 @@ const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
 
 let active: { roomId: RoomId; instance: ScreenInstance } | null = null;
 let booted = false;
+let endHandle: EndScreenHandle | null = null;
 
 function openRoom(roomId: RoomId) {
+  if (getState().endScreenKind || getState().timeoutTriggered) return;
   if (active?.roomId === roomId) return;
   if (active) closeRoom();
 
@@ -51,6 +54,12 @@ function closeRoom() {
   setState({ currentLocation: "map" });
 }
 
+function ensureBriefing() {
+  if (!getState().hasReadBrief) {
+    mountBriefingModal(document.body);
+  }
+}
+
 export function initLevel1() {
   if (booted) return;
   booted = true;
@@ -59,11 +68,37 @@ export function initLevel1() {
   mountMissionFileOverlay(document.body);
   startTimerLoop();
 
-  // Briefing modal: only show once (when brief unread). Timer starts on dismiss.
-  if (!getState().hasReadBrief) {
-    mountBriefingModal(document.body);
-  }
+  ensureBriefing();
 
   gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId));
   gameEvents.on("exitRoom", () => closeRoom());
+
+  // Timeout: close any open room immediately so player sees the
+  // Deadline pounce on the map. EndGameScreen opens after the
+  // Phaser pounce animation (~650ms).
+  gameEvents.on("timeout", () => {
+    if (active) closeRoom();
+    window.setTimeout(() => {
+      if (!getState().endScreenKind) openEndScreen("timeout");
+    }, 650);
+  });
+
+  // EndGameScreen sync: open/close DOM overlay when endScreenKind changes.
+  subscribe((s) => {
+    if (s.endScreenKind && !endHandle) {
+      if (active) closeRoom();
+      endHandle = mountEndGameScreen(s.endScreenKind, () => {
+        // Retry: resetLevel already cleared state; clean up overlay,
+        // then re-show briefing for the new run.
+        if (endHandle) {
+          endHandle.unmount();
+          endHandle = null;
+        }
+        ensureBriefing();
+      });
+    } else if (!s.endScreenKind && endHandle) {
+      endHandle.unmount();
+      endHandle = null;
+    }
+  });
 }

@@ -1,4 +1,5 @@
 import { getState, tickTimer } from "../state/store";
+import { gameEvents } from "../../game/events";
 
 let intervalId: number | null = null;
 
@@ -6,7 +7,10 @@ export function startTimerLoop() {
   if (intervalId !== null) return;
   intervalId = window.setInterval(() => {
     if (!getState().timerRunning) return;
-    tickTimer();
+    const justTimedOut = tickTimer();
+    if (justTimedOut) {
+      gameEvents.emit("timeout", undefined);
+    }
   }, 1000);
 }
 

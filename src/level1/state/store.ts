@@ -8,6 +8,9 @@ export type FailureReason = "chose_corniche" | "midan_weak_evidence" | "incomple
 export type RoomLocation = "office" | "sales" | "hr" | "decision" | "meeting" | "map";
 export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
 export type ToolId = "mean" | "threshold" | "median" | "stability";
+export type EndScreenKind = "success" | "wrong_decision" | "timeout" | null;
+
+export const LEVEL_DURATION_SECONDS = 300; // 5:00
 
 export interface Level1State {
   currentLocation: RoomLocation;
@@ -43,11 +46,13 @@ export interface Level1State {
   notesText: string;
   meetingUnlockSeen: boolean;
   lastMissionUpdate: string | null;
+  timeoutTriggered: boolean;
+  endScreenKind: EndScreenKind;
 }
 
 const initialState: Level1State = {
   currentLocation: "map",
-  meetingTimeRemaining: 600,
+  meetingTimeRemaining: LEVEL_DURATION_SECONDS,
   timerRunning: false,
   hasReadBrief: false,
   hasVisitedSales: false,
@@ -79,6 +84,8 @@ const initialState: Level1State = {
   notesText: "",
   meetingUnlockSeen: false,
   lastMissionUpdate: null,
+  timeoutTriggered: false,
+  endScreenKind: null,
 };
 
 type Listener = (state: Level1State) => void;
@@ -95,14 +102,45 @@ export function subscribe(fn: Listener): () => void {
   return () => listeners.delete(fn);
 }
 
+// ----- Game over / lock -----
+export function isGameOver(s: Level1State = state): boolean {
+  return s.timeoutTriggered || s.endScreenKind !== null;
+}
+
 // ----- Timer -----
-export function tickTimer() {
-  if (!state.timerRunning || state.meetingTimeRemaining <= 0) return;
-  setState({ meetingTimeRemaining: Math.max(0, state.meetingTimeRemaining - 1) });
+/** Returns true if this tick just hit 00:00. */
+export function tickTimer(): boolean {
+  if (!state.timerRunning || state.meetingTimeRemaining <= 0) return false;
+  const next = Math.max(0, state.meetingTimeRemaining - 1);
+  setState({ meetingTimeRemaining: next });
+  if (next === 0) {
+    triggerTimeout();
+    return true;
+  }
+  return false;
 }
 export function startTimer() {
-  if (state.timerRunning) return;
+  if (state.timerRunning || isGameOver()) return;
   setState({ timerRunning: true });
+}
+
+export function triggerTimeout() {
+  if (state.timeoutTriggered) return;
+  setState({
+    timeoutTriggered: true,
+    timerRunning: false,
+    meetingTimeRemaining: 0,
+    // endScreenKind is set later by index.ts after the Deadline pounce.
+  });
+}
+
+export function openEndScreen(kind: Exclude<EndScreenKind, null>) {
+  if (state.endScreenKind) return;
+  setState({ endScreenKind: kind, timerRunning: false });
+}
+export function closeEndScreen() {
+  if (!state.endScreenKind) return;
+  setState({ endScreenKind: null });
 }
 
 // ----- Mission File / Brief -----
@@ -178,6 +216,7 @@ export function markMeetingUnlockSeen() {
 
 // ----- Gating -----
 export function isDecisionUnlocked(s: Level1State = state): boolean {
+  if (isGameOver(s)) return false;
   return (
     s.hasSavedSalesSummary ||
     s.hasSavedHRPolicy ||
@@ -185,6 +224,7 @@ export function isDecisionUnlocked(s: Level1State = state): boolean {
   );
 }
 export function isMeetingUnlocked(s: Level1State = state): boolean {
+  if (isGameOver(s)) return false;
   return s.hasPreparedDecision;
 }
 
@@ -228,7 +268,14 @@ export function setMeetingStage(stage: Level1State["meetingStage"]) {
   setState({ meetingStage: stage });
 }
 export function submitRecommendation(outcome: Outcome, reason: FailureReason) {
-  setState({ finalOutcome: outcome, failureReason: reason, meetingStage: "result", timerRunning: false });
+  const kind: Exclude<EndScreenKind, null> = outcome === "success" ? "success" : "wrong_decision";
+  setState({
+    finalOutcome: outcome,
+    failureReason: reason,
+    meetingStage: "result",
+    timerRunning: false,
+    endScreenKind: kind,
+  });
 }
 export function resetMeeting() {
   setState({

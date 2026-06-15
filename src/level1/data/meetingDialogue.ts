@@ -31,6 +31,19 @@ export const SUCCESS_DIALOGUE: ResultDialogue = {
   ],
 };
 
+export const TIMEOUT_DIALOGUE: ResultDialogue = {
+  title: "انتهى الوقت — الـ Deadline لحق بك",
+  badge: "نفد الوقت",
+  nader: "خلاص، الإدارة لن تنتظر أكثر. القرار لم يصل في الوقت المحدد.",
+  layla: "بدون توصية معتمدة في الوقت، تتأخر مكافآت كل الفروع.",
+  emad: "الوقت عدوّ التحليل لو ما عرفتش تنظمه. لازم تتحرك أسرع.",
+  lesson: [
+    "إدارة الوقت جزء من التحليل: قسّم خطواتك قبل أن تغرق في التفاصيل.",
+    "ابدأ بجمع الملفات الأساسية، ثم انتقل للتحليل، ثم القرار.",
+    "تحديد الأولويات أهم من تجربة كل أداة متاحة.",
+  ],
+};
+
 export function failureDialogue(reason: "chose_corniche" | "midan_weak_evidence" | "incomplete"): ResultDialogue {
   if (reason === "chose_corniche") {
     return {
