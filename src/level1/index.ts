@@ -18,6 +18,7 @@ import { startTimerLoop } from "./logic/timer";
 
 type ScreenInstance = { root: HTMLElement; destroy: () => void };
 type ScreenFactory = () => ScreenInstance;
+type Destroyable = { destroy: () => void };
 
 const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
   office: createAnalystOfficeScreen,
@@ -30,6 +31,7 @@ const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
 let active: { roomId: RoomId; instance: ScreenInstance } | null = null;
 let booted = false;
 let endHandle: EndScreenHandle | null = null;
+let cleanupFns: Array<() => void> = [];
 
 function openRoom(roomId: RoomId) {
   if (getState().endScreenKind || getState().timeoutTriggered) return;
@@ -61,30 +63,35 @@ function ensureBriefing() {
 }
 
 export function initLevel1() {
+  const previousCleanup = (window as Window & { __level1Cleanup?: () => void }).__level1Cleanup;
+  previousCleanup?.();
+
   if (booted) return;
   booted = true;
 
-  mountTopBar(document.body);
-  mountMissionFileOverlay(document.body);
+  const topBar = mountTopBar(document.body) as Destroyable;
+  const missionFile = mountMissionFileOverlay(document.body) as Destroyable;
+  cleanupFns.push(() => topBar.destroy());
+  cleanupFns.push(() => missionFile.destroy());
   startTimerLoop();
 
   ensureBriefing();
 
-  gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId));
-  gameEvents.on("exitRoom", () => closeRoom());
+  cleanupFns.push(gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId)));
+  cleanupFns.push(gameEvents.on("exitRoom", () => closeRoom()));
 
   // Timeout: close any open room immediately so player sees the
   // Deadline pounce on the map. EndGameScreen opens after the
   // short cartoon catch animation.
-  gameEvents.on("timeout", () => {
+  cleanupFns.push(gameEvents.on("timeout", () => {
     if (active) closeRoom();
     window.setTimeout(() => {
       if (!getState().endScreenKind) openEndScreen("timeout");
     }, 1050);
-  });
+  }));
 
   // EndGameScreen sync: open/close DOM overlay when endScreenKind changes.
-  subscribe((s) => {
+  cleanupFns.push(subscribe((s) => {
     if (s.endScreenKind && !endHandle) {
       if (active) closeRoom();
       endHandle = mountEndGameScreen(s.endScreenKind, () => {
@@ -100,5 +107,16 @@ export function initLevel1() {
       endHandle.unmount();
       endHandle = null;
     }
-  });
+  }));
+
+  (window as Window & { __level1Cleanup?: () => void }).__level1Cleanup = () => {
+    if (active) closeRoom();
+    if (endHandle) {
+      endHandle.unmount();
+      endHandle = null;
+    }
+    cleanupFns.forEach((fn) => fn());
+    cleanupFns = [];
+    booted = false;
+  };
 }

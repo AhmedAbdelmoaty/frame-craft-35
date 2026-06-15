@@ -27,9 +27,9 @@ const MOOD: Record<EndKind, Mood> = {
 };
 
 const FLAVOR: Record<EndKind, string> = {
-  success: "نجحت قبل أن يلحق بك Deadline ✨",
-  wrong_decision: "وصلت في الوقت… لكن قرارك لم يصمد أمام الأرقام.",
-  timeout: "انقضّ عليك Deadline — لم يمنحك ثانية إضافية!",
+  success: "نجحت قبل أن يلحق بك Deadline. التقرير صمد، والقرار اتاخد في الوقت.",
+  wrong_decision: "وصلت قبل Deadline، لكن التحليل لم يكن كافيًا للدفاع عن القرار.",
+  timeout: "Deadline لحق بك قبل اعتماد التوصية. لا وقت إضافي في هذه المهمة.",
 };
 
 function dialogueFor(kind: EndKind): ResultDialogue {
@@ -104,7 +104,7 @@ function renderSummary(kind: EndKind): string {
     : "—";
   const elapsed = LEVEL_DURATION_SECONDS - s.meetingTimeRemaining;
   const picks = s.preparedEvidenceIds.length
-    ? `<ul class="l1-end__picks">${s.preparedEvidenceIds
+    ? `<ul class="l1-end__picks">${s.preparedEvidenceIds.slice(0, 2)
         .map((id) => {
           const e = EVIDENCE_DEFS[id as EvidenceId];
           return e ? `<li><strong>${e.label}:</strong> <em>${e.detail}</em></li>` : "";
@@ -113,25 +113,51 @@ function renderSummary(kind: EndKind): string {
     : `<p class="l1-end__none">لم تُقدَّم توصية في هذه الجولة.</p>`;
 
   return `
-    <div class="l1-end__summary">
-      <div class="l1-end__stat">
-        <span class="l1-end__stat-label">الفرع الموصى به</span>
-        <strong>${branch}</strong>
+    <div class="l1-end__summary-grid">
+      <div class="l1-end__summary">
+        <div class="l1-end__stat">
+          <span class="l1-end__stat-label">الفرع الموصى به</span>
+          <strong>${branch}</strong>
+        </div>
+        <div class="l1-end__stat">
+          <span class="l1-end__stat-label">${kind === "timeout" ? "نفد الوقت بعد" : "الوقت المستهلَك"}</span>
+          <strong>${formatTime(elapsed)}</strong>
+        </div>
+        <div class="l1-end__stat">
+          <span class="l1-end__stat-label">الوقت المتبقي</span>
+          <strong>${formatTime(s.meetingTimeRemaining)}</strong>
+        </div>
       </div>
-      <div class="l1-end__stat">
-        <span class="l1-end__stat-label">${kind === "timeout" ? "نفد الوقت بعد" : "الوقت المستهلَك"}</span>
-        <strong>${formatTime(elapsed)}</strong>
+      <div class="l1-end__evidence">
+        <h4>الأدلة المعروضة</h4>
+        ${picks}
       </div>
-      <div class="l1-end__stat">
-        <span class="l1-end__stat-label">الوقت المتبقي</span>
-        <strong>${formatTime(s.meetingTimeRemaining)}</strong>
-      </div>
-    </div>
-    <div class="l1-end__evidence">
-      <h4>الأدلة المعروضة</h4>
-      ${picks}
     </div>
   `;
+}
+
+function scoreFor(kind: EndKind): { label: string; stars: string; note: string } {
+  if (kind === "success") {
+    return { label: "تقييم المهمة", stars: "★★★", note: "قرار قابل للدفاع" };
+  }
+  if (kind === "wrong_decision") {
+    return { label: "تقييم المهمة", stars: "★☆☆", note: "وصلت في الوقت، لكن الدفاع ضعيف" };
+  }
+  return { label: "تقييم المهمة", stars: "☆☆☆", note: "نفد الوقت قبل اعتماد القرار" };
+}
+
+function endingVisual(kind: EndKind, mood: Mood): string {
+  const playerFace = kind === "success" ? "✓" : kind === "timeout" ? "!" : "?";
+  return `
+    <div class="l1-end__visual l1-end__visual--${kind}">
+      <div class="l1-end__player" aria-hidden="true">
+        <span class="l1-end__player-head">${playerFace}</span>
+        <span class="l1-end__player-body"></span>
+      </div>
+      <div class="l1-end__mascot l1-end__mascot--${mood}">
+        ${mascotSvg(mood)}
+      </div>
+    </div>`;
 }
 
 export interface EndScreenHandle {
@@ -144,30 +170,28 @@ export function mountEndGameScreen(kind: EndKind, onRetry: () => void): EndScree
   overlay.dir = "rtl";
   const mood = MOOD[kind];
   const d = dialogueFor(kind);
+  const score = scoreFor(kind);
 
   overlay.innerHTML = `
     <div class="l1-end__backdrop"></div>
     <div class="l1-end__card l1-end__card--${kind}" role="dialog" aria-modal="true">
       <div class="l1-end__hero">
-        <div class="l1-end__mascot l1-end__mascot--${mood}">
-          ${mascotSvg(mood)}
-        </div>
+        ${endingVisual(kind, mood)}
         <span class="l1-end__badge">${d.badge}</span>
         <h2 class="l1-end__title">${d.title}</h2>
         <p class="l1-end__flavor">${FLAVOR[kind]}</p>
+        <div class="l1-end__score" aria-label="${score.label}">
+          <span>${score.stars}</span>
+          <strong>${score.note}</strong>
+        </div>
       </div>
 
-      ${renderSummary(kind)}
-
-      <div class="l1-end__bubbles">
-        ${bubble("nader", "نادر", d.nader)}
-        ${bubble("layla", "ليلى", d.layla)}
-        ${bubble("emad", "عماد", d.emad)}
-      </div>
-
-      <div class="l1-end__lesson">
-        <h4>📘 ماذا تعلّمت؟</h4>
-        <ul>${d.lesson.map((l) => `<li>${l}</li>`).join("")}</ul>
+      <div class="l1-end__content">
+        ${renderSummary(kind)}
+        <div class="l1-end__lesson">
+          <h4>ماذا تتعلم من الجولة؟</h4>
+          <ul>${d.lesson.slice(0, 2).map((l) => `<li>${l}</li>`).join("")}</ul>
+        </div>
       </div>
 
       <div class="l1-end__cta">
@@ -195,12 +219,4 @@ export function mountEndGameScreen(kind: EndKind, onRetry: () => void): EndScree
       window.setTimeout(() => overlay.remove(), 220);
     },
   };
-}
-
-function bubble(who: string, name: string, text: string): string {
-  return `
-    <div class="l1-bubble l1-bubble--${who}">
-      <span class="l1-bubble__who">${name}</span>
-      <p>${text}</p>
-    </div>`;
 }

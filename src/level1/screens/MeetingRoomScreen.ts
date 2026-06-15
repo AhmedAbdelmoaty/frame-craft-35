@@ -1,10 +1,12 @@
 import { createRoomShell } from "./RoomShell";
 import {
   getState,
+  setMeetingStage,
   submitRecommendation,
   subscribe,
 } from "../state/store";
 import { evaluate, EVIDENCE_DEFS, type EvidenceId } from "../logic/evaluate";
+import type { FailureReason, Outcome } from "../state/store";
 
 const CHARACTERS = [
   { id: "nader", name: "نادر", role: "المدير المالي", initial: "ن", color: "#2b78c5" },
@@ -21,6 +23,9 @@ export function createMeetingRoomScreen() {
       const root = document.createElement("div");
       root.className = "l1-meeting";
       body.appendChild(root);
+
+      let meetingView: "summary" | "discussion" = getState().meetingStage === "summary" ? "discussion" : "summary";
+      let pendingResult: { outcome: Outcome; failureReason: FailureReason } | null = null;
 
       const render = () => {
         const s = getState();
@@ -52,7 +57,11 @@ export function createMeetingRoomScreen() {
         const stage = document.createElement("div");
         stage.className = "l1-meeting__stage";
         root.appendChild(stage);
-        renderSummary(stage);
+        if (meetingView === "discussion" && pendingResult) {
+          renderDiscussion(stage, pendingResult);
+        } else {
+          renderSummary(stage);
+        }
       };
 
       const renderSummary = (host: HTMLElement) => {
@@ -78,7 +87,31 @@ export function createMeetingRoomScreen() {
         host.querySelector<HTMLButtonElement>("[data-submit]")!.addEventListener("click", () => {
           const sNow = getState();
           const r = evaluate(sNow.preparedBranch, sNow.preparedEvidenceIds);
-          submitRecommendation(r.outcome, r.failureReason ?? null);
+          pendingResult = { outcome: r.outcome, failureReason: r.failureReason ?? null };
+          meetingView = "discussion";
+          setMeetingStage("summary");
+          render();
+        });
+      };
+
+      const renderDiscussion = (host: HTMLElement, result: { outcome: Outcome; failureReason: FailureReason }) => {
+        const s = getState();
+        const branchName = s.preparedBranch === "midan" ? "فرع الميدان" : "فرع الكورنيش";
+        host.innerHTML = `
+          <div class="l1-meeting__discussion">
+            <h3 class="l1-meeting__prompt">المناقشة داخل الاجتماع</h3>
+            <div class="l1-meeting__dialogue">
+              ${discussionLine("analyst", "أنت", "المحلل", `أوصي بمكافأة ${branchName} بناءً على التقرير والأدلة التي تم عرضها.`)}
+              ${discussionLines(result).join("")}
+            </div>
+          </div>
+          <div class="l1-meeting__cta">
+            <button class="l1-btn l1-btn--primary l1-btn--stamp" type="button" data-final>
+              <span aria-hidden="true">★</span><span>عرض النتيجة النهائية</span>
+            </button>
+          </div>`;
+        host.querySelector<HTMLButtonElement>("[data-final]")!.addEventListener("click", () => {
+          submitRecommendation(result.outcome, result.failureReason);
         });
       };
 
@@ -94,4 +127,39 @@ export function createMeetingRoomScreen() {
       observer.observe(body.parentNode || document.body, { childList: true });
     },
   });
+}
+
+function discussionLines(result: { outcome: Outcome; failureReason: FailureReason }): string[] {
+  if (result.outcome === "success") {
+    return [
+      discussionLine("nader", "نادر", "المدير المالي", "التوصية واضحة وقابلة للدفاع. عندنا قرار يمكن اعتماده بثقة."),
+      discussionLine("layla", "ليلى", "مديرة HR", "الاختيار يحافظ على عدالة السياسة، لأن المكافأة تذهب لفريق حقق الأداء جماعيًا."),
+      discussionLine("emad", "عماد", "مدير المبيعات", "الرقم الأعلى كان مغريًا، لكن قراءتك للفريق كانت أقوى من قراءة رقم واحد."),
+    ];
+  }
+
+  if (result.failureReason === "chose_corniche") {
+    return [
+      discussionLine("nader", "نادر", "المدير المالي", "لا أستطيع اعتماد توصية تعتمد على الرقم الأعلى وحده. القرار لن يصمد أمام الإدارة."),
+      discussionLine("layla", "ليلى", "مديرة HR", "السياسة تقيس أداء الأفراد داخل الفريق، وليس متوسطًا قد يخفي المشكلة."),
+      discussionLine("emad", "عماد", "مدير المبيعات", "المبيعات الإجمالية مهمة، لكن لازم نعرف هل الفريق كله قوي أم أن قلة رفعت المتوسط."),
+    ];
+  }
+
+  return [
+    discussionLine("nader", "نادر", "المدير المالي", "اتجاهك مفهوم، لكن الدفاع غير كافٍ. أحتاج دليلين أقوى قبل اعتماد المكافأة."),
+    discussionLine("layla", "ليلى", "مديرة HR", "اختيار الفرع الصحيح لا يكفي وحده؛ العدالة تحتاج إثباتًا واضحًا من البيانات."),
+    discussionLine("emad", "عماد", "مدير المبيعات", "هات تحليلًا يوضح صورة الفريق، لا مجرد سياق عام أو رقم سريع."),
+  ];
+}
+
+function discussionLine(kind: string, name: string, role: string, text: string): string {
+  return `
+    <div class="l1-meeting-line l1-meeting-line--${kind}">
+      <span class="l1-meeting-line__avatar">${name.charAt(0)}</span>
+      <div class="l1-meeting-line__bubble">
+        <strong>${name}<small>${role}</small></strong>
+        <p>${text}</p>
+      </div>
+    </div>`;
 }

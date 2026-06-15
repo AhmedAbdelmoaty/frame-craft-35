@@ -132,6 +132,9 @@ export class OfficeScene extends Phaser.Scene {
   private hotspots = new Map<HotspotId, HotspotView>();
   private currentStation: StationId = "desk";
   private moving = false;
+  private moveToken = 0;
+  private moveTween?: Phaser.Tweens.Tween;
+  private moveCleanup?: () => void;
   private unsubscribeMove?: () => void;
   private unsubscribeDecision?: () => void;
   private unsubscribeStore?: () => void;
@@ -192,6 +195,7 @@ export class OfficeScene extends Phaser.Scene {
       this.unsubscribeDecision?.();
       this.unsubscribeStore?.();
       this.unsubscribeTimeout?.();
+      this.cancelMove();
     });
 
   }
@@ -449,10 +453,12 @@ export class OfficeScene extends Phaser.Scene {
     });
 
     const target = stationPoints[station];
+    const token = ++this.moveToken;
     if (this.player && this.playerLabel) {
       if (animate) {
-        this.movePlayerTo(target, onArrive);
+        this.movePlayerTo(target, station, token, onArrive);
       } else {
+        this.cancelMove();
         this.player.setPosition(target.x, target.y);
         this.player.setDepth(target.y + 20);
         this.playerLabel.setPosition(target.x, target.y + 70);
@@ -464,18 +470,23 @@ export class OfficeScene extends Phaser.Scene {
     this.showPrompt();
   }
 
-  private movePlayerTo(target: { x: number; y: number }, onArrive?: () => void) {
-    if (!this.player || !this.playerLabel || this.moving) return;
+  private movePlayerTo(target: { x: number; y: number }, station: StationId, token: number, onArrive?: () => void) {
+    if (!this.player || !this.playerLabel) return;
 
+    this.cancelMove();
     this.moving = true;
     const path = this.add.graphics().setDepth(3);
     path.lineStyle(4, 0x2b78c5, 0.25);
     path.lineBetween(this.player.x, this.player.y + 35, target.x, target.y + 35);
     const marker = this.add.circle(target.x, target.y + 36, 12, 0x2b78c5, 0.32).setDepth(4);
+    this.moveCleanup = () => {
+      path.destroy();
+      marker.destroy();
+    };
     const flip = target.x < this.player.x ? -1 : 1;
     this.playerSprite?.setScale(flip, 1);
 
-    this.tweens.add({
+    this.moveTween = this.tweens.add({
       targets: this.player,
       x: target.x,
       y: target.y,
@@ -489,11 +500,24 @@ export class OfficeScene extends Phaser.Scene {
       },
       onComplete: () => {
         this.moving = false;
-        path.destroy();
-        marker.destroy();
-        onArrive?.();
+        this.moveTween = undefined;
+        this.moveCleanup?.();
+        this.moveCleanup = undefined;
+        if (token === this.moveToken && this.currentStation === station && !isGameOver()) {
+          onArrive?.();
+        }
       },
     });
+  }
+
+  private cancelMove() {
+    if (this.moveTween) {
+      this.moveTween.stop();
+      this.moveTween = undefined;
+    }
+    this.moveCleanup?.();
+    this.moveCleanup = undefined;
+    this.moving = false;
   }
 
   private showPrompt(hotspot?: HotspotView) {
