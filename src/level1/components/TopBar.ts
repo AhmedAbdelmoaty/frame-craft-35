@@ -14,6 +14,7 @@ const LOCATION_LABEL: Record<RoomLocation, string> = {
   office: "مكتب المحلل",
   sales: "مكتب المبيعات",
   hr: "مكتب الموارد البشرية",
+  decision: "غرفة القرار",
   meeting: "غرفة الاجتماع",
 };
 
@@ -84,7 +85,7 @@ export function mountTopBar(parent: HTMLElement = document.body) {
 
     if (unlocked && !s.meetingUnlockSeen) {
       markMeetingUnlockSeen();
-      showToast("اجتماع نادر جاهز — اضغط للدخول 🤝");
+      showToast("التوصية جاهزة — اعرضها في الاجتماع 🤝");
     }
   };
 
@@ -106,7 +107,6 @@ function showToast(message: string) {
   toast.dir = "rtl";
   toast.textContent = message;
   document.body.appendChild(toast);
-  // trigger enter
   requestAnimationFrame(() => toast.classList.add("l1-toast--show"));
   window.setTimeout(() => {
     toast.classList.remove("l1-toast--show");

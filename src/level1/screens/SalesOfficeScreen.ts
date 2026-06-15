@@ -3,6 +3,7 @@ import { BRANCHES } from "../data/branches";
 import {
   getState,
   inspectSalesBoard,
+  receiveIndividualPerformanceFile,
   saveSalesSummary,
   subscribe,
   visitSales,
@@ -12,7 +13,7 @@ import { gameEvents } from "../../game/events";
 const EMAD_LINES = [
   "أهلًا! أنا عماد، مدير المبيعات. هذا الربع كان قويًا جدًا لفريقي.",
   "متوسط أداء فرع الكورنيش وصل ٩٦٪ — أعلى من الميدان بفارق كبير.",
-  "اللوحة هناك تعرض الأرقام الرسمية. خذ راحتك في مراجعتها.",
+  "اللوحة هناك تعرض الأرقام الرسمية. لو احتجت تفاصيل المندوبين، عندي ملف الأداء الفردي.",
 ];
 
 export function createSalesOfficeScreen() {
@@ -73,10 +74,29 @@ export function createSalesOfficeScreen() {
               </div>
               <footer class="l1-board__foot" data-save-wrap hidden>
                 <button class="l1-btn l1-btn--save" type="button" data-save>
-                  <span aria-hidden="true">💾</span><span>احفظ الملخّص في ملف المهمة</span>
+                  <span aria-hidden="true">💾</span><span>استلام ملخص المبيعات</span>
                 </button>
               </footer>
-              <p class="l1-board__saved" data-saved hidden>✓ تم حفظ الملخّص.</p>
+              <p class="l1-board__saved" data-saved hidden>✓ تم استلام ملخص المبيعات.</p>
+            </div>
+
+            <div class="l1-files-shelf" data-file-wrap hidden>
+              <h4 class="l1-files-shelf__title">ملفات إضافية على المكتب</h4>
+              <div class="l1-file-card" data-file-card>
+                <div class="l1-file-card__icon" aria-hidden="true">
+                  <div class="l1-file-card__envelope"></div>
+                </div>
+                <div class="l1-file-card__body">
+                  <strong>ملف الأداء الفردي للمندوبين</strong>
+                  <small>أرقام خام — تُفتح وتُحلَّل في مكتب المحلل.</small>
+                </div>
+                <button class="l1-btn l1-btn--save l1-btn--sm" type="button" data-receive>
+                  <span aria-hidden="true">📥</span><span>استلام الملف</span>
+                </button>
+              </div>
+              <p class="l1-files-shelf__received" data-received hidden>
+                ✓ تم استلام ملف الأداء الفردي — افتحه في مكتب المحلل.
+              </p>
             </div>
           </section>
         </div>
@@ -86,13 +106,8 @@ export function createSalesOfficeScreen() {
       let idx = 0;
       const textEl = body.querySelector<HTMLElement>("[data-dialogue-text]")!;
       const counter = body.querySelector<HTMLElement>("[data-counter]")!;
-      const nextBtn = body.querySelector<HTMLButtonElement>("[data-next]")!;
-      nextBtn.addEventListener("click", () => {
+      body.querySelector<HTMLButtonElement>("[data-next]")!.addEventListener("click", () => {
         idx = (idx + 1) % EMAD_LINES.length;
-        textEl.style.animation = "none";
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        textEl.offsetWidth;
-        textEl.style.animation = "";
         textEl.textContent = EMAD_LINES[idx];
         counter.textContent = `${idx + 1} / ${EMAD_LINES.length}`;
       });
@@ -102,6 +117,9 @@ export function createSalesOfficeScreen() {
       const saveWrap = body.querySelector<HTMLElement>("[data-save-wrap]")!;
       const saveBtn = body.querySelector<HTMLButtonElement>("[data-save]")!;
       const savedMsg = body.querySelector<HTMLElement>("[data-saved]")!;
+      const fileWrap = body.querySelector<HTMLElement>("[data-file-wrap]")!;
+      const receiveBtn = body.querySelector<HTMLButtonElement>("[data-receive]")!;
+      const receivedMsg = body.querySelector<HTMLElement>("[data-received]")!;
 
       const render = () => {
         const s = getState();
@@ -113,6 +131,12 @@ export function createSalesOfficeScreen() {
           saveWrap.hidden = s.hasSavedSalesSummary;
           savedMsg.hidden = !s.hasSavedSalesSummary;
           saveBtn.disabled = s.hasSavedSalesSummary;
+          fileWrap.hidden = false;
+          receiveBtn.disabled = s.hasReceivedIndividualPerformanceFile;
+          receivedMsg.hidden = !s.hasReceivedIndividualPerformanceFile;
+          if (s.hasReceivedIndividualPerformanceFile) {
+            receiveBtn.innerHTML = `<span aria-hidden="true">✓</span><span>تم الاستلام</span>`;
+          }
         }
       };
       const unsub = subscribe(render);
@@ -127,13 +151,27 @@ export function createSalesOfficeScreen() {
       });
       saveBtn.addEventListener("click", () => {
         saveSalesSummary();
-        flashSave(saveBtn);
+        saveBtn.animate(
+          [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }],
+          { duration: 280, easing: "ease-out" },
+        );
+      });
+      receiveBtn.addEventListener("click", () => {
+        receiveIndividualPerformanceFile();
+        const env = body.querySelector<HTMLElement>(".l1-file-card__envelope");
+        env?.animate(
+          [
+            { transform: "translateY(0) rotate(0)" },
+            { transform: "translateY(-8px) rotate(-4deg)" },
+            { transform: "translateY(0) rotate(0)" },
+          ],
+          { duration: 360, easing: "ease-out" },
+        );
       });
       body.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener("click", () => {
         gameEvents.emit("exitRoom", { roomId: "sales" });
       });
 
-      // cleanup
       const observer = new MutationObserver(() => {
         if (!body.isConnected) {
           unsub();
@@ -143,11 +181,4 @@ export function createSalesOfficeScreen() {
       observer.observe(body.parentNode || body, { childList: true });
     },
   });
-}
-
-function flashSave(btn: HTMLButtonElement) {
-  btn.animate(
-    [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }],
-    { duration: 280, easing: "ease-out" },
-  );
 }

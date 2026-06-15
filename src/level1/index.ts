@@ -4,13 +4,15 @@
 import "./styles/level1.css";
 import { gameEvents } from "../game/events";
 import type { RoomId } from "../game/types";
-import { setState, startTimer } from "./state/store";
+import { getState, setState } from "./state/store";
 import { createAnalystOfficeScreen } from "./screens/AnalystOfficeScreen";
 import { createSalesOfficeScreen } from "./screens/SalesOfficeScreen";
 import { createHROfficeScreen } from "./screens/HROfficeScreen";
+import { createDecisionRoomScreen } from "./screens/DecisionRoomScreen";
 import { createMeetingRoomScreen } from "./screens/MeetingRoomScreen";
 import { mountTopBar } from "./components/TopBar";
 import { mountMissionFileOverlay } from "./components/MissionFileOverlay";
+import { mountBriefingModal } from "./components/BriefingModal";
 import { startTimerLoop } from "./logic/timer";
 
 type ScreenInstance = { root: HTMLElement; destroy: () => void };
@@ -20,6 +22,7 @@ const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
   office: createAnalystOfficeScreen,
   sales: createSalesOfficeScreen,
   hr: createHROfficeScreen,
+  decision: createDecisionRoomScreen,
   meeting: createMeetingRoomScreen,
 };
 
@@ -38,7 +41,6 @@ function openRoom(roomId: RoomId) {
   document.body.classList.add("l1-room-open");
   active = { roomId, instance };
   setState({ currentLocation: roomId });
-  startTimer();
 }
 
 function closeRoom() {
@@ -56,7 +58,11 @@ export function initLevel1() {
   mountTopBar(document.body);
   mountMissionFileOverlay(document.body);
   startTimerLoop();
-  startTimer();
+
+  // Briefing modal: only show once (when brief unread). Timer starts on dismiss.
+  if (!getState().hasReadBrief) {
+    mountBriefingModal(document.body);
+  }
 
   gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId));
   gameEvents.on("exitRoom", () => closeRoom());
