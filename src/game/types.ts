@@ -5,7 +5,7 @@ export type PlayerProfile = {
   avatar: AvatarChoice;
 };
 
-export type StationId = "lobby" | "desk" | "sales" | "hr" | "decision" | "meeting";
+export type StationId = "desk" | "sales" | "hr" | "decision" | "meeting";
 
 export type RoomId = "office" | "sales" | "hr" | "decision" | "meeting";
 
@@ -22,7 +22,6 @@ export type EvidenceId =
   | "decisionSubmitted";
 
 export type HotspotId =
-  | "reception"
   | "summaryReport"
   | "hrFolder"
   | "salesBoard"

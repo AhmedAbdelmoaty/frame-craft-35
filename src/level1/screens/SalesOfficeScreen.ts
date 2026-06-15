@@ -13,7 +13,7 @@ import { gameEvents } from "../../game/events";
 const EMAD_LINES = [
   "أهلًا! أنا عماد، مدير المبيعات. هذا الربع كان قويًا جدًا لفريقي.",
   "متوسط أداء فرع الكورنيش وصل ٩٦٪ — أعلى من الميدان بفارق كبير.",
-  "اللوحة هناك تعرض الأرقام الرسمية. لو احتجت تفاصيل المندوبين، عندي ملف الأداء الفردي.",
+  "اللوحة هناك تعرض الأرقام الرسمية. وعندي كمان ملف الأداء الفردي للمندوبين لو احتجته.",
 ];
 
 export function createSalesOfficeScreen() {
@@ -88,14 +88,14 @@ export function createSalesOfficeScreen() {
                 </div>
                 <div class="l1-file-card__body">
                   <strong>ملف الأداء الفردي للمندوبين</strong>
-                  <small>أرقام خام — تُفتح وتُحلَّل في مكتب المحلل.</small>
+                  <small>بيانات تفصيلية لكل مندوب على حدة.</small>
                 </div>
                 <button class="l1-btn l1-btn--save l1-btn--sm" type="button" data-receive>
                   <span aria-hidden="true">📥</span><span>استلام الملف</span>
                 </button>
               </div>
               <p class="l1-files-shelf__received" data-received hidden>
-                ✓ تم استلام ملف الأداء الفردي — افتحه في مكتب المحلل.
+                ✓ تم استلام ملف الأداء الفردي.
               </p>
             </div>
           </section>

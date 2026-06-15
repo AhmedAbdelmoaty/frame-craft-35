@@ -4,7 +4,6 @@ import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types"
 import { getState, subscribe } from "../level1/state/store";
 
 const STATION_TO_ROOM: Record<StationId, RoomId> = {
-  lobby: "office",
   desk: "office",
   sales: "sales",
   hr: "hr",
@@ -38,33 +37,10 @@ type PropAssetKey = "summaryReport" | "hrFolder" | "salesBoard" | "decisionBoard
 
 const stations: StationView[] = [
   {
-    id: "lobby",
-    x: 335,
-    y: 625,
-    width: 320,
-    height: 190,
-    color: 0xe8edf1,
-    label: "مكتب المحلل",
-    sublabel: "نقطة البداية · رسالة نادر",
-    hotspot: "reception",
-  },
-  {
-    id: "desk",
-    x: 265,
-    y: 230,
-    width: 330,
-    height: 230,
-    color: 0xddebf5,
-    label: "مكتب المحلل · طاولة التحليل",
-    sublabel: "بطاقات الأداء والأدوات",
-    hotspot: "summaryReport",
-    propKey: "summaryReport",
-  },
-  {
     id: "sales",
-    x: 745,
-    y: 225,
-    width: 380,
+    x: 300,
+    y: 230,
+    width: 360,
     height: 240,
     color: 0xf3dfcf,
     label: "مكتب المبيعات",
@@ -73,23 +49,23 @@ const stations: StationView[] = [
     propKey: "salesBoard",
   },
   {
-    id: "hr",
-    x: 830,
-    y: 625,
-    width: 330,
-    height: 190,
-    color: 0xe8e0f4,
-    label: "مكتب HR",
-    sublabel: "ليلى · سياسة الأداء",
-    hotspot: "hrFolder",
-    propKey: "hrFolder",
+    id: "desk",
+    x: 690,
+    y: 390,
+    width: 360,
+    height: 400,
+    color: 0xddebf5,
+    label: "مكتب المحلل · طاولة التحليل",
+    sublabel: "بطاقات الأداء والأدوات",
+    hotspot: "summaryReport",
+    propKey: "summaryReport",
   },
   {
     id: "decision",
-    x: 1190,
-    y: 245,
-    width: 320,
-    height: 170,
+    x: 1080,
+    y: 230,
+    width: 360,
+    height: 240,
     color: 0xfdf2d6,
     label: "غرفة القرار",
     sublabel: "ابنِ التوصية واختر الأدلة",
@@ -97,11 +73,23 @@ const stations: StationView[] = [
     propKey: "notebook",
   },
   {
+    id: "hr",
+    x: 300,
+    y: 550,
+    width: 360,
+    height: 240,
+    color: 0xe8e0f4,
+    label: "مكتب HR",
+    sublabel: "ليلى · سياسة الأداء",
+    hotspot: "hrFolder",
+    propKey: "hrFolder",
+  },
+  {
     id: "meeting",
-    x: 1190,
-    y: 505,
-    width: 320,
-    height: 190,
+    x: 1080,
+    y: 550,
+    width: 360,
+    height: 240,
     color: 0xe0f0dc,
     label: "غرفة الاجتماع",
     sublabel: "اعتماد المكافأة النهائي",
@@ -111,12 +99,11 @@ const stations: StationView[] = [
 ];
 
 const stationPoints: Record<StationId, { x: number; y: number }> = {
-  lobby: { x: 335, y: 660 },
-  desk: { x: 265, y: 285 },
-  sales: { x: 745, y: 295 },
-  hr: { x: 830, y: 670 },
-  decision: { x: 1190, y: 295 },
-  meeting: { x: 1190, y: 565 },
+  sales: { x: 300, y: 295 },
+  desk: { x: 690, y: 475 },
+  decision: { x: 1080, y: 295 },
+  hr: { x: 300, y: 615 },
+  meeting: { x: 1080, y: 615 },
 };
 
 const assetKeys = {
@@ -141,7 +128,7 @@ export class OfficeScene extends Phaser.Scene {
   private stationHighlights = new Map<StationId, Phaser.GameObjects.Rectangle>();
   private stationBadges = new Map<StationId, Phaser.GameObjects.Container>();
   private hotspots = new Map<HotspotId, HotspotView>();
-  private currentStation: StationId = "lobby";
+  private currentStation: StationId = "desk";
   private moving = false;
   private unsubscribeMove?: () => void;
   private unsubscribeDecision?: () => void;
@@ -174,7 +161,7 @@ export class OfficeScene extends Phaser.Scene {
     this.drawNpcs();
     this.createPlayer();
     this.drawPrompt();
-    this.setStation("lobby", false);
+    this.setStation("desk", false);
     this.setupKeyboard();
 
     this.unsubscribeMove = gameEvents.on("movetostation", (event) => {
@@ -202,13 +189,16 @@ export class OfficeScene extends Phaser.Scene {
     graphics.lineStyle(4, 0xb9c4cf, 1);
     graphics.strokeRoundedRect(48, 48, 1284, 684, 18);
 
-    graphics.fillStyle(0xd5dce3, 0.88);
-    graphics.fillRoundedRect(435, 365, 565, 92, 12);
-    graphics.fillRoundedRect(520, 105, 96, 600, 12);
-    graphics.fillRoundedRect(1010, 110, 92, 520, 12);
-    graphics.strokeRoundedRect(435, 365, 565, 92, 12);
-    graphics.strokeRoundedRect(520, 105, 96, 600, 12);
-    graphics.strokeRoundedRect(1010, 110, 92, 520, 12);
+    // Corridor between top row and bottom row
+    graphics.fillStyle(0xd5dce3, 0.85);
+    graphics.fillRoundedRect(120, 400, 1140, 60, 14);
+    graphics.strokeRoundedRect(120, 400, 1140, 60, 14);
+    // Vertical corridor between left column and middle (analyst hub)
+    graphics.fillRoundedRect(495, 110, 60, 580, 14);
+    graphics.strokeRoundedRect(495, 110, 60, 580, 14);
+    // Vertical corridor between middle and right column
+    graphics.fillRoundedRect(885, 110, 60, 580, 14);
+    graphics.strokeRoundedRect(885, 110, 60, 580, 14);
 
     graphics.fillStyle(0xffffff, 0.68);
     graphics.fillRoundedRect(76, 72, 250, 56, 10);
@@ -266,7 +256,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private addHotspot(station: StationView): HotspotView {
     const propX = station.id === "decision" ? station.x + 10 : station.x + station.width / 2 - 86;
-    const propY = station.id === "lobby" ? station.y + 20 : station.y + 22;
+    const propY = station.y + 22;
     const id = station.hotspot;
     const hotspot: HotspotView = { id, station: station.id, x: propX, y: propY, label: station.sublabel, propKey: station.propKey };
 
@@ -299,40 +289,13 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private drawFurniture() {
-    const graphics = this.add.graphics();
-
-    // Analyst desk
-    graphics.fillStyle(0x365f8c, 1);
-    graphics.fillRoundedRect(158, 280, 130, 54, 9);
-    graphics.fillStyle(0xffffff, 0.96);
-    graphics.fillRoundedRect(190, 224, 82, 48, 7);
-    graphics.fillStyle(0x9cc6e9, 1);
-    graphics.fillRect(201, 234, 60, 28);
-
-    // Sales desks and board area
-    graphics.fillStyle(0xffffff, 0.82);
-    [650, 725, 800].forEach((x) => graphics.fillRoundedRect(x, 302, 56, 54, 10));
-    graphics.fillStyle(0xd28a56, 0.8);
-    graphics.fillRoundedRect(838, 263, 132, 66, 9);
-
-    // HR table
-    graphics.fillStyle(0x7657a5, 0.86);
-    graphics.fillRoundedRect(735, 654, 155, 52, 10);
-    graphics.fillStyle(0xffffff, 0.86);
-    graphics.fillRect(765, 672, 90, 8);
-
-    // Decision table
-    graphics.fillStyle(0x3d8644, 0.9);
-    graphics.fillRoundedRect(1100, 480, 184, 92, 14);
-    graphics.fillStyle(0xffffff, 0.92);
-    graphics.fillCircle(1142, 526, 17);
-    graphics.fillCircle(1190, 526, 17);
-    graphics.fillCircle(1238, 526, 17);
-
-    // Plants and office life.
-    this.drawPlant(96, 660);
-    this.drawPlant(410, 158);
-    this.drawPlant(1290, 620);
+    // Decorative plants in the corridor only — rooms stay clean.
+    this.drawPlant(90, 110);
+    this.drawPlant(90, 700);
+    this.drawPlant(1290, 110);
+    this.drawPlant(1290, 700);
+    this.drawPlant(690, 110);
+    this.drawPlant(690, 700);
   }
 
   private drawPlant(x: number, y: number) {
@@ -346,20 +309,14 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private drawNpcs() {
-    this.drawNpc(875, 280, assetKeys.salesManager, "عماد", "مدير المبيعات");
-    this.drawNpc(780, 612, assetKeys.hrManager, "ليلى", "مديرة HR");
-    this.drawNpc(1180, 305, assetKeys.dataCoach, "نادر", "المدير المالي");
-    this.animateWorker(this.drawNpc(510, 412, assetKeys.employee, "موظف", "عمليات", false), [
-      { x: 510, y: 412 },
-      { x: 650, y: 412 },
-      { x: 730, y: 335 },
-      { x: 610, y: 335 },
-    ]);
-    this.animateWorker(this.drawNpc(1050, 405, assetKeys.employee, "موظفة", "تنسيق", false), [
-      { x: 1050, y: 405 },
-      { x: 1110, y: 405 },
-      { x: 1110, y: 520 },
-      { x: 1010, y: 520 },
+    this.drawNpc(395, 270, assetKeys.salesManager, "عماد", "مدير المبيعات");
+    this.drawNpc(395, 590, assetKeys.hrManager, "ليلى", "مديرة HR");
+    this.drawNpc(1175, 270, assetKeys.dataCoach, "نادر", "المدير المالي");
+    this.animateWorker(this.drawNpc(525, 430, assetKeys.employee, "موظف", "عمليات", false), [
+      { x: 525, y: 430 },
+      { x: 870, y: 430 },
+      { x: 870, y: 430 },
+      { x: 525, y: 430 },
     ]);
   }
 
@@ -415,7 +372,7 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private createPlayer() {
-    const start = stationPoints.lobby;
+    const start = stationPoints.desk;
     this.player = this.add.container(start.x, start.y).setDepth(start.y + 20);
     const shadow = this.add.ellipse(0, 45, 62, 19, 0x17202a, 0.2);
     const key = this.profile.avatar === "female" ? assetKeys.playerFemale : assetKeys.playerMale;
@@ -449,7 +406,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private setupKeyboard() {
     this.input.keyboard?.on("keydown-E", () => {
-      const hotspot = this.hotspots.get(stations.find((station) => station.id === this.currentStation)?.hotspot ?? "reception");
+      const hotspot = this.hotspots.get(stations.find((station) => station.id === this.currentStation)?.hotspot ?? "summaryReport");
       if (hotspot) {
         this.interactWith(hotspot);
       }
@@ -564,7 +521,6 @@ export class OfficeScene extends Phaser.Scene {
   private refreshBadges() {
     const s = getState();
     const completion: Partial<Record<StationId, boolean>> = {
-      lobby: s.hasReadBrief,
       desk: s.hasEnteredAnalysisRoom,
       sales: s.hasSavedSalesSummary,
       hr: s.hasSavedHRPolicy,
