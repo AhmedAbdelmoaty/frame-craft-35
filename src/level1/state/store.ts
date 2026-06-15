@@ -5,7 +5,7 @@ import type { BranchId } from "../data/branches";
 export type Branch = BranchId;
 export type Outcome = "success" | "failure" | null;
 export type FailureReason = "chose_corniche" | "midan_weak_evidence" | "incomplete" | null;
-export type RoomLocation = "office" | "sales" | "hr" | "meeting" | "map";
+export type RoomLocation = "office" | "sales" | "hr" | "decision" | "meeting" | "map";
 export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
 export type ToolId = "mean" | "threshold" | "median" | "stability";
 
@@ -17,9 +17,11 @@ export interface Level1State {
   hasVisitedSales: boolean;
   hasInspectedSalesBoard: boolean;
   hasSavedSalesSummary: boolean;
+  hasReceivedIndividualPerformanceFile: boolean;
   hasVisitedHR: boolean;
   hasInspectedHRPolicy: boolean;
   hasSavedHRPolicy: boolean;
+  hasEnteredAnalysisRoom: boolean;
   hasOpenedPerformanceCards: boolean;
   hasSortedCorniche: boolean;
   hasSortedMidan: boolean;
@@ -28,11 +30,14 @@ export interface Level1State {
   usedTypicalPerformance: boolean; // median
   usedStability: boolean;
   toolToggles: Record<ToolId, boolean>;
+  hasPreparedDecision: boolean;
+  preparedBranch: Branch | null;
+  preparedEvidenceIds: string[];
   selectedBranch: Branch | null;
   selectedEvidenceIds: string[];
   finalOutcome: Outcome;
   failureReason: FailureReason;
-  meetingStage: "intro" | "branch" | "evidence" | "result";
+  meetingStage: "intro" | "summary" | "result";
   missionFileOpen: boolean;
   missionFileTab: MissionTabId;
   notesText: string;
@@ -48,9 +53,11 @@ const initialState: Level1State = {
   hasVisitedSales: false,
   hasInspectedSalesBoard: false,
   hasSavedSalesSummary: false,
+  hasReceivedIndividualPerformanceFile: false,
   hasVisitedHR: false,
   hasInspectedHRPolicy: false,
   hasSavedHRPolicy: false,
+  hasEnteredAnalysisRoom: false,
   hasOpenedPerformanceCards: false,
   hasSortedCorniche: false,
   hasSortedMidan: false,
@@ -59,6 +66,9 @@ const initialState: Level1State = {
   usedTypicalPerformance: false,
   usedStability: false,
   toolToggles: { mean: false, threshold: false, median: false, stability: false },
+  hasPreparedDecision: false,
+  preparedBranch: null,
+  preparedEvidenceIds: [],
   selectedBranch: null,
   selectedEvidenceIds: [],
   finalOutcome: null,
@@ -95,7 +105,7 @@ export function startTimer() {
   setState({ timerRunning: true });
 }
 
-// ----- Mission File -----
+// ----- Mission File / Brief -----
 export function markBriefRead() {
   if (!state.hasReadBrief) setState({ hasReadBrief: true });
 }
@@ -120,6 +130,13 @@ export function saveSalesSummary() {
   if (!state.hasSavedSalesSummary)
     setState({ hasSavedSalesSummary: true, lastMissionUpdate: "حُفظ ملخّص المبيعات في ملف المهمة" });
 }
+export function receiveIndividualPerformanceFile() {
+  if (!state.hasReceivedIndividualPerformanceFile)
+    setState({
+      hasReceivedIndividualPerformanceFile: true,
+      lastMissionUpdate: "استُلم ملف الأداء الفردي للمندوبين",
+    });
+}
 export function visitHR() {
   if (!state.hasVisitedHR) setState({ hasVisitedHR: true });
 }
@@ -128,13 +145,16 @@ export function inspectHRPolicy() {
 }
 export function saveHRPolicy() {
   if (!state.hasSavedHRPolicy)
-    setState({ hasSavedHRPolicy: true, lastMissionUpdate: "حُفظت سياسة الموارد البشرية" });
+    setState({ hasSavedHRPolicy: true, lastMissionUpdate: "استُلمت سياسة الأداء من HR" });
 }
 
-// ----- Performance cards / tools -----
+// ----- Analyst / cards / tools -----
+export function enterAnalysisRoom() {
+  if (!state.hasEnteredAnalysisRoom) setState({ hasEnteredAnalysisRoom: true });
+}
 export function openPerformanceCards() {
   if (!state.hasOpenedPerformanceCards)
-    setState({ hasOpenedPerformanceCards: true, lastMissionUpdate: "فُتحت بطاقات الأداء" });
+    setState({ hasOpenedPerformanceCards: true, lastMissionUpdate: "فُتحت طاولة التحليل" });
 }
 export function markSorted(branch: Branch) {
   if (branch === "corniche" && !state.hasSortedCorniche)
@@ -156,55 +176,19 @@ export function markMeetingUnlockSeen() {
   if (!state.meetingUnlockSeen) setState({ meetingUnlockSeen: true });
 }
 
-export function resetLevel() {
-  setState({
-    currentLocation: "map",
-    meetingTimeRemaining: 600,
-    timerRunning: false,
-    hasReadBrief: false,
-    hasVisitedSales: false,
-    hasInspectedSalesBoard: false,
-    hasSavedSalesSummary: false,
-    hasVisitedHR: false,
-    hasInspectedHRPolicy: false,
-    hasSavedHRPolicy: false,
-    hasOpenedPerformanceCards: false,
-    hasSortedCorniche: false,
-    hasSortedMidan: false,
-    usedQuickNumber: false,
-    usedThresholdLine: false,
-    usedTypicalPerformance: false,
-    usedStability: false,
-    toolToggles: { mean: false, threshold: false, median: false, stability: false },
-    selectedBranch: null,
-    selectedEvidenceIds: [],
-    finalOutcome: null,
-    failureReason: null,
-    meetingStage: "intro",
-    missionFileOpen: false,
-    missionFileTab: "brief",
-    notesText: "",
-    meetingUnlockSeen: false,
-    lastMissionUpdate: null,
-  });
-}
-
-export function isMeetingUnlocked(s: Level1State = state): boolean {
+// ----- Gating -----
+export function isDecisionUnlocked(s: Level1State = state): boolean {
   return (
-    s.hasSavedSalesSummary &&
-    s.hasSavedHRPolicy &&
-    s.hasOpenedPerformanceCards &&
-    s.hasSortedCorniche &&
-    s.hasSortedMidan &&
-    s.usedThresholdLine &&
-    (s.usedTypicalPerformance || s.usedStability || s.usedQuickNumber)
+    s.hasSavedSalesSummary ||
+    s.hasSavedHRPolicy ||
+    s.hasReceivedIndividualPerformanceFile
   );
 }
-
-// ----- Meeting -----
-export function setMeetingStage(stage: Level1State["meetingStage"]) {
-  setState({ meetingStage: stage });
+export function isMeetingUnlocked(s: Level1State = state): boolean {
+  return s.hasPreparedDecision;
 }
+
+// ----- Decision Room -----
 export function selectBranch(branch: Branch) {
   setState({ selectedBranch: branch });
 }
@@ -216,15 +200,44 @@ export function toggleEvidence(id: string) {
     setState({ selectedEvidenceIds: [...cur, id] });
   }
 }
-export function submitRecommendation(outcome: Outcome, reason: FailureReason) {
-  setState({ finalOutcome: outcome, failureReason: reason, meetingStage: "result", timerRunning: false });
-}
-export function resetMeeting() {
+export function prepareDecision() {
+  if (!state.selectedBranch || state.selectedEvidenceIds.length !== 2) return;
   setState({
+    hasPreparedDecision: true,
+    preparedBranch: state.selectedBranch,
+    preparedEvidenceIds: [...state.selectedEvidenceIds],
+    lastMissionUpdate: "حُضّرت التوصية — جاهزة للاجتماع",
+    meetingUnlockSeen: false,
+  });
+}
+export function resetDecision() {
+  setState({
+    hasPreparedDecision: false,
+    preparedBranch: null,
+    preparedEvidenceIds: [],
     selectedBranch: null,
     selectedEvidenceIds: [],
     finalOutcome: null,
     failureReason: null,
     meetingStage: "intro",
   });
+}
+
+// ----- Meeting -----
+export function setMeetingStage(stage: Level1State["meetingStage"]) {
+  setState({ meetingStage: stage });
+}
+export function submitRecommendation(outcome: Outcome, reason: FailureReason) {
+  setState({ finalOutcome: outcome, failureReason: reason, meetingStage: "result", timerRunning: false });
+}
+export function resetMeeting() {
+  setState({
+    finalOutcome: null,
+    failureReason: null,
+    meetingStage: "intro",
+  });
+}
+
+export function resetLevel() {
+  setState({ ...initialState });
 }

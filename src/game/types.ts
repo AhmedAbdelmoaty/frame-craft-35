@@ -5,9 +5,9 @@ export type PlayerProfile = {
   avatar: AvatarChoice;
 };
 
-export type StationId = "lobby" | "desk" | "sales" | "hr" | "decision";
+export type StationId = "lobby" | "desk" | "sales" | "hr" | "decision" | "meeting";
 
-export type RoomId = "office" | "sales" | "hr" | "meeting";
+export type RoomId = "office" | "sales" | "hr" | "decision" | "meeting";
 
 export type TeamId = "teamA" | "teamB";
 
@@ -21,7 +21,14 @@ export type EvidenceId =
   | "repCards"
   | "decisionSubmitted";
 
-export type HotspotId = "reception" | "summaryReport" | "hrFolder" | "salesBoard" | "repCabinet" | "decisionBoard";
+export type HotspotId =
+  | "reception"
+  | "summaryReport"
+  | "hrFolder"
+  | "salesBoard"
+  | "repCabinet"
+  | "decisionBoard"
+  | "meetingTable";
 
 export type SalesRep = {
   id: string;
