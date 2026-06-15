@@ -1,20 +1,13 @@
 import { createRoomShell } from "./RoomShell";
 import {
   getState,
-  resetDecision,
-  resetLevel,
-  resetMeeting,
   setMeetingStage,
   submitRecommendation,
   subscribe,
 } from "../state/store";
 import { gameEvents } from "../../game/events";
 import { evaluate, EVIDENCE_DEFS, type EvidenceId } from "../logic/evaluate";
-import {
-  NADER_OPENING,
-  SUCCESS_DIALOGUE,
-  failureDialogue,
-} from "../data/meetingDialogue";
+import { NADER_OPENING } from "../data/meetingDialogue";
 
 const CHARACTERS = [
   { id: "nader", name: "نادر", role: "المدير المالي", initial: "ن", color: "#2b78c5" },
@@ -37,7 +30,7 @@ export function createMeetingRoomScreen() {
         root.innerHTML = "";
 
         // No prepared decision yet
-        if (!s.hasPreparedDecision && s.finalOutcome === null) {
+        if (!s.hasPreparedDecision) {
           root.innerHTML = `
             <div class="l1-analyst-empty">
               <div class="l1-analyst-empty__icon" aria-hidden="true">🤝</div>
@@ -69,9 +62,9 @@ export function createMeetingRoomScreen() {
         stage.className = "l1-meeting__stage";
         root.appendChild(stage);
 
-        if (s.meetingStage === "result") renderResult(stage);
-        else if (s.meetingStage === "summary") renderSummary(stage);
+        if (s.meetingStage === "summary") renderSummary(stage);
         else renderIntro(stage);
+        // "result" stage is handled by EndGameScreen overlay.
       };
 
       const renderIntro = (host: HTMLElement) => {
@@ -120,55 +113,6 @@ export function createMeetingRoomScreen() {
         });
       };
 
-      const renderResult = (host: HTMLElement) => {
-        const s = getState();
-        const d =
-          s.finalOutcome === "success"
-            ? SUCCESS_DIALOGUE
-            : failureDialogue(s.failureReason ?? "incomplete");
-        const isSuccess = s.finalOutcome === "success";
-        host.innerHTML = `
-          <div class="l1-result l1-result--${isSuccess ? "success" : "failure"}">
-            ${isSuccess ? `<div class="l1-result__complete">🏆 المستوى الأول مكتمل — فخ المتوسط</div>` : ""}
-            <div class="l1-result__stamp">${isSuccess ? "✓" : "✗"}</div>
-            <span class="l1-result__badge">${d.badge}</span>
-            <h3 class="l1-result__title">${d.title}</h3>
-
-            <div class="l1-result__bubbles">
-              ${bubble("nader", "نادر", d.nader)}
-              ${bubble("layla", "ليلى", d.layla)}
-              ${bubble("emad", "عماد", d.emad)}
-            </div>
-
-            <div class="l1-lesson">
-              <h4>📘 ماذا تعلّمت؟</h4>
-              <ul>${d.lesson.map((l) => `<li>${l}</li>`).join("")}</ul>
-            </div>
-
-            <div class="l1-meeting__cta">
-              ${
-                isSuccess
-                  ? `<button class="l1-btn l1-btn--ghost" type="button" data-replay>↻ إعادة اللعب من البداية</button>
-                     <button class="l1-btn l1-btn--primary" type="button" data-exit>إنهاء — العودة للخريطة</button>`
-                  : `<button class="l1-btn l1-btn--ghost" type="button" data-retry>عدّل التوصية</button>
-                     <button class="l1-btn l1-btn--primary" type="button" data-exit>العودة للخريطة</button>`
-              }
-            </div>
-          </div>`;
-        host.querySelector<HTMLButtonElement>("[data-retry]")?.addEventListener("click", () => {
-          resetDecision();
-          resetMeeting();
-          gameEvents.emit("exitRoom", { roomId: "meeting" });
-        });
-        host.querySelector<HTMLButtonElement>("[data-replay]")?.addEventListener("click", () => {
-          resetLevel();
-          gameEvents.emit("exitRoom", { roomId: "meeting" });
-        });
-        host.querySelector<HTMLButtonElement>("[data-exit]")!.addEventListener("click", () =>
-          gameEvents.emit("exitRoom", { roomId: "meeting" }),
-        );
-      };
-
       render();
       const unsub = subscribe(render);
 
@@ -181,12 +125,4 @@ export function createMeetingRoomScreen() {
       observer.observe(body.parentNode || document.body, { childList: true });
     },
   });
-}
-
-function bubble(who: string, name: string, text: string): string {
-  return `
-    <div class="l1-bubble l1-bubble--${who}">
-      <span class="l1-bubble__who">${name}</span>
-      <p>${text}</p>
-    </div>`;
 }

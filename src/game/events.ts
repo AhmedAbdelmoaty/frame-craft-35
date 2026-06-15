@@ -8,6 +8,7 @@ type GameEventMap = {
   resetdecision: CustomEvent<undefined>;
   enterRoom: CustomEvent<{ roomId: RoomId }>;
   exitRoom: CustomEvent<{ roomId: RoomId }>;
+  timeout: CustomEvent<undefined>;
 };
 
 class TypedEventBus extends EventTarget {
