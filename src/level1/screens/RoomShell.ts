@@ -1,5 +1,6 @@
 import type { RoomId } from "../../game/types";
 import { gameEvents } from "../../game/events";
+import { createMiniMapButton } from "../components/MiniMapButton";
 
 export interface RoomShellOptions {
   roomId: RoomId;
@@ -25,10 +26,7 @@ export function createRoomShell(opts: RoomShellOptions): {
 
   root.innerHTML = `
     <header class="room-shell__header">
-      <button class="room-shell__exit" type="button" aria-label="خروج إلى الخريطة">
-        <span aria-hidden="true">←</span>
-        <span>خروج إلى الخريطة</span>
-      </button>
+      <div class="room-shell__map-slot"></div>
       <div class="room-shell__title">
         <h2>${opts.title}</h2>
         ${opts.subtitle ? `<p>${opts.subtitle}</p>` : ""}
@@ -38,14 +36,15 @@ export function createRoomShell(opts: RoomShellOptions): {
     <div class="room-shell__body"></div>
   `;
 
+  const miniMap = createMiniMapButton(opts.roomId);
+  root.querySelector<HTMLElement>(".room-shell__map-slot")!.appendChild(miniMap.root);
+
   const body = root.querySelector<HTMLElement>(".room-shell__body")!;
   opts.renderBody?.(body);
 
-  const exitBtn = root.querySelector<HTMLButtonElement>(".room-shell__exit")!;
   const handleExit = () => {
     gameEvents.emit("exitRoom", { roomId: opts.roomId });
   };
-  exitBtn.addEventListener("click", handleExit);
 
   const handleKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") handleExit();
@@ -55,7 +54,7 @@ export function createRoomShell(opts: RoomShellOptions): {
   return {
     root,
     destroy: () => {
-      exitBtn.removeEventListener("click", handleExit);
+      miniMap.destroy();
       window.removeEventListener("keydown", handleKey);
       root.remove();
     },

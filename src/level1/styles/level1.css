@@ -961,7 +961,414 @@ body.l1-room-open #game-root {
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
+/* ---------- Mini Map Navigation ---------- */
+.l1-minimap {
+  position: fixed;
+  top: 74px;
+  left: 18px;
+  z-index: 1450;
+  width: 168px;
+  min-height: 116px;
+  padding: 10px;
+  border: 1px solid rgba(43, 120, 197, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 30px -18px rgba(15, 30, 46, 0.55);
+  color: var(--l1-ink);
+  font-family: "Tajawal", "Cairo", "Inter", system-ui, sans-serif;
+  cursor: pointer;
+}
+.l1-minimap:hover {
+  border-color: var(--l1-accent);
+  box-shadow: 0 16px 36px -18px rgba(43, 120, 197, 0.5);
+}
+.l1-minimap:focus-visible {
+  outline: 2px solid var(--l1-accent);
+  outline-offset: 2px;
+}
+.l1-minimap__title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--l1-accent);
+  text-align: start;
+}
+.l1-nav-map {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--l1-border);
+  background: linear-gradient(180deg, #f7f9fc 0%, #e9edf2 100%);
+}
+.l1-nav-map--compact {
+  height: 74px;
+  border-radius: 9px;
+}
+.l1-nav-map--large {
+  height: min(54vh, 420px);
+  min-height: 320px;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.65);
+}
+.l1-nav-map__corridor {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(151, 164, 178, 0.36);
+  border: 1px solid rgba(151, 164, 178, 0.34);
+}
+.l1-nav-map__corridor--h {
+  left: 12%;
+  right: 12%;
+  top: 48%;
+  height: 11%;
+}
+.l1-nav-map__corridor--v-left {
+  top: 18%;
+  bottom: 13%;
+  left: 31%;
+  width: 8%;
+}
+.l1-nav-map__corridor--v-right {
+  top: 18%;
+  bottom: 13%;
+  right: 31%;
+  width: 8%;
+}
+.l1-nav-map__node {
+  position: absolute;
+  left: var(--map-x);
+  top: var(--map-y);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,0.92);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.86);
+  color: var(--l1-ink);
+  font-family: inherit;
+  font-weight: 900;
+}
+.l1-nav-map--compact .l1-nav-map__node {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+}
+.l1-nav-map--large .l1-nav-map__node {
+  min-width: 142px;
+  min-height: 68px;
+  padding: 10px 14px;
+  flex-direction: column;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -18px rgba(15, 30, 46, 0.42);
+}
+.l1-nav-map--large .l1-nav-map__node:hover {
+  border-color: var(--l1-accent);
+  color: var(--l1-accent);
+}
+.l1-nav-map--large .l1-nav-map__node:disabled {
+  cursor: default;
+}
+.l1-nav-map__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--l1-muted);
+  box-shadow: 0 0 0 3px rgba(122, 136, 150, 0.14);
+}
+.l1-nav-map__label {
+  font-size: 12px;
+  line-height: 1.2;
+}
+.l1-nav-map--compact .l1-nav-map__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.l1-nav-map__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--l1-surface-2);
+  color: var(--l1-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.l1-nav-map__node--current {
+  border-color: var(--l1-accent);
+  background: var(--l1-accent-soft);
+}
+.l1-nav-map__node--current .l1-nav-map__dot {
+  background: var(--l1-accent);
+  box-shadow: 0 0 0 4px rgba(43, 120, 197, 0.18);
+}
+.l1-nav-map__node--complete .l1-nav-map__dot {
+  background: var(--l1-success);
+  box-shadow: 0 0 0 4px rgba(47, 138, 78, 0.16);
+}
+.l1-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Tajawal", "Cairo", "Inter", system-ui, sans-serif;
+}
+.l1-nav-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 18, 30, 0.64);
+  backdrop-filter: blur(4px);
+}
+.l1-nav-overlay__panel {
+  position: relative;
+  width: min(820px, 92vw);
+  background: var(--l1-surface);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 34px 80px -26px rgba(0, 0, 0, 0.62);
+}
+.l1-nav-overlay__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.l1-nav-overlay__eyebrow {
+  margin: 0 0 3px;
+  color: var(--l1-accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+.l1-nav-overlay__head h2 {
+  margin: 0;
+  color: var(--l1-ink);
+  font-size: 22px;
+  font-weight: 900;
+}
+.l1-nav-overlay__close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--l1-surface-2);
+  color: var(--l1-ink);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.l1-nav-overlay__close:hover {
+  background: var(--l1-accent-soft);
+  color: var(--l1-accent);
+}
+.l1-nav-overlay__hint {
+  margin: 12px 0 0;
+  color: var(--l1-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .l1-minimap {
+    top: auto;
+    bottom: 14px;
+    left: 12px;
+    width: 128px;
+    min-height: 92px;
+    padding: 8px;
+  }
+  .l1-nav-map--compact { height: 56px; }
+  .l1-nav-overlay__panel {
+    width: 96vw;
+    padding: 14px;
+  }
+  .l1-nav-map--large {
+    min-height: 430px;
+    height: 62vh;
+  }
+  .l1-nav-map--large .l1-nav-map__node {
+    min-width: 112px;
+    min-height: 58px;
+    padding: 8px 10px;
+  }
+  .l1-nav-map__label { font-size: 11px; }
+}
+
 /* Meeting unlock ready glow already exists; reinforce subtle pulse */
+.room-shell__map-slot {
+  flex: 0 0 auto;
+}
+.room-shell__map-slot .l1-minimap {
+  position: static;
+  display: grid;
+  grid-template-columns: auto 120px;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  min-height: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: 14px;
+  background: #f7f4ea;
+  color: var(--l1-ink);
+  box-shadow: 0 6px 16px -12px rgba(15, 30, 46, 0.55);
+  font-family: "Tajawal", "Cairo", "Inter", system-ui, sans-serif;
+  cursor: pointer;
+}
+.room-shell__map-slot .l1-minimap:hover {
+  border-color: var(--l1-accent);
+  box-shadow: 0 10px 22px -14px rgba(43, 120, 197, 0.55);
+}
+.room-shell__map-slot .l1-minimap__label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--l1-accent);
+  white-space: nowrap;
+}
+.room-shell__map-slot .l1-minimap__canvas {
+  position: relative;
+  display: block;
+  width: 120px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f6f2e9;
+  border: 1px solid #cfd8e1;
+}
+.room-shell__map-slot .l1-minimap__corridor {
+  position: absolute;
+  border-radius: 999px;
+  background: #d4dce4;
+  border: 1px solid #bcc9d5;
+}
+.room-shell__map-slot .l1-minimap__corridor--h {
+  left: 12px;
+  right: 12px;
+  top: 36px;
+  height: 7px;
+}
+.room-shell__map-slot .l1-minimap__corridor--v1 {
+  left: 42px;
+  top: 9px;
+  width: 7px;
+  height: 54px;
+}
+.room-shell__map-slot .l1-minimap__corridor--v2 {
+  right: 42px;
+  top: 9px;
+  width: 7px;
+  height: 54px;
+}
+.room-shell__map-slot .l1-minimap__room {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 4px 5px;
+  border: 1px solid rgba(255,255,255,0.9);
+  color: #17202a;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+}
+.room-shell__map-slot .l1-minimap__room--sales {
+  left: 10px;
+  top: 9px;
+  width: 33px;
+  height: 22px;
+  background: #f3dfcf;
+}
+.room-shell__map-slot .l1-minimap__room--office {
+  left: 46px;
+  top: 24px;
+  width: 32px;
+  height: 32px;
+  background: #ddebf5;
+}
+.room-shell__map-slot .l1-minimap__room--decision {
+  right: 10px;
+  top: 9px;
+  width: 33px;
+  height: 22px;
+  background: #fdf2d6;
+}
+.room-shell__map-slot .l1-minimap__room--hr {
+  left: 10px;
+  bottom: 8px;
+  width: 33px;
+  height: 22px;
+  background: #e8e0f4;
+}
+.room-shell__map-slot .l1-minimap__room--meeting {
+  right: 10px;
+  bottom: 8px;
+  width: 33px;
+  height: 22px;
+  background: #e0f0dc;
+}
+.room-shell__map-slot .l1-minimap__room.is-current {
+  outline: 2px solid var(--l1-accent);
+  z-index: 2;
+}
+.room-shell__map-slot .l1-minimap__room.is-complete::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--l1-success);
+}
+.room-shell__map-slot .l1-minimap__plant {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 8px 8px 4px 4px;
+  background: #3d8644;
+}
+.room-shell__map-slot .l1-minimap__plant--tl {
+  left: 3px;
+  top: 3px;
+}
+.room-shell__map-slot .l1-minimap__plant--br {
+  right: 3px;
+  bottom: 3px;
+}
+
+@media (max-width: 640px) {
+  .room-shell__map-slot .l1-minimap {
+    grid-template-columns: 92px;
+    gap: 4px;
+    padding: 6px;
+  }
+  .room-shell__map-slot .l1-minimap__label {
+    display: none;
+  }
+  .room-shell__map-slot .l1-minimap__canvas {
+    width: 92px;
+    height: 54px;
+  }
+  .room-shell__map-slot .l1-minimap__room {
+    font-size: 0;
+    padding: 0;
+  }
+  .room-shell__map-slot .l1-minimap__room--office {
+    left: 36px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
 .l1-topbar__meeting-btn--ready {
   animation: l1-ready-glow 2.2s ease-in-out infinite;
 }
