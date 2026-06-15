@@ -253,7 +253,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private addHotspot(station: StationView): HotspotView {
     const propX = station.id === "decision" ? station.x + 10 : station.x + station.width / 2 - 86;
-    const propY = station.id === "lobby" ? station.y + 20 : station.y + 22;
+    const propY = station.y + 22;
     const id = station.hotspot;
     const hotspot: HotspotView = { id, station: station.id, x: propX, y: propY, label: station.sublabel, propKey: station.propKey };
 
@@ -402,7 +402,7 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private createPlayer() {
-    const start = stationPoints.lobby;
+    const start = stationPoints.desk;
     this.player = this.add.container(start.x, start.y).setDepth(start.y + 20);
     const shadow = this.add.ellipse(0, 45, 62, 19, 0x17202a, 0.2);
     const key = this.profile.avatar === "female" ? assetKeys.playerFemale : assetKeys.playerMale;
@@ -436,7 +436,7 @@ export class OfficeScene extends Phaser.Scene {
 
   private setupKeyboard() {
     this.input.keyboard?.on("keydown-E", () => {
-      const hotspot = this.hotspots.get(stations.find((station) => station.id === this.currentStation)?.hotspot ?? "reception");
+      const hotspot = this.hotspots.get(stations.find((station) => station.id === this.currentStation)?.hotspot ?? "summaryReport");
       if (hotspot) {
         this.interactWith(hotspot);
       }
@@ -551,7 +551,6 @@ export class OfficeScene extends Phaser.Scene {
   private refreshBadges() {
     const s = getState();
     const completion: Partial<Record<StationId, boolean>> = {
-      lobby: s.hasReadBrief,
       desk: s.hasEnteredAnalysisRoom,
       sales: s.hasSavedSalesSummary,
       hr: s.hasSavedHRPolicy,
