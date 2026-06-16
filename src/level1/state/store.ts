@@ -7,7 +7,7 @@ export type Outcome = "success" | "failure" | null;
 export type FailureReason = "chose_corniche" | "midan_weak_evidence" | "incomplete" | null;
 export type RoomLocation = "office" | "sales" | "hr" | "decision" | "meeting" | "map";
 export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
-export type ToolId = "mean" | "threshold" | "median" | "stability";
+export type ToolId = "mean" | "threshold" | "median" | "range" | "sd" | "iqr";
 export type EndScreenKind = "success" | "wrong_decision" | "timeout" | null;
 
 export const LEVEL_DURATION_SECONDS = 180; // 3:00
@@ -70,7 +70,7 @@ const initialState: Level1State = {
   usedThresholdLine: false,
   usedTypicalPerformance: false,
   usedStability: false,
-  toolToggles: { mean: false, threshold: false, median: false, stability: false },
+  toolToggles: { mean: false, threshold: false, median: false, range: false, sd: false, iqr: false },
   hasPreparedDecision: false,
   preparedBranch: null,
   preparedEvidenceIds: [],
@@ -200,13 +200,22 @@ export function markSorted(branch: Branch) {
   if (branch === "midan" && !state.hasSortedMidan)
     setState({ hasSortedMidan: true, lastMissionUpdate: "رُتّبت بطاقات فرع الميدان" });
 }
+export function markDistributionAnalyzed() {
+  if (!state.hasSortedCorniche || !state.hasSortedMidan) {
+    setState({
+      hasSortedCorniche: true,
+      hasSortedMidan: true,
+      lastMissionUpdate: "فُحص توزيع الأداء على طاولة التحليل",
+    });
+  }
+}
 export function toggleTool(tool: ToolId) {
   const next = { ...state.toolToggles, [tool]: !state.toolToggles[tool] };
   const patch: Partial<Level1State> = { toolToggles: next };
   if (next.mean) patch.usedQuickNumber = true;
   if (next.threshold) patch.usedThresholdLine = true;
   if (next.median) patch.usedTypicalPerformance = true;
-  if (next.stability) patch.usedStability = true;
+  if (next.range || next.sd || next.iqr) patch.usedStability = true;
   setState(patch);
 }
 

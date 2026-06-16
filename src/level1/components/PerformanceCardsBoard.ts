@@ -1,86 +1,137 @@
 import { BRANCHES, PERFORMANCE_THRESHOLD, type BranchId, type Rep } from "../data/branches";
-import { countBelow, fmt, max, mean, median, min, range } from "../logic/stats";
+import {
+  countAboveOrEqual,
+  fmt,
+  max,
+  mean,
+  median,
+  min,
+  quartiles,
+  range,
+  standardDeviation,
+} from "../logic/stats";
 import {
   getState,
-  markSorted,
+  markDistributionAnalyzed,
   openPerformanceCards,
   subscribe,
   toggleTool,
   type ToolId,
 } from "../state/store";
 
-interface BoardState {
-  // current visual order of card IDs per branch
-  order: Record<BranchId, string[]>;
-  sorted: Record<BranchId, boolean>;
-}
+type ViewMode = BranchId | "compare";
 
-const branchOrderInitial = (): Record<BranchId, string[]> => ({
-  corniche: BRANCHES.corniche.reps.map((r) => r.id),
-  midan: BRANCHES.midan.reps.map((r) => r.id),
-});
+const TEAM_META: Record<BranchId, { team: string; tone: string; color: string; soft: string }> = {
+  corniche: { team: "الفريق أ", tone: "فرع الكورنيش", color: "#2b78c5", soft: "rgba(43,120,197,0.14)" },
+  midan: { team: "الفريق ب", tone: "فرع الميدان", color: "#d24d57", soft: "rgba(210,77,87,0.14)" },
+};
+
+const TOOL_META: Array<{ id: ToolId; icon: string; label: string }> = [
+  { id: "mean", icon: "μ", label: "المتوسط" },
+  { id: "median", icon: "M", label: "الوسيط" },
+  { id: "range", icon: "↔", label: "المدى" },
+  { id: "sd", icon: "σ", label: "الانحراف المعياري" },
+  { id: "iqr", icon: "▣", label: "IQR" },
+  { id: "threshold", icon: "85", label: "حد 85%" },
+];
+
+const X_MIN = 0;
+const X_MAX = 150;
+const BIN_SIZE = 10;
+const SVG_W = 640;
+const SVG_H = 318;
+const PLOT = { x: 52, y: 28, w: 540, h: 214 };
 
 export function createPerformanceCardsBoard(parent: HTMLElement) {
   openPerformanceCards();
 
-  const local: BoardState = {
-    order: branchOrderInitial(),
-    sorted: { corniche: false, midan: false },
-  };
+  let viewMode: ViewMode = "compare";
+  let rawOpen = true;
 
   const root = document.createElement("div");
-  root.className = "l1-cards";
+  root.className = "l1-workbench";
   root.innerHTML = `
-    <header class="l1-cards__head">
-      <h3>طاولة التحليل — بطاقات أداء المندوبين</h3>
-      <p>راجع البطاقات بنفسك، رتّبها، واستخدم الأدوات على اليسار للكشف عن نمط الأداء الحقيقي.</p>
+    <header class="l1-workbench__head">
+      <div>
+        <p class="l1-workbench__eyebrow">طاولة التحليل</p>
+        <h3>توزيع أداء الفريقين</h3>
+      </div>
+      <div class="l1-workbench__modes" role="group" aria-label="اختيار عرض الفريق">
+        ${modeButton("corniche", "الفريق أ")}
+        ${modeButton("midan", "الفريق ب")}
+        ${modeButton("compare", "مقارنة")}
+      </div>
     </header>
 
-    <div class="l1-cards__layout">
-      <aside class="l1-tools" aria-label="أدوات التحليل">
-        ${toolButton("mean", "📏", "المتوسط", "أظهر متوسط أداء كل فرع.")}
-        ${toolButton("threshold", "🚩", "خط الحدّ الأدنى ٨٥٪", "ارسم الخط واكشف من تحته.")}
-        ${toolButton("median", "🎯", "الوسيط", "أبرز قيمة منتصف الصف بعد الترتيب.")}
-        ${toolButton("stability", "📊", "استقرار الأداء", "قارن المدى بين الأدنى والأعلى.")}
+    <section class="l1-workbench__surface">
+      <aside class="l1-workbench__tools" aria-label="أدوات التحليل">
+        ${TOOL_META.map((tool) => toolButton(tool)).join("")}
       </aside>
+      <div class="l1-workbench__charts" data-charts></div>
+    </section>
 
-      <div class="l1-cards__rows" data-rows></div>
-    </div>
-
-    <footer class="l1-cards__foot">
-      <p class="l1-cards__hint">عند الانتهاء، توجّه إلى <strong>غرفة القرار</strong> لبناء التوصية واختيار الأدلة.</p>
-    </footer>
+    <section class="l1-workbench__raw">
+      <button class="l1-workbench__raw-toggle" type="button" data-raw-toggle>
+        <span>ملف الأداء الخام</span>
+        <b data-raw-state>إخفاء</b>
+      </button>
+      <div class="l1-workbench__raw-grid" data-raw></div>
+    </section>
   `;
   parent.appendChild(root);
 
-  const rowsHost = root.querySelector<HTMLElement>("[data-rows]")!;
-  (Object.keys(BRANCHES) as BranchId[]).forEach((bid) => rowsHost.appendChild(buildRow(bid, local)));
+  const chartsHost = root.querySelector<HTMLElement>("[data-charts]")!;
+  const rawHost = root.querySelector<HTMLElement>("[data-raw]")!;
+  const rawState = root.querySelector<HTMLElement>("[data-raw-state]")!;
 
-  // Tool buttons
+  root.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      viewMode = btn.dataset.mode as ViewMode;
+      render();
+    });
+  });
+
   root.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.dataset.tool as ToolId;
       toggleTool(id);
+      if (id === "median" || id === "range" || id === "sd" || id === "iqr") {
+        markDistributionAnalyzed();
+      }
       btn.animate(
-        [{ transform: "scale(1)" }, { transform: "scale(0.94)" }, { transform: "scale(1)" }],
-        { duration: 180 },
+        [{ transform: "scale(1)" }, { transform: "scale(0.95)" }, { transform: "scale(1)" }],
+        { duration: 160 },
       );
     });
   });
 
-  const renderAll = () => {
+  root.querySelector<HTMLButtonElement>("[data-raw-toggle]")!.addEventListener("click", () => {
+    rawOpen = !rawOpen;
+    render();
+  });
+
+  const render = () => {
     const s = getState();
-    // Update tool button active states
+    root.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.mode === viewMode);
+    });
     root.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((btn) => {
       const id = btn.dataset.tool as ToolId;
-      btn.classList.toggle("l1-tool--active", s.toolToggles[id]);
+      btn.classList.toggle("is-active", s.toolToggles[id]);
     });
-    // Re-decorate rows (mean pill, threshold line, median highlight, stability bar)
-    (Object.keys(BRANCHES) as BranchId[]).forEach((bid) => decorateRow(bid, local, root));
+
+    const branches: BranchId[] = viewMode === "compare" ? ["corniche", "midan"] : [viewMode];
+    const yMax = Math.max(...branches.flatMap((bid) => histogram(BRANCHES[bid].reps).map((b) => b.count)), 1);
+    chartsHost.classList.toggle("is-compare", viewMode === "compare");
+    chartsHost.innerHTML = branches.map((bid) => chartPanel(bid, viewMode === "compare", yMax)).join("");
+
+    rawHost.hidden = !rawOpen;
+    rawState.textContent = rawOpen ? "إخفاء" : "عرض";
+    rawHost.innerHTML = branches.map((bid) => rawCards(bid)).join("");
   };
 
-  const unsub = subscribe(renderAll);
-  renderAll();
+  const unsub = subscribe(render);
+  render();
 
   return {
     root,
@@ -91,184 +142,187 @@ export function createPerformanceCardsBoard(parent: HTMLElement) {
   };
 }
 
-// ---------- Internals ----------
+function modeButton(mode: ViewMode, label: string) {
+  return `<button class="l1-workbench__mode" type="button" data-mode="${mode}">${label}</button>`;
+}
 
-function toolButton(id: ToolId, icon: string, label: string, hint: string) {
+function toolButton(tool: { id: ToolId; icon: string; label: string }) {
   return `
-    <button class="l1-tool" type="button" data-tool="${id}" title="${hint}">
-      <span class="l1-tool__icon" aria-hidden="true">${icon}</span>
-      <span class="l1-tool__label">${label}</span>
+    <button class="l1-workbench__tool" type="button" data-tool="${tool.id}">
+      <span class="l1-workbench__tool-icon" aria-hidden="true">${tool.icon}</span>
+      <span>${tool.label}</span>
     </button>
   `;
 }
 
-function buildRow(bid: BranchId, local: BoardState): HTMLElement {
+function chartPanel(bid: BranchId, compact: boolean, yMax: number) {
   const branch = BRANCHES[bid];
-  const row = document.createElement("section");
-  row.className = "l1-row";
-  row.dataset.branch = bid;
-  row.innerHTML = `
-    <header class="l1-row__head">
-      <div>
-        <h4>${branch.name}</h4>
-        <p class="l1-row__sub">${branch.reps.length} مندوبين</p>
-      </div>
-      <button class="l1-btn l1-btn--ghost l1-btn--sm" type="button" data-sort>↕ رتّب من الأقل للأعلى</button>
-    </header>
-    <div class="l1-row__overlay" data-overlay>
-      <div class="l1-row__cards-wrap">
-        <div class="l1-row__threshold" data-threshold hidden>
-          <span class="l1-row__threshold-tag">٨٥٪</span>
+  const meta = TEAM_META[bid];
+  return `
+    <article class="l1-hist-card l1-hist-card--${bid}">
+      <header class="l1-hist-card__head">
+        <div>
+          <strong>${meta.team}</strong>
+          <span>${meta.tone}</span>
         </div>
-        <div class="l1-row__cards" data-cards></div>
-      </div>
-      <div class="l1-row__mean" data-mean hidden></div>
-      <div class="l1-row__stability" data-stability hidden></div>
+        <b>${branch.reps.length} أفراد</b>
+      </header>
+      ${histogramSvg(bid, compact, yMax)}
+      ${measurementTray(bid)}
+    </article>
+  `;
+}
+
+function histogramSvg(bid: BranchId, compact: boolean, yMax: number) {
+  const s = getState();
+  const meta = TEAM_META[bid];
+  const values = BRANCHES[bid].reps.map((r) => r.performance);
+  const bins = histogram(BRANCHES[bid].reps);
+  const avg = mean(values);
+  const med = median(values);
+  const lo = min(values);
+  const hi = max(values);
+  const sd = standardDeviation(values);
+  const qs = quartiles(values);
+  const bandVisible = s.toolToggles.sd && !compact;
+
+  const x = (value: number) => PLOT.x + ((value - X_MIN) / (X_MAX - X_MIN)) * PLOT.w;
+  const y = (count: number) => PLOT.y + PLOT.h - (count / Math.max(yMax, 1)) * PLOT.h;
+  const barW = Math.max(8, (BIN_SIZE / (X_MAX - X_MIN)) * PLOT.w - 4);
+
+  const grid = [0, 1, 2, 3, 4].map((i) => {
+    const gy = PLOT.y + (PLOT.h / 4) * i;
+    return `<line class="l1-hist__grid" x1="${PLOT.x}" y1="${gy}" x2="${PLOT.x + PLOT.w}" y2="${gy}" />`;
+  }).join("");
+
+  const ticks = [0, 30, 60, 90, 120, 150].map((tick) => `
+    <g class="l1-hist__tick">
+      <line x1="${x(tick)}" y1="${PLOT.y + PLOT.h}" x2="${x(tick)}" y2="${PLOT.y + PLOT.h + 6}" />
+      <text x="${x(tick)}" y="${PLOT.y + PLOT.h + 23}">${tick}</text>
+    </g>
+  `).join("");
+
+  const bars = bins.map((bin) => {
+    const bh = PLOT.y + PLOT.h - y(bin.count);
+    return `
+      <rect class="l1-hist__bar" x="${x(bin.start) + 2}" y="${y(bin.count)}" width="${barW}" height="${bh}" rx="4"
+        style="--bar-color:${meta.color};--bar-soft:${meta.soft}" />
+    `;
+  }).join("");
+
+  return `
+    <svg class="l1-hist" viewBox="0 0 ${SVG_W} ${SVG_H}" role="img" aria-label="Histogram ${meta.team}">
+      <rect class="l1-hist__plot" x="${PLOT.x}" y="${PLOT.y}" width="${PLOT.w}" height="${PLOT.h}" rx="10" />
+      ${grid}
+      ${bandVisible ? sdBand(x(Math.max(X_MIN, avg - sd)), x(Math.min(X_MAX, avg + sd))) : ""}
+      ${s.toolToggles.iqr ? iqrBand(x(qs.q1), x(qs.q3), qs.iqr) : ""}
+      ${bars}
+      ${s.toolToggles.range ? rangeBracket(x(lo), x(hi), range(values)) : ""}
+      ${s.toolToggles.threshold ? verticalLine(x(PERFORMANCE_THRESHOLD), "threshold", "85%") : ""}
+      ${s.toolToggles.mean ? verticalLine(x(avg), "mean", `المتوسط: ${fmt(avg)}`) : ""}
+      ${s.toolToggles.median ? verticalLine(x(med), "median", `الوسيط: ${fmt(med)}`) : ""}
+      <line class="l1-hist__axis" x1="${PLOT.x}" y1="${PLOT.y + PLOT.h}" x2="${PLOT.x + PLOT.w}" y2="${PLOT.y + PLOT.h}" />
+      <line class="l1-hist__axis" x1="${PLOT.x}" y1="${PLOT.y}" x2="${PLOT.x}" y2="${PLOT.y + PLOT.h}" />
+      ${ticks}
+      <text class="l1-hist__axis-label" x="${PLOT.x + PLOT.w}" y="${SVG_H - 10}">الأداء %</text>
+      <text class="l1-hist__axis-label" x="${PLOT.x}" y="18">عدد الأفراد</text>
+    </svg>
+  `;
+}
+
+function verticalLine(x: number, kind: "mean" | "median" | "threshold", label: string) {
+  const yLabel = kind === "median" ? PLOT.y + 34 : kind === "mean" ? PLOT.y + 16 : PLOT.y + 52;
+  return `
+    <g class="l1-hist__mark l1-hist__mark--${kind}">
+      <line x1="${x}" y1="${PLOT.y}" x2="${x}" y2="${PLOT.y + PLOT.h}" />
+      <text x="${x}" y="${yLabel}">${label}</text>
+    </g>
+  `;
+}
+
+function rangeBracket(x1: number, x2: number, value: number) {
+  const y = PLOT.y + 8;
+  return `
+    <g class="l1-hist__range">
+      <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" />
+      <line x1="${x1}" y1="${y - 5}" x2="${x1}" y2="${y + 9}" />
+      <line x1="${x2}" y1="${y - 5}" x2="${x2}" y2="${y + 9}" />
+      <text x="${(x1 + x2) / 2}" y="${y - 8}">المدى: ${fmt(value)}</text>
+    </g>
+  `;
+}
+
+function iqrBand(x1: number, x2: number, value: number) {
+  const y = PLOT.y + PLOT.h + 34;
+  return `
+    <g class="l1-hist__iqr">
+      <rect x="${x1}" y="${PLOT.y + PLOT.h - 30}" width="${Math.max(2, x2 - x1)}" height="26" rx="6" />
+      <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" />
+      <line x1="${x1}" y1="${y - 8}" x2="${x1}" y2="${y + 8}" />
+      <line x1="${x2}" y1="${y - 8}" x2="${x2}" y2="${y + 8}" />
+      <text x="${(x1 + x2) / 2}" y="${y + 24}">IQR: ${fmt(value)}</text>
+    </g>
+  `;
+}
+
+function sdBand(x1: number, x2: number) {
+  return `<rect class="l1-hist__sd-band" x="${x1}" y="${PLOT.y}" width="${Math.max(2, x2 - x1)}" height="${PLOT.h}" rx="8" />`;
+}
+
+function measurementTray(bid: BranchId) {
+  const values = BRANCHES[bid].reps.map((r) => r.performance);
+  const qs = quartiles(values);
+  const above = countAboveOrEqual(values, PERFORMANCE_THRESHOLD);
+  const items = [
+    ["Mean", fmt(mean(values))],
+    ["Median", fmt(median(values))],
+    ["Range", fmt(range(values))],
+    ["SD", fmt(standardDeviation(values))],
+    ["IQR", fmt(qs.iqr)],
+    ["فوق 85%", `${Math.round((above / values.length) * 100)}%`],
+  ];
+  return `
+    <div class="l1-measurement-tray">
+      ${items.map(([label, value]) => `
+        <div class="l1-measurement">
+          <span>${label}</span>
+          <strong>${value}</strong>
+        </div>
+      `).join("")}
     </div>
   `;
-
-  const cardsHost = row.querySelector<HTMLElement>("[data-cards]")!;
-  branch.reps.forEach((rep) => cardsHost.appendChild(buildCard(rep)));
-
-  row.querySelector<HTMLButtonElement>("[data-sort]")!.addEventListener("click", () => {
-    sortRow(bid, local, row);
-  });
-
-  return row;
 }
 
-function buildCard(rep: Rep): HTMLElement {
-  const el = document.createElement("article");
-  el.className = "l1-card";
-  el.dataset.id = rep.id;
-  el.dataset.perf = String(rep.performance);
-  el.innerHTML = `
-    <div class="l1-card__perf">${rep.performance}<span>٪</span></div>
-    <div class="l1-card__name">${rep.name}</div>
-    <div class="l1-card__bar"><span style="width:${Math.min(100, (rep.performance / 150) * 100)}%"></span></div>
+function rawCards(bid: BranchId) {
+  const meta = TEAM_META[bid];
+  return `
+    <div class="l1-raw-team">
+      <div class="l1-raw-team__title"><strong>${meta.team}</strong><span>${meta.tone}</span></div>
+      <div class="l1-raw-team__cards">
+        ${BRANCHES[bid].reps.map((rep) => rawCard(rep, meta.color)).join("")}
+      </div>
+    </div>
   `;
-  return el;
 }
 
-function sortRow(bid: BranchId, local: BoardState, row: HTMLElement) {
-  const cardsHost = row.querySelector<HTMLElement>("[data-cards]")!;
-  const cards = Array.from(cardsHost.children) as HTMLElement[];
-
-  // FLIP: record first positions
-  const firstRects = new Map<string, DOMRect>();
-  cards.forEach((c) => firstRects.set(c.dataset.id!, c.getBoundingClientRect()));
-
-  // Re-order DOM ascending by perf
-  cards
-    .slice()
-    .sort((a, b) => Number(a.dataset.perf) - Number(b.dataset.perf))
-    .forEach((c) => cardsHost.appendChild(c));
-
-  // Last positions
-  cards.forEach((c) => {
-    const first = firstRects.get(c.dataset.id!)!;
-    const last = c.getBoundingClientRect();
-    const dx = first.left - last.left;
-    if (Math.abs(dx) > 0.5) {
-      c.animate(
-        [{ transform: `translateX(${dx}px)` }, { transform: "translateX(0)" }],
-        { duration: 480, easing: "cubic-bezier(.2,.7,.2,1)" },
-      );
-    }
-  });
-
-  local.sorted[bid] = true;
-  local.order[bid] = (Array.from(cardsHost.children) as HTMLElement[]).map((c) => c.dataset.id!);
-  markSorted(bid);
+function rawCard(rep: Rep, color: string) {
+  return `
+    <article class="l1-raw-card" style="--team-color:${color}">
+      <strong>${rep.performance}%</strong>
+      <span>${rep.name}</span>
+    </article>
+  `;
 }
 
-function decorateRow(bid: BranchId, local: BoardState, root: HTMLElement) {
-  const row = root.querySelector<HTMLElement>(`.l1-row[data-branch="${bid}"]`);
-  if (!row) return;
-  const s = getState();
-  const toggles = s.toolToggles;
-  const reps = BRANCHES[bid].reps;
-  const perfs = reps.map((r) => r.performance);
-
-  // 1) Per-card threshold coloring
-  const cardsHost = row.querySelector<HTMLElement>("[data-cards]")!;
-  Array.from(cardsHost.children).forEach((cEl) => {
-    const c = cEl as HTMLElement;
-    const v = Number(c.dataset.perf);
-    c.classList.toggle("l1-card--below", toggles.threshold && v < PERFORMANCE_THRESHOLD);
-    c.classList.toggle("l1-card--above", toggles.threshold && v >= PERFORMANCE_THRESHOLD);
+function histogram(reps: Rep[]) {
+  const bins = Array.from({ length: (X_MAX - X_MIN) / BIN_SIZE }, (_, i) => ({
+    start: X_MIN + i * BIN_SIZE,
+    end: X_MIN + (i + 1) * BIN_SIZE,
+    count: 0,
+  }));
+  reps.forEach((rep) => {
+    const index = Math.min(bins.length - 1, Math.max(0, Math.floor((rep.performance - X_MIN) / BIN_SIZE)));
+    bins[index].count += 1;
   });
-  const thrEl = row.querySelector<HTMLElement>("[data-threshold]")!;
-  thrEl.hidden = !toggles.threshold;
-  if (toggles.threshold) {
-    const tag = thrEl.querySelector<HTMLElement>(".l1-row__threshold-tag")!;
-    tag.textContent = `٨٥٪ · ${countBelow(perfs, PERFORMANCE_THRESHOLD)} تحت الحدّ`;
-  }
-
-  // 2) Mean pill
-  const meanEl = row.querySelector<HTMLElement>("[data-mean]")!;
-  if (toggles.mean) {
-    meanEl.hidden = false;
-    meanEl.innerHTML = `
-      <span class="l1-row__mean-label">المتوسط الحسابي</span>
-      <span class="l1-row__mean-val">${fmt(mean(perfs))}٪</span>
-    `;
-  } else {
-    meanEl.hidden = true;
-  }
-
-  // 3) Median highlight (requires sorted)
-  const sorted = local.sorted[bid];
-  Array.from(cardsHost.children).forEach((cEl) => (cEl as HTMLElement).classList.remove("l1-card--median"));
-  if (toggles.median) {
-    if (sorted) {
-      const kids = Array.from(cardsHost.children) as HTMLElement[];
-      const n = kids.length;
-      const midIdxA = Math.floor((n - 1) / 2);
-      const midIdxB = Math.ceil((n - 1) / 2);
-      kids[midIdxA]?.classList.add("l1-card--median");
-      if (midIdxB !== midIdxA) kids[midIdxB]?.classList.add("l1-card--median");
-      // Show median tag inside mean area as small chip
-      const chip = document.createElement("span");
-      chip.className = "l1-row__median-chip";
-      chip.textContent = `الوسيط: ${fmt(median(perfs))}٪`;
-      // Replace any existing chip
-      row.querySelector(".l1-row__median-chip")?.remove();
-      row.querySelector(".l1-row__head > div")!.appendChild(chip);
-    } else {
-      // Hint
-      row.querySelector(".l1-row__median-chip")?.remove();
-      const chip = document.createElement("span");
-      chip.className = "l1-row__median-chip l1-row__median-chip--hint";
-      chip.textContent = "رتّب الصف أولًا لرؤية الوسيط";
-      row.querySelector(".l1-row__head > div")!.appendChild(chip);
-    }
-  } else {
-    row.querySelector(".l1-row__median-chip")?.remove();
-  }
-
-  // 4) Stability bar
-  const stab = row.querySelector<HTMLElement>("[data-stability]")!;
-  if (toggles.stability) {
-    stab.hidden = false;
-    const lo = min(perfs);
-    const hi = max(perfs);
-    const r = range(perfs);
-    const scaleMin = 50, scaleMax = 160;
-    const left = ((lo - scaleMin) / (scaleMax - scaleMin)) * 100;
-    const width = ((hi - lo) / (scaleMax - scaleMin)) * 100;
-    stab.innerHTML = `
-      <div class="l1-stab__head">
-        <span>الاستقرار</span>
-        <span class="l1-stab__range">${lo}٪ ← ${hi}٪ · مدى ${r}</span>
-      </div>
-      <div class="l1-stab__track">
-        <div class="l1-stab__fill" style="inset-inline-start:${left}%;width:${width}%"></div>
-        <div class="l1-stab__tick" style="inset-inline-start:${left}%"><b>${lo}</b></div>
-        <div class="l1-stab__tick" style="inset-inline-start:${left + width}%"><b>${hi}</b></div>
-      </div>
-    `;
-  } else {
-    stab.hidden = true;
-  }
+  return bins;
 }
