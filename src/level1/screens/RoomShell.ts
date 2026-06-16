@@ -6,14 +6,10 @@ export interface RoomShellOptions {
   roomId: RoomId;
   title: string;
   subtitle?: string;
-  /** Renders body content into the provided container. Stub-friendly. */
+  onClose?: () => void;
   renderBody?: (body: HTMLElement) => void;
 }
 
-/**
- * Creates a full-screen DOM overlay representing an interior screen for a room.
- * Returns the root element and a destroy() cleanup function.
- */
 export function createRoomShell(opts: RoomShellOptions): {
   root: HTMLElement;
   destroy: () => void;
@@ -25,29 +21,27 @@ export function createRoomShell(opts: RoomShellOptions): {
   root.setAttribute("aria-label", opts.title);
 
   root.innerHTML = `
-    <header class="room-shell__header">
-      <div class="room-shell__map-slot"></div>
-      <div class="room-shell__title">
-        <h2>${opts.title}</h2>
-        ${opts.subtitle ? `<p>${opts.subtitle}</p>` : ""}
+    <div class="room-shell__body">
+      <div class="room-shell__hud">
+        <div class="room-shell__map-slot"></div>
       </div>
-      <span class="room-shell__badge">المستوى الأول</span>
-    </header>
-    <div class="room-shell__body"></div>
+      <div class="room-shell__content"></div>
+    </div>
   `;
 
   const miniMap = createMiniMapButton(opts.roomId);
   root.querySelector<HTMLElement>(".room-shell__map-slot")!.appendChild(miniMap.root);
 
-  const body = root.querySelector<HTMLElement>(".room-shell__body")!;
+  const body = root.querySelector<HTMLElement>(".room-shell__content")!;
   opts.renderBody?.(body);
 
-  const handleExit = () => {
-    gameEvents.emit("exitRoom", { roomId: opts.roomId });
+  const closeOverlay = () => {
+    gameEvents.emit("closeRoomOverlay", undefined);
+    opts.onClose?.();
   };
 
   const handleKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape") gameEvents.emit("closeRoomOverlay", undefined);
+    if (e.key === "Escape") closeOverlay();
   };
   window.addEventListener("keydown", handleKey);
 

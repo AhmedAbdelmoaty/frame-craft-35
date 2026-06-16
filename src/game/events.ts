@@ -13,6 +13,7 @@ type GameEventMap = {
   openRoomOverlay: CustomEvent<{ roomId: RoomId }>;
   closeRoomOverlay: CustomEvent<undefined>;
   decisionPreparedForMeeting: CustomEvent<undefined>;
+  meetingReportReviewed: CustomEvent<undefined>;
   timeout: CustomEvent<undefined>;
   levelreset: CustomEvent<undefined>;
 };

@@ -1,6 +1,6 @@
 // Reactive store for Level 1 — The Analyst: فخ المتوسط
 
-import type { BranchId } from "../data/branches";
+import type { BranchId } from "../data/branches.ts";
 
 export type Branch = BranchId;
 export type Outcome = "success" | "failure" | null;
@@ -9,6 +9,7 @@ export type RoomLocation = "office" | "sales" | "hr" | "decision" | "meeting" | 
 export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
 export type ToolId = "mean" | "threshold" | "median" | "range" | "sd" | "iqr";
 export type EndScreenKind = "success" | "wrong_decision" | "timeout" | null;
+export type MeetingStage = "intro" | "report_open" | "dialogue" | "result";
 
 export const LEVEL_DURATION_SECONDS = 180; // 3:00
 
@@ -40,7 +41,7 @@ export interface Level1State {
   selectedEvidenceIds: string[];
   finalOutcome: Outcome;
   failureReason: FailureReason;
-  meetingStage: "intro" | "summary" | "result";
+  meetingStage: MeetingStage;
   missionFileOpen: boolean;
   missionFileTab: MissionTabId;
   notesText: string;

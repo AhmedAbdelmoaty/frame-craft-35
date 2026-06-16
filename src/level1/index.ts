@@ -44,22 +44,7 @@ function isPlayableRoom(roomId: RoomId): roomId is PlayableRoomId {
 
 function openRoom(roomId: RoomId) {
   if (getState().endScreenKind || getState().timeoutTriggered) return;
-  if (isPlayableRoom(roomId)) {
-    openPlayableRoom(roomId);
-    return;
-  }
-  if (activePlayable) closePlayableRoom();
-  if (active?.roomId === roomId) return;
-  if (active) closeRoom();
-
-  const factory = SCREEN_FACTORIES[roomId];
-  if (!factory) return;
-
-  const instance = factory();
-  document.body.appendChild(instance.root);
-  document.body.classList.add("l1-room-open");
-  active = { roomId, instance };
-  setState({ currentLocation: roomId });
+  openPlayableRoom(roomId as PlayableRoomId);
 }
 
 function closeRoom() {

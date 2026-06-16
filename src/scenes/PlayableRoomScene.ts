@@ -1,7 +1,11 @@
 import Phaser from "phaser";
 import { gameEvents } from "../game/events";
 import type { PlayerProfile, RoomId } from "../game/types";
-import { DeadlineCompanion } from "./DeadlineCompanion";
+import {
+  buildMeetingPresentation,
+  type MeetingDialogueLine,
+  type MeetingSpeakerId,
+} from "../level1/logic/meetingPresentation";
 import {
   enterAnalysisRoom,
   getState,
@@ -11,10 +15,13 @@ import {
   receiveIndividualPerformanceFile,
   saveHRPolicy,
   saveSalesSummary,
+  setMeetingStage,
+  submitRecommendation,
   subscribe,
   visitHR,
   visitSales,
 } from "../level1/state/store";
+import { DeadlineCompanion } from "./DeadlineCompanion";
 
 type PlayableRoomId = Extract<RoomId, "office" | "sales" | "hr" | "decision" | "meeting">;
 type HotspotAction =
@@ -37,6 +44,7 @@ type RoomHotspot = {
 };
 
 type RoomPerson = {
+  speakerId?: Exclude<MeetingSpeakerId, "player">;
   name: string;
   role: string;
   asset: string;
@@ -54,8 +62,6 @@ type RoomConfig = {
     name: string;
     role: string;
     asset: string;
-    x: number;
-    y: number;
     lines: string[];
   } | null;
   people?: RoomPerson[];
@@ -113,11 +119,9 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
       name: "عماد",
       role: "مدير المبيعات",
       asset: assetKeys.salesManager,
-      x: 950,
-      y: 350,
       lines: [
-        "الأرقام الرسمية على اللوحة. خد الملفات اللي تحتاجها قبل الاجتماع.",
-        "ملف الأداء الفردي على المكتب، ده هيفيدك في التحليل.",
+        "الأرقام الرسمية على اللوحة. خذ الملفات التي تحتاجها قبل الاجتماع.",
+        "ملف الأداء الفردي على المكتب، وسيفيدك داخل التحليل.",
       ],
     },
     hotspots: [
@@ -138,11 +142,9 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
       name: "ليلى",
       role: "مديرة HR",
       asset: assetKeys.hrManager,
-      x: 930,
-      y: 350,
       lines: [
-        "المكافأة الجماعية لازم تكون قابلة للتبرير.",
-        "سياسة الأداء على المكتب. خذها معاك قبل بناء التوصية.",
+        "المكافأة الجماعية يجب أن تكون قابلة للتبرير.",
+        "سياسة الأداء على المكتب. خذها معك قبل بناء التوصية.",
       ],
     },
     hotspots: [
@@ -171,12 +173,12 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
     spawn: { x: 255, y: 620 },
     npc: null,
     people: [
-      { name: "نادر", role: "CEO", asset: assetKeys.dataCoach, x: 520, y: 320 },
-      { name: "عماد", role: "مدير المبيعات", asset: assetKeys.salesManager, x: 760, y: 318 },
-      { name: "ليلى", role: "مديرة HR", asset: assetKeys.hrManager, x: 930, y: 440 },
+      { speakerId: "nader", name: "نادر", role: "CEO", asset: assetKeys.dataCoach, x: 520, y: 320 },
+      { speakerId: "emad", name: "عماد", role: "مدير المبيعات", asset: assetKeys.salesManager, x: 760, y: 318 },
+      { speakerId: "layla", name: "ليلى", role: "مديرة HR", asset: assetKeys.hrManager, x: 930, y: 440 },
     ],
     hotspots: [
-      { id: "meetingTable", x: 700, y: 460, label: "اعرض التوصية", kind: "table", asset: assetKeys.decisionBoard },
+      { id: "meetingTable", x: 700, y: 460, label: "قدّم التوصية", kind: "table", asset: assetKeys.decisionBoard },
     ],
   },
 };
@@ -190,29 +192,47 @@ export class PlayableRoomScene extends Phaser.Scene {
   private player?: Phaser.GameObjects.Container;
   private playerSprite?: Phaser.GameObjects.Image;
   private prompt?: Phaser.GameObjects.Container;
+  private promptBg?: Phaser.GameObjects.Rectangle;
   private promptText?: Phaser.GameObjects.Text;
   private bubble?: Phaser.GameObjects.Container;
+  private dialogueBubble?: Phaser.GameObjects.Container;
   private hotspots = new Map<HotspotAction, RoomHotspot>();
   private hotspotViews = new Map<HotspotAction, Phaser.GameObjects.Container>();
+  private hotspotLabels = new Map<HotspotAction, Phaser.GameObjects.Text>();
+  private speakerViews = new Map<MeetingDialogueLine["speaker"], Phaser.GameObjects.Container>();
+  private meetingDialogue: MeetingDialogueLine[] = [];
+  private meetingDialogueIndex = -1;
+  private meetingDialogueActive = false;
+  private meetingReportPlaced = false;
   private moveTween?: Phaser.Tweens.Tween;
   private moveCleanup?: () => void;
   private moveToken = 0;
   private bubbleTimer?: Phaser.Time.TimerEvent;
   private deadline?: DeadlineCompanion;
+  private meetingReportProp?: Phaser.GameObjects.Image;
   private unsubscribeStore?: () => void;
   private unsubscribeClose?: () => void;
   private unsubscribeTimeout?: () => void;
   private unsubscribeDecisionPrepared?: () => void;
+  private unsubscribeMeetingReportReviewed?: () => void;
   private readonly handleRoomPointerDown = (
     pointer: Phaser.Input.Pointer,
     objects: Phaser.GameObjects.GameObject[],
   ) => {
+    if (this.meetingDialogueActive) {
+      this.advanceMeetingDialogue();
+      return;
+    }
     if (isGameOver() || objects.length > 0) return;
     const x = Phaser.Math.Clamp(pointer.worldX, ROOM_BOUNDS.left, ROOM_BOUNDS.right);
     const y = Phaser.Math.Clamp(pointer.worldY, ROOM_BOUNDS.top, ROOM_BOUNDS.bottom);
     this.movePlayerTo({ x, y });
   };
   private readonly handleInteractKey = () => {
+    if (this.meetingDialogueActive) {
+      this.advanceMeetingDialogue();
+      return;
+    }
     if (isGameOver()) return;
     const nearest = this.nearestHotspot();
     if (nearest) this.moveToHotspot(nearest);
@@ -249,10 +269,17 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.setupInput();
     this.refreshHotspots();
 
+    if (this.roomId === "meeting" && getState().hasPreparedDecision && getState().meetingStage !== "intro") {
+      this.ensureMeetingReportPlaced(false);
+    }
+
     this.unsubscribeStore = subscribe(() => this.refreshHotspots());
     this.unsubscribeClose = gameEvents.on("closePlayableRoom", () => this.closeScene());
     this.unsubscribeTimeout = gameEvents.on("timeout", () => {
       this.cancelMove();
+      this.clearBubble();
+      this.clearDialogueBubble();
+      this.meetingDialogueActive = false;
       this.input.enabled = false;
       this.deadline?.pounce();
     });
@@ -261,16 +288,23 @@ export class PlayableRoomScene extends Phaser.Scene {
         this.showBubble(["تم تجهيز التوصية للاجتماع."], 650, 255);
       }
     });
+    this.unsubscribeMeetingReportReviewed = gameEvents.on("meetingReportReviewed", () => {
+      if (this.roomId === "meeting" && !isGameOver()) {
+        this.startMeetingDialogue();
+      }
+    });
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeStore?.();
       this.unsubscribeClose?.();
       this.unsubscribeTimeout?.();
       this.unsubscribeDecisionPrepared?.();
+      this.unsubscribeMeetingReportReviewed?.();
       this.input.off("pointerdown", this.handleRoomPointerDown);
       this.input.keyboard?.off("keydown-E", this.handleInteractKey);
       this.cancelMove();
       this.clearBubble();
+      this.clearDialogueBubble();
     });
   }
 
@@ -365,11 +399,15 @@ export class PlayableRoomScene extends Phaser.Scene {
       }).setOrigin(0.5);
       container.add([shadow, sprite, label]);
       this.tweens.add({ targets: sprite, y: -3, yoyo: true, repeat: -1, duration: 1200, ease: "Sine.easeInOut" });
+      if (person.speakerId) this.speakerViews.set(person.speakerId, container);
     });
   }
 
   private createHotspots() {
     this.hotspots.clear();
+    this.hotspotViews.clear();
+    this.hotspotLabels.clear();
+
     this.config.hotspots.forEach((hotspot) => {
       this.hotspots.set(hotspot.id, hotspot);
       const container = this.add.container(hotspot.x, hotspot.y).setDepth(hotspot.y + 4);
@@ -382,13 +420,13 @@ export class PlayableRoomScene extends Phaser.Scene {
         const shadow = this.add.ellipse(0, 45, 58, 18, 0x17202a, 0.18);
         const sprite = this.add.image(0, 0, this.config.npc.asset);
         sprite.setOrigin(0.5, 0.82);
-        const label = this.add.text(0, 68, `${this.config.npc.name}\n${this.config.npc.role}`, {
+        const npcLabel = this.add.text(0, 68, `${this.config.npc.name}\n${this.config.npc.role}`, {
           ...this.textStyle(12, "#27313c", "800"),
           align: "center",
           backgroundColor: "rgba(255,255,255,0.82)",
           padding: { x: 8, y: 4 },
         }).setOrigin(0.5);
-        container.add([shadow, sprite, label]);
+        container.add([shadow, sprite, npcLabel]);
         this.tweens.add({ targets: sprite, y: -3, yoyo: true, repeat: -1, duration: 1200, ease: "Sine.easeInOut" });
       } else if (hotspot.asset) {
         const sprite = this.add.image(0, 0, hotspot.asset);
@@ -405,12 +443,13 @@ export class PlayableRoomScene extends Phaser.Scene {
       }).setOrigin(0.5);
       if (hotspot.kind !== "npc") container.add(label);
 
-      container.setSize(110, 120);
+      container.setSize(130, 120);
       container.setInteractive({ useHandCursor: true });
       container.on("pointerdown", () => this.moveToHotspot(hotspot));
       container.on("pointerover", () => this.showPrompt(hotspot));
       container.on("pointerout", () => this.showPrompt());
       this.hotspotViews.set(hotspot.id, container);
+      if (hotspot.kind !== "npc") this.hotspotLabels.set(hotspot.id, label);
     });
   }
 
@@ -427,14 +466,17 @@ export class PlayableRoomScene extends Phaser.Scene {
       padding: { x: 8, y: 4 },
     }).setOrigin(0.5);
     this.player.add([shadow, this.playerSprite, label]);
+    this.speakerViews.set("player", this.player);
     this.tweens.add({ targets: this.playerSprite, y: -3, yoyo: true, repeat: -1, duration: 950, ease: "Sine.easeInOut" });
   }
 
   private createPrompt() {
-    const bg = this.add.rectangle(0, 0, 220, 42, 0x17202a, 0.86);
+    const bg = this.add.rectangle(0, 0, 260, 42, 0x17202a, 0.86);
     bg.setStrokeStyle(1, 0xffffff, 0.45);
     const text = this.add.text(0, 0, "انقر للتفاعل أو اضغط E", this.textStyle(13, "#ffffff", "800"));
     text.setOrigin(0.5);
+    this.promptBg = bg;
+    this.promptText = text;
     this.prompt = this.add.container(0, 0, [bg, text]).setDepth(4000).setVisible(false);
   }
 
@@ -447,7 +489,7 @@ export class PlayableRoomScene extends Phaser.Scene {
   }
 
   private moveToHotspot(hotspot: RoomHotspot) {
-    if (isGameOver()) return;
+    if (isGameOver() || this.meetingDialogueActive) return;
     const target = {
       x: Phaser.Math.Clamp(hotspot.x - 42, ROOM_BOUNDS.left, ROOM_BOUNDS.right),
       y: Phaser.Math.Clamp(hotspot.y + 60, ROOM_BOUNDS.top, ROOM_BOUNDS.bottom),
@@ -473,7 +515,11 @@ export class PlayableRoomScene extends Phaser.Scene {
       targets: this.player,
       x: target.x,
       y: target.y,
-      duration: Phaser.Math.Clamp(Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y) * 2.1, 360, 1100),
+      duration: Phaser.Math.Clamp(
+        Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y) * 2.1,
+        360,
+        1100,
+      ),
       ease: "Sine.easeInOut",
       onUpdate: () => this.player?.setDepth(this.player.y + 20),
       onComplete: () => {
@@ -488,10 +534,12 @@ export class PlayableRoomScene extends Phaser.Scene {
   private interact(hotspot: RoomHotspot) {
     if (isGameOver()) return;
     this.showPrompt(hotspot);
+
     if (hotspot.id === "npc") {
       if (this.config.npc) this.showBubble(this.config.npc.lines, hotspot.x, hotspot.y - 90);
       return;
     }
+
     if (hotspot.id === "analystComputer") {
       if (!getState().hasReceivedIndividualPerformanceFile) {
         this.showBubble(["لا يوجد ملف أداء للتحليل بعد."], hotspot.x, hotspot.y - 90);
@@ -501,33 +549,46 @@ export class PlayableRoomScene extends Phaser.Scene {
       gameEvents.emit("openRoomOverlay", { roomId: "office" });
       return;
     }
+
     if (hotspot.id === "decisionBoard") {
       gameEvents.emit("openRoomOverlay", { roomId: "decision" });
       return;
     }
+
     if (hotspot.id === "meetingTable") {
       if (!getState().hasPreparedDecision) {
         this.showBubble(["لا توجد توصية جاهزة. اذهب إلى غرفة القرار أولًا."], hotspot.x, hotspot.y - 90);
         return;
       }
+      const presentation = buildMeetingPresentation(getState().preparedBranch, getState().preparedEvidenceIds);
+      if (!presentation) {
+        this.showBubble(["التوصية غير مكتملة بعد."], hotspot.x, hotspot.y - 90);
+        return;
+      }
+      this.ensureMeetingReportPlaced();
+      setMeetingStage("report_open");
       gameEvents.emit("openRoomOverlay", { roomId: "meeting" });
       return;
     }
+
     if (hotspot.id === "salesBoard") {
       inspectSalesBoard();
       this.showBubble(["تم فحص لوحة المبيعات الرسمية. الملخص موجود على المكتب."], hotspot.x, hotspot.y - 90);
       return;
     }
+
     if (hotspot.id === "salesSummary") {
       saveSalesSummary();
       this.showBubble(["تم استلام ملخص المبيعات وحفظه في ملف المهمة."], hotspot.x, hotspot.y - 90);
       return;
     }
+
     if (hotspot.id === "repFile") {
       receiveIndividualPerformanceFile();
-      this.showBubble(["تم استلام ملف الأداء الفردي. أدوات التحليل هتقدر تستخدمه."], hotspot.x, hotspot.y - 90);
+      this.showBubble(["تم استلام ملف الأداء الفردي. أدوات التحليل أصبحت جاهزة له."], hotspot.x, hotspot.y - 90);
       return;
     }
+
     if (hotspot.id === "hrPolicy") {
       inspectHRPolicy();
       saveHRPolicy();
@@ -559,6 +620,7 @@ export class PlayableRoomScene extends Phaser.Scene {
       text.setText(lines[index]);
       this.bubbleTimer = this.time.delayedCall(2400, showNext);
     };
+
     this.bubbleTimer = this.time.delayedCall(lines.length > 1 ? 2400 : 2200, showNext);
   }
 
@@ -570,11 +632,13 @@ export class PlayableRoomScene extends Phaser.Scene {
   }
 
   private showPrompt(hotspot?: RoomHotspot) {
-    if (!this.prompt) return;
+    if (!this.prompt || !this.promptText || !this.promptBg || this.meetingDialogueActive) return;
     if (!hotspot || isGameOver()) {
       this.prompt.setVisible(false);
       return;
     }
+    this.promptText.setText(hotspot.label);
+    this.promptBg.width = Math.max(180, this.promptText.width + 40);
     this.prompt.setPosition(hotspot.x, hotspot.y - 82);
     this.prompt.setVisible(true);
   }
@@ -602,6 +666,18 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.setHotspotDone("analystComputer", s.hasOpenedPerformanceCards || s.hasEnteredAnalysisRoom);
     this.setHotspotDone("decisionBoard", s.hasPreparedDecision);
     this.setHotspotDone("meetingTable", s.finalOutcome !== null);
+
+    if (this.roomId === "meeting") {
+      if (s.hasPreparedDecision && s.meetingStage !== "intro") {
+        this.ensureMeetingReportPlaced(false);
+      }
+      if (!s.hasPreparedDecision) {
+        this.meetingReportPlaced = false;
+        this.meetingReportProp?.destroy();
+        this.meetingReportProp = undefined;
+        this.setHotspotLabel("meetingTable", "قدّم التوصية");
+      }
+    }
   }
 
   private setHotspotDone(id: HotspotAction, done: boolean) {
@@ -615,6 +691,134 @@ export class PlayableRoomScene extends Phaser.Scene {
     }
   }
 
+  private setHotspotLabel(id: HotspotAction, label: string) {
+    const hotspot = this.hotspots.get(id);
+    if (hotspot) hotspot.label = label;
+    this.hotspotLabels.get(id)?.setText(label);
+  }
+
+  private ensureMeetingReportPlaced(animate = true) {
+    if (this.roomId !== "meeting") return;
+    this.meetingReportPlaced = true;
+    this.setHotspotLabel("meetingTable", "افتح التقرير");
+
+    if (!this.meetingReportProp) {
+      this.meetingReportProp = this.add.image(700, 438, assetKeys.summaryReport);
+      this.meetingReportProp.setScale(1.1);
+      this.meetingReportProp.setAngle(-10);
+      this.meetingReportProp.setDepth(420);
+    }
+
+    this.meetingReportProp.setVisible(true);
+    if (animate) {
+      this.tweens.add({
+        targets: this.meetingReportProp,
+        y: this.meetingReportProp.y - 6,
+        yoyo: true,
+        repeat: 1,
+        duration: 170,
+        ease: "Sine.easeOut",
+      });
+    }
+  }
+
+  private startMeetingDialogue() {
+    if (this.roomId !== "meeting" || isGameOver() || this.meetingDialogueActive) return;
+    const presentation = buildMeetingPresentation(getState().preparedBranch, getState().preparedEvidenceIds);
+    if (!presentation) return;
+
+    this.clearBubble();
+    this.clearDialogueBubble();
+    this.meetingDialogue = presentation.dialogue;
+    this.meetingDialogueIndex = -1;
+    this.meetingDialogueActive = true;
+    setMeetingStage("dialogue");
+    this.showPrompt();
+    this.advanceMeetingDialogue();
+  }
+
+  private advanceMeetingDialogue() {
+    if (!this.meetingDialogueActive || isGameOver()) return;
+    this.meetingDialogueIndex += 1;
+
+    if (this.meetingDialogueIndex >= this.meetingDialogue.length) {
+      this.finishMeetingDialogue();
+      return;
+    }
+
+    this.showDialogueLine(this.meetingDialogue[this.meetingDialogueIndex]);
+  }
+
+  private showDialogueLine(line: MeetingDialogueLine) {
+    this.clearDialogueBubble();
+
+    const speakerView = this.speakerViews.get(line.speaker);
+    if (!speakerView) return;
+
+    this.highlightSpeaker(line.speaker);
+
+    const bubbleX = Phaser.Math.Clamp(speakerView.x, 330, 1050);
+    const bubbleY = Phaser.Math.Clamp(speakerView.y - 108, 170, 520);
+    const width = 420;
+    const bg = this.add.rectangle(0, 0, width, 118, 0x0f1e2e, 0.97);
+    bg.setStrokeStyle(1, 0xffffff, 0.28);
+
+    const who = this.add.text(0, -36, this.speakerName(line.speaker), {
+      ...this.textStyle(12, "#f3c66b", "900"),
+      backgroundColor: "rgba(255,255,255,0.1)",
+      padding: { x: 10, y: 4 },
+    }).setOrigin(0.5);
+
+    const text = this.add.text(0, 4, line.text, {
+      ...this.textStyle(16, "#ffffff", "800"),
+      align: "center",
+      wordWrap: { width: width - 46 },
+      lineSpacing: 5,
+    }).setOrigin(0.5);
+
+    const hint = this.add.text(0, 42, "اضغط E أو انقر للمتابعة", {
+      ...this.textStyle(11, "#d0d7de", "700"),
+    }).setOrigin(0.5);
+
+    this.dialogueBubble = this.add.container(bubbleX, bubbleY, [bg, who, text, hint]).setDepth(5500);
+  }
+
+  private clearDialogueBubble() {
+    this.dialogueBubble?.destroy();
+    this.dialogueBubble = undefined;
+    this.highlightSpeaker();
+  }
+
+  private highlightSpeaker(active?: MeetingDialogueLine["speaker"]) {
+    this.speakerViews.forEach((view, key) => {
+      const isActive = active === key;
+      view.setAlpha(active ? (isActive ? 1 : 0.72) : 1);
+      view.setScale(active ? (isActive ? 1.05 : 1) : 1);
+    });
+  }
+
+  private finishMeetingDialogue() {
+    const presentation = buildMeetingPresentation(getState().preparedBranch, getState().preparedEvidenceIds);
+    this.meetingDialogueActive = false;
+    this.meetingDialogue = [];
+    this.meetingDialogueIndex = -1;
+    this.clearDialogueBubble();
+
+    if (!presentation) return;
+
+    submitRecommendation(
+      presentation.evaluation.outcome,
+      presentation.evaluation.failureReason ?? null,
+    );
+  }
+
+  private speakerName(speaker: MeetingDialogueLine["speaker"]) {
+    if (speaker === "player") return this.profile.name;
+    if (speaker === "nader") return "نادر";
+    if (speaker === "layla") return "ليلى";
+    return "عماد";
+  }
+
   private cancelMove() {
     this.moveTween?.stop();
     this.moveTween = undefined;
@@ -624,6 +828,10 @@ export class PlayableRoomScene extends Phaser.Scene {
 
   private closeScene() {
     this.cancelMove();
+    this.clearDialogueBubble();
+    if (this.roomId === "meeting" && !isGameOver() && getState().meetingStage !== "result") {
+      setMeetingStage("intro");
+    }
     this.scene.resume("OfficeScene");
     this.scene.stop();
   }

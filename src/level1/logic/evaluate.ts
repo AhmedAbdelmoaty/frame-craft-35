@@ -3,7 +3,7 @@
 // Success requires: midan branch + exactly 2 STRONG analytical evidence.
 // hr_policy is contextual only — NOT counted as strong.
 
-import type { Level1State, Branch } from "../state/store";
+import type { Level1State, Branch } from "../state/store.ts";
 
 export type EvidenceId =
   | "sales_summary"
