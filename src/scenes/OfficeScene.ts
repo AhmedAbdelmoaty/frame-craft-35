@@ -140,6 +140,8 @@ export class OfficeScene extends Phaser.Scene {
   private unsubscribeStore?: () => void;
   private unsubscribeTimeout?: () => void;
   private unsubscribeReset?: () => void;
+  private unsubscribePlayableRoom?: () => void;
+  private unsubscribeClosePlayableRoom?: () => void;
   private deadline?: DeadlineCompanion;
 
 
@@ -190,6 +192,17 @@ export class OfficeScene extends Phaser.Scene {
     this.unsubscribeTimeout = gameEvents.on("timeout", () => {
       this.deadline?.pounce();
     });
+    this.unsubscribePlayableRoom = gameEvents.on("openPlayableRoom", (event) => {
+      this.cancelMove();
+      this.showPrompt();
+      this.scene.launch("PlayableRoomScene", { roomId: event.detail.roomId });
+      this.scene.pause();
+    });
+    this.unsubscribeClosePlayableRoom = gameEvents.on("closePlayableRoom", () => {
+      if (this.scene.isPaused()) {
+        this.scene.resume();
+      }
+    });
     this.unsubscribeReset = gameEvents.on("levelreset", () => {
       this.resetSceneState();
     });
@@ -200,6 +213,8 @@ export class OfficeScene extends Phaser.Scene {
       this.unsubscribeStore?.();
       this.unsubscribeTimeout?.();
       this.unsubscribeReset?.();
+      this.unsubscribePlayableRoom?.();
+      this.unsubscribeClosePlayableRoom?.();
       this.cancelMove();
     });
 

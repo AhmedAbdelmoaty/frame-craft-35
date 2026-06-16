@@ -8,6 +8,8 @@ type GameEventMap = {
   resetdecision: CustomEvent<undefined>;
   enterRoom: CustomEvent<{ roomId: RoomId }>;
   exitRoom: CustomEvent<{ roomId: RoomId }>;
+  openPlayableRoom: CustomEvent<{ roomId: Extract<RoomId, "sales" | "hr"> }>;
+  closePlayableRoom: CustomEvent<undefined>;
   timeout: CustomEvent<undefined>;
   levelreset: CustomEvent<undefined>;
 };

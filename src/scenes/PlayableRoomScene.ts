@@ -1,0 +1,500 @@
+import Phaser from "phaser";
+import { gameEvents } from "../game/events";
+import type { PlayerProfile, RoomId } from "../game/types";
+import { DeadlineCompanion } from "./DeadlineCompanion";
+import {
+  getState,
+  inspectHRPolicy,
+  inspectSalesBoard,
+  isGameOver,
+  receiveIndividualPerformanceFile,
+  saveHRPolicy,
+  saveSalesSummary,
+  subscribe,
+  visitHR,
+  visitSales,
+} from "../level1/state/store";
+
+type PlayableRoomId = Extract<RoomId, "sales" | "hr">;
+type HotspotAction = "npc" | "salesBoard" | "salesSummary" | "repFile" | "hrPolicy";
+
+type RoomHotspot = {
+  id: HotspotAction;
+  x: number;
+  y: number;
+  label: string;
+  kind: "npc" | "board" | "file" | "folder";
+  asset?: string;
+};
+
+type RoomConfig = {
+  id: PlayableRoomId;
+  title: string;
+  subtitle: string;
+  color: number;
+  accent: number;
+  npc: {
+    name: string;
+    role: string;
+    asset: string;
+    x: number;
+    y: number;
+    lines: string[];
+  };
+  hotspots: RoomHotspot[];
+  spawn: { x: number; y: number };
+};
+
+const assetKeys = {
+  playerFemale: "character.player.female",
+  playerMale: "character.player.male",
+  hrManager: "character.hr",
+  salesManager: "character.sales",
+  summaryReport: "prop.summaryReport",
+  hrFolder: "prop.hrFolder",
+  salesBoard: "prop.salesBoard",
+} as const;
+
+const assetSources: Record<string, { path: string; width: number; height: number }> = {
+  [assetKeys.playerFemale]: { path: "/assets/characters/player-female.svg", width: 86, height: 128 },
+  [assetKeys.playerMale]: { path: "/assets/characters/player-male.svg", width: 86, height: 128 },
+  [assetKeys.hrManager]: { path: "/assets/characters/hr-manager.svg", width: 78, height: 118 },
+  [assetKeys.salesManager]: { path: "/assets/characters/sales-manager.svg", width: 78, height: 118 },
+  [assetKeys.summaryReport]: { path: "/assets/props/summary-report.svg", width: 62, height: 62 },
+  [assetKeys.hrFolder]: { path: "/assets/props/hr-folder.svg", width: 66, height: 66 },
+  [assetKeys.salesBoard]: { path: "/assets/props/sales-board.svg", width: 110, height: 82 },
+};
+
+const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
+  sales: {
+    id: "sales",
+    title: "مكتب المبيعات",
+    subtitle: "عماد · لوحة الأداء",
+    color: 0xf3dfcf,
+    accent: 0x2b78c5,
+    spawn: { x: 255, y: 620 },
+    npc: {
+      name: "عماد",
+      role: "مدير المبيعات",
+      asset: assetKeys.salesManager,
+      x: 950,
+      y: 350,
+      lines: [
+        "الأرقام الرسمية على اللوحة. خد الملفات اللي تحتاجها قبل الاجتماع.",
+        "ملف الأداء الفردي على المكتب، ده هيفيدك في التحليل.",
+      ],
+    },
+    hotspots: [
+      { id: "npc", x: 950, y: 350, label: "تحدث مع عماد", kind: "npc" },
+      { id: "salesBoard", x: 620, y: 270, label: "افحص لوحة المبيعات", kind: "board", asset: assetKeys.salesBoard },
+      { id: "salesSummary", x: 620, y: 470, label: "استلام ملخص المبيعات", kind: "file", asset: assetKeys.summaryReport },
+      { id: "repFile", x: 420, y: 470, label: "استلام ملف الأداء الفردي", kind: "file", asset: assetKeys.hrFolder },
+    ],
+  },
+  hr: {
+    id: "hr",
+    title: "مكتب الموارد البشرية",
+    subtitle: "ليلى · سياسة الأداء",
+    color: 0xe8e0f4,
+    accent: 0x7b55bb,
+    spawn: { x: 255, y: 620 },
+    npc: {
+      name: "ليلى",
+      role: "مديرة HR",
+      asset: assetKeys.hrManager,
+      x: 930,
+      y: 350,
+      lines: [
+        "المكافأة الجماعية لازم تكون قابلة للتبرير.",
+        "سياسة الأداء على المكتب. خذها معاك قبل بناء التوصية.",
+      ],
+    },
+    hotspots: [
+      { id: "npc", x: 930, y: 350, label: "تحدث مع ليلى", kind: "npc" },
+      { id: "hrPolicy", x: 600, y: 455, label: "استلام سياسة الأداء", kind: "folder", asset: assetKeys.hrFolder },
+    ],
+  },
+};
+
+const ROOM_BOUNDS = new Phaser.Geom.Rectangle(180, 210, 1020, 430);
+const INTERACTION_DISTANCE = 90;
+
+export class PlayableRoomScene extends Phaser.Scene {
+  private roomId: PlayableRoomId = "sales";
+  private config: RoomConfig = ROOM_CONFIGS.sales;
+  private player?: Phaser.GameObjects.Container;
+  private playerSprite?: Phaser.GameObjects.Image;
+  private prompt?: Phaser.GameObjects.Container;
+  private bubble?: Phaser.GameObjects.Container;
+  private hotspots = new Map<HotspotAction, RoomHotspot>();
+  private hotspotViews = new Map<HotspotAction, Phaser.GameObjects.Container>();
+  private moveTween?: Phaser.Tweens.Tween;
+  private moveCleanup?: () => void;
+  private moveToken = 0;
+  private bubbleTimer?: Phaser.Time.TimerEvent;
+  private deadline?: DeadlineCompanion;
+  private unsubscribeStore?: () => void;
+  private unsubscribeClose?: () => void;
+  private unsubscribeTimeout?: () => void;
+  private readonly handleRoomPointerDown = (
+    pointer: Phaser.Input.Pointer,
+    objects: Phaser.GameObjects.GameObject[],
+  ) => {
+    if (isGameOver() || objects.length > 0) return;
+    const x = Phaser.Math.Clamp(pointer.worldX, ROOM_BOUNDS.left, ROOM_BOUNDS.right);
+    const y = Phaser.Math.Clamp(pointer.worldY, ROOM_BOUNDS.top, ROOM_BOUNDS.bottom);
+    this.movePlayerTo({ x, y });
+  };
+  private readonly handleInteractKey = () => {
+    if (isGameOver()) return;
+    const nearest = this.nearestHotspot();
+    if (nearest) this.moveToHotspot(nearest);
+  };
+
+  constructor(private readonly profile: PlayerProfile) {
+    super("PlayableRoomScene");
+  }
+
+  init(data: { roomId?: PlayableRoomId }) {
+    this.roomId = data.roomId ?? "sales";
+    this.config = ROOM_CONFIGS[this.roomId] ?? ROOM_CONFIGS.sales;
+  }
+
+  preload() {
+    Object.entries(assetSources).forEach(([key, source]) => {
+      if (!this.textures.exists(key)) {
+        this.load.svg(key, source.path, { width: source.width, height: source.height });
+      }
+    });
+  }
+
+  create() {
+    if (this.roomId === "sales") visitSales();
+    if (this.roomId === "hr") visitHR();
+
+    this.cameras.main.setBackgroundColor("#e9edf2");
+    this.drawRoom();
+    this.createHotspots();
+    this.createPlayer();
+    if (this.player) this.deadline = new DeadlineCompanion(this, this.player);
+    this.createPrompt();
+    this.setupInput();
+    this.refreshHotspots();
+
+    this.unsubscribeStore = subscribe(() => this.refreshHotspots());
+    this.unsubscribeClose = gameEvents.on("closePlayableRoom", () => this.closeScene());
+    this.unsubscribeTimeout = gameEvents.on("timeout", () => {
+      this.cancelMove();
+      this.input.enabled = false;
+      this.deadline?.pounce();
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unsubscribeStore?.();
+      this.unsubscribeClose?.();
+      this.unsubscribeTimeout?.();
+      this.input.off("pointerdown", this.handleRoomPointerDown);
+      this.input.keyboard?.off("keydown-E", this.handleInteractKey);
+      this.cancelMove();
+      this.clearBubble();
+    });
+  }
+
+  private drawRoom() {
+    const g = this.add.graphics();
+    g.fillStyle(0xf7f4ea, 1);
+    g.fillRoundedRect(110, 150, 1160, 560, 18);
+    g.lineStyle(5, 0xb9c4cf, 1);
+    g.strokeRoundedRect(110, 150, 1160, 560, 18);
+
+    g.fillStyle(this.config.color, 1);
+    g.fillRoundedRect(170, 205, 1040, 450, 16);
+    g.lineStyle(4, 0xffffff, 0.92);
+    g.strokeRoundedRect(170, 205, 1040, 450, 16);
+
+    g.fillStyle(0xd7dee7, 0.9);
+    g.fillRoundedRect(210, 610, 170, 34, 10);
+    g.lineStyle(2, 0xaebac6, 1);
+    g.strokeRoundedRect(210, 610, 170, 34, 10);
+
+    this.add.text(690, 96, this.config.title, this.labelStyle(30, "#17202a", "900")).setOrigin(0.5);
+    this.add.text(690, 132, this.config.subtitle, this.labelStyle(15, "#607083", "800")).setOrigin(0.5);
+    this.add.text(295, 627, "باب الخريطة", this.labelStyle(13, "#607083", "800")).setOrigin(0.5);
+
+    this.drawDesk(565, 495, 315, 82);
+    if (this.roomId === "sales") this.drawDesk(620, 290, 360, 78);
+    if (this.roomId === "hr") this.drawDesk(600, 470, 300, 78);
+    this.drawPlant(1130, 575);
+    this.drawPlant(245, 255);
+  }
+
+  private drawDesk(x: number, y: number, w: number, h: number) {
+    const desk = this.add.rectangle(x, y, w, h, 0xffffff, 0.72);
+    desk.setStrokeStyle(2, 0xb8c3cf, 0.9);
+    desk.setDepth(y - 20);
+  }
+
+  private drawPlant(x: number, y: number) {
+    const g = this.add.graphics();
+    g.fillStyle(0x7a5a37, 1);
+    g.fillRoundedRect(x - 12, y + 18, 24, 22, 5);
+    g.fillStyle(0x3d8644, 1);
+    g.fillEllipse(x - 10, y + 8, 22, 38);
+    g.fillEllipse(x + 10, y + 4, 22, 38);
+    g.fillEllipse(x, y - 6, 24, 44);
+    g.setDepth(y + 20);
+  }
+
+  private createHotspots() {
+    this.hotspots.clear();
+    this.config.hotspots.forEach((hotspot) => {
+      this.hotspots.set(hotspot.id, hotspot);
+      const container = this.add.container(hotspot.x, hotspot.y).setDepth(hotspot.y + 4);
+      const halo = this.add.circle(0, 44, 34, this.config.accent, 0.1);
+      halo.setStrokeStyle(2, this.config.accent, 0.3);
+      container.add(halo);
+
+      if (hotspot.kind === "npc") {
+        const shadow = this.add.ellipse(0, 45, 58, 18, 0x17202a, 0.18);
+        const sprite = this.add.image(0, 0, this.config.npc.asset);
+        sprite.setOrigin(0.5, 0.82);
+        const label = this.add.text(0, 68, `${this.config.npc.name}\n${this.config.npc.role}`, {
+          ...this.textStyle(12, "#27313c", "800"),
+          align: "center",
+          backgroundColor: "rgba(255,255,255,0.82)",
+          padding: { x: 8, y: 4 },
+        }).setOrigin(0.5);
+        container.add([shadow, sprite, label]);
+        this.tweens.add({ targets: sprite, y: -3, yoyo: true, repeat: -1, duration: 1200, ease: "Sine.easeInOut" });
+      } else if (hotspot.asset) {
+        const sprite = this.add.image(0, 0, hotspot.asset);
+        sprite.setOrigin(0.5);
+        container.add(sprite);
+        this.tweens.add({ targets: sprite, y: -4, yoyo: true, repeat: -1, duration: 1100, ease: "Sine.easeInOut" });
+      }
+
+      const label = this.add.text(0, 72, hotspot.label, {
+        ...this.textStyle(12, "#17202a", "900"),
+        align: "center",
+        backgroundColor: "rgba(255,255,255,0.78)",
+        padding: { x: 8, y: 4 },
+      }).setOrigin(0.5);
+      if (hotspot.kind !== "npc") container.add(label);
+
+      container.setSize(110, 120);
+      container.setInteractive({ useHandCursor: true });
+      container.on("pointerdown", () => this.moveToHotspot(hotspot));
+      container.on("pointerover", () => this.showPrompt(hotspot));
+      container.on("pointerout", () => this.showPrompt());
+      this.hotspotViews.set(hotspot.id, container);
+    });
+  }
+
+  private createPlayer() {
+    const start = this.config.spawn;
+    this.player = this.add.container(start.x, start.y).setDepth(start.y + 20);
+    const shadow = this.add.ellipse(0, 45, 62, 19, 0x17202a, 0.2);
+    const key = this.profile.avatar === "female" ? assetKeys.playerFemale : assetKeys.playerMale;
+    this.playerSprite = this.add.image(0, 0, key);
+    this.playerSprite.setOrigin(0.5, 0.82);
+    const label = this.add.text(0, 72, this.profile.name, {
+      ...this.textStyle(13, "#17202a", "900"),
+      backgroundColor: "rgba(255,255,255,0.82)",
+      padding: { x: 8, y: 4 },
+    }).setOrigin(0.5);
+    this.player.add([shadow, this.playerSprite, label]);
+    this.tweens.add({ targets: this.playerSprite, y: -3, yoyo: true, repeat: -1, duration: 950, ease: "Sine.easeInOut" });
+  }
+
+  private createPrompt() {
+    const bg = this.add.rectangle(0, 0, 220, 42, 0x17202a, 0.86);
+    bg.setStrokeStyle(1, 0xffffff, 0.45);
+    const text = this.add.text(0, 0, "انقر للتفاعل أو اضغط E", this.textStyle(13, "#ffffff", "800"));
+    text.setOrigin(0.5);
+    this.prompt = this.add.container(0, 0, [bg, text]).setDepth(4000).setVisible(false);
+  }
+
+  private setupInput() {
+    this.input.enabled = true;
+    this.input.off("pointerdown", this.handleRoomPointerDown);
+    this.input.keyboard?.off("keydown-E", this.handleInteractKey);
+    this.input.on("pointerdown", this.handleRoomPointerDown);
+    this.input.keyboard?.on("keydown-E", this.handleInteractKey);
+  }
+
+  private moveToHotspot(hotspot: RoomHotspot) {
+    if (isGameOver()) return;
+    const target = {
+      x: Phaser.Math.Clamp(hotspot.x - 42, ROOM_BOUNDS.left, ROOM_BOUNDS.right),
+      y: Phaser.Math.Clamp(hotspot.y + 60, ROOM_BOUNDS.top, ROOM_BOUNDS.bottom),
+    };
+    this.movePlayerTo(target, () => this.interact(hotspot));
+  }
+
+  private movePlayerTo(target: { x: number; y: number }, onArrive?: () => void) {
+    if (!this.player) return;
+    this.cancelMove();
+    this.clearBubble();
+    const token = ++this.moveToken;
+    const path = this.add.graphics().setDepth(3);
+    path.lineStyle(3, this.config.accent, 0.22);
+    path.lineBetween(this.player.x, this.player.y + 35, target.x, target.y + 35);
+    const marker = this.add.circle(target.x, target.y + 36, 10, this.config.accent, 0.28).setDepth(4);
+    this.moveCleanup = () => {
+      path.destroy();
+      marker.destroy();
+    };
+    this.playerSprite?.setScale(target.x < this.player.x ? -1 : 1, 1);
+    this.moveTween = this.tweens.add({
+      targets: this.player,
+      x: target.x,
+      y: target.y,
+      duration: Phaser.Math.Clamp(Phaser.Math.Distance.Between(this.player.x, this.player.y, target.x, target.y) * 2.1, 360, 1100),
+      ease: "Sine.easeInOut",
+      onUpdate: () => this.player?.setDepth(this.player.y + 20),
+      onComplete: () => {
+        this.moveTween = undefined;
+        this.moveCleanup?.();
+        this.moveCleanup = undefined;
+        if (token === this.moveToken && !isGameOver()) onArrive?.();
+      },
+    });
+  }
+
+  private interact(hotspot: RoomHotspot) {
+    if (isGameOver()) return;
+    this.showPrompt(hotspot);
+    if (hotspot.id === "npc") {
+      this.showBubble(this.config.npc.lines, hotspot.x, hotspot.y - 90);
+      return;
+    }
+    if (hotspot.id === "salesBoard") {
+      inspectSalesBoard();
+      this.showBubble(["تم فحص لوحة المبيعات الرسمية. الملخص موجود على المكتب."], hotspot.x, hotspot.y - 90);
+      return;
+    }
+    if (hotspot.id === "salesSummary") {
+      saveSalesSummary();
+      this.showBubble(["تم استلام ملخص المبيعات وحفظه في ملف المهمة."], hotspot.x, hotspot.y - 90);
+      return;
+    }
+    if (hotspot.id === "repFile") {
+      receiveIndividualPerformanceFile();
+      this.showBubble(["تم استلام ملف الأداء الفردي. أدوات التحليل هتقدر تستخدمه."], hotspot.x, hotspot.y - 90);
+      return;
+    }
+    if (hotspot.id === "hrPolicy") {
+      inspectHRPolicy();
+      saveHRPolicy();
+      this.showBubble(["تم استلام سياسة الأداء وحفظها في ملف المهمة."], hotspot.x, hotspot.y - 90);
+    }
+  }
+
+  private showBubble(lines: string[], x: number, y: number) {
+    this.clearBubble();
+    let index = 0;
+    const bg = this.add.rectangle(0, 0, 390, 78, 0x0f1e2e, 0.96);
+    bg.setStrokeStyle(1, 0xffffff, 0.28);
+    const text = this.add.text(0, 0, lines[index], {
+      ...this.textStyle(17, "#ffffff", "800"),
+      align: "center",
+      wordWrap: { width: 340 },
+      lineSpacing: 5,
+    }).setOrigin(0.5);
+    this.bubble = this.add.container(x, y, [bg, text]).setDepth(5000);
+    const activeBubble = this.bubble;
+
+    const showNext = () => {
+      if (this.bubble !== activeBubble || !text.active) return;
+      index += 1;
+      if (index >= lines.length) {
+        this.clearBubble();
+        return;
+      }
+      text.setText(lines[index]);
+      this.bubbleTimer = this.time.delayedCall(2400, showNext);
+    };
+    this.bubbleTimer = this.time.delayedCall(lines.length > 1 ? 2400 : 2200, showNext);
+  }
+
+  private clearBubble() {
+    this.bubbleTimer?.remove(false);
+    this.bubbleTimer = undefined;
+    this.bubble?.destroy();
+    this.bubble = undefined;
+  }
+
+  private showPrompt(hotspot?: RoomHotspot) {
+    if (!this.prompt) return;
+    if (!hotspot || isGameOver()) {
+      this.prompt.setVisible(false);
+      return;
+    }
+    this.prompt.setPosition(hotspot.x, hotspot.y - 82);
+    this.prompt.setVisible(true);
+  }
+
+  private nearestHotspot() {
+    if (!this.player) return null;
+    let best: RoomHotspot | null = null;
+    let bestDist = Infinity;
+    this.hotspots.forEach((hotspot) => {
+      const dist = Phaser.Math.Distance.Between(this.player!.x, this.player!.y, hotspot.x, hotspot.y);
+      if (dist < bestDist) {
+        best = hotspot;
+        bestDist = dist;
+      }
+    });
+    return bestDist <= INTERACTION_DISTANCE ? best : null;
+  }
+
+  private refreshHotspots() {
+    const s = getState();
+    this.setHotspotDone("salesBoard", s.hasInspectedSalesBoard);
+    this.setHotspotDone("salesSummary", s.hasSavedSalesSummary);
+    this.setHotspotDone("repFile", s.hasReceivedIndividualPerformanceFile);
+    this.setHotspotDone("hrPolicy", s.hasSavedHRPolicy);
+  }
+
+  private setHotspotDone(id: HotspotAction, done: boolean) {
+    const view = this.hotspotViews.get(id);
+    if (!view) return;
+    view.setAlpha(done ? 0.66 : 1);
+    const halo = view.list[0] as Phaser.GameObjects.Arc | undefined;
+    if (halo?.setFillStyle) {
+      halo.setFillStyle(done ? 0x2f8a4e : this.config.accent, done ? 0.18 : 0.1);
+      halo.setStrokeStyle(2, done ? 0x2f8a4e : this.config.accent, done ? 0.55 : 0.3);
+    }
+  }
+
+  private cancelMove() {
+    this.moveTween?.stop();
+    this.moveTween = undefined;
+    this.moveCleanup?.();
+    this.moveCleanup = undefined;
+  }
+
+  private closeScene() {
+    this.cancelMove();
+    this.scene.resume("OfficeScene");
+    this.scene.stop();
+  }
+
+  private labelStyle(size = 16, color = "#17202a", weight = "900") {
+    return {
+      color,
+      fontFamily: "Tajawal, Inter, Arial, sans-serif",
+      fontSize: `${size}px`,
+      fontStyle: weight,
+    };
+  }
+
+  private textStyle(size = 14, color = "#17202a", weight = "700") {
+    return {
+      color,
+      fontFamily: "Tajawal, Inter, Arial, sans-serif",
+      fontSize: `${size}px`,
+      fontStyle: weight,
+    };
+  }
+}

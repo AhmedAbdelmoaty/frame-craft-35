@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { OfficeScene } from "../scenes/OfficeScene";
+import { PlayableRoomScene } from "../scenes/PlayableRoomScene";
 import type { PlayerProfile } from "./types";
 
 export function createGame(profile: PlayerProfile) {
@@ -22,6 +23,6 @@ export function createGame(profile: PlayerProfile) {
       antialias: true,
       pixelArt: false,
     },
-    scene: [new OfficeScene(profile)],
+    scene: [new OfficeScene(profile), new PlayableRoomScene(profile)],
   });
 }

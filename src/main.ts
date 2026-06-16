@@ -1,6 +1,7 @@
 import "./styles.css";
 import { createGame } from "./game/createGame";
 import { initLevel1 } from "./level1";
+import { resetLevel } from "./level1/state/store";
 import type { PlayerProfile } from "./game/types";
 
 const APP_VERSION = "MADAR-ANALYST-2026-06-13-LATEST";
@@ -13,6 +14,8 @@ if (!app) {
 }
 
 const appRoot = app;
+let currentGame: ReturnType<typeof createGame> | null = null;
+let currentProfile: PlayerProfile | null = null;
 
 document.documentElement.dataset.appVersion = APP_VERSION;
 
@@ -76,6 +79,14 @@ function renderProfileScreen() {
 }
 
 function bootSlice(profile: PlayerProfile) {
+  const levelCleanup = (window as Window & { __level1Cleanup?: () => void }).__level1Cleanup;
+  levelCleanup?.();
+  (window as Window & { __level1Cleanup?: () => void }).__level1Cleanup = undefined;
+  currentGame?.destroy(true);
+  currentGame = null;
+  resetLevel();
+  currentProfile = profile;
+
   appRoot.innerHTML = `
     <main class="game-shell">
       <section id="game-root" class="game-root" aria-label="خريطة الشركة"></section>
@@ -83,9 +94,13 @@ function bootSlice(profile: PlayerProfile) {
     </main>
   `;
 
-  createGame(profile);
+  currentGame = createGame(profile);
   initLevel1();
 }
+
+window.addEventListener("madar:restart-level", () => {
+  bootSlice(currentProfile ?? defaultProfile);
+});
 
 async function clearStalePreviewCache() {
   if (sessionStorage.getItem(CACHE_CLEANUP_KEY) === "done") return;

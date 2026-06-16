@@ -4,7 +4,7 @@
 import "./styles/level1.css";
 import { gameEvents } from "../game/events";
 import type { RoomId } from "../game/types";
-import { getState, openEndScreen, resetLevel, setState, subscribe } from "./state/store";
+import { getState, openEndScreen, setState, subscribe } from "./state/store";
 import { createAnalystOfficeScreen } from "./screens/AnalystOfficeScreen";
 import { createSalesOfficeScreen } from "./screens/SalesOfficeScreen";
 import { createHROfficeScreen } from "./screens/HROfficeScreen";
@@ -12,6 +12,7 @@ import { createDecisionRoomScreen } from "./screens/DecisionRoomScreen";
 import { createMeetingRoomScreen } from "./screens/MeetingRoomScreen";
 import { mountTopBar } from "./components/TopBar";
 import { mountMissionFileOverlay } from "./components/MissionFileOverlay";
+import { createMiniMapButton } from "./components/MiniMapButton";
 import { mountBriefingModal } from "./components/BriefingModal";
 import { mountEndGameScreen, type EndScreenHandle } from "./components/EndGameScreen";
 import { startTimerLoop } from "./logic/timer";
@@ -19,6 +20,7 @@ import { startTimerLoop } from "./logic/timer";
 type ScreenInstance = { root: HTMLElement; destroy: () => void };
 type ScreenFactory = () => ScreenInstance;
 type Destroyable = { destroy: () => void };
+type PlayableRoomId = Extract<RoomId, "sales" | "hr">;
 
 const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
   office: createAnalystOfficeScreen,
@@ -29,12 +31,24 @@ const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
 };
 
 let active: { roomId: RoomId; instance: ScreenInstance } | null = null;
+let activePlayable: { roomId: PlayableRoomId; miniMap: Destroyable } | null = null;
 let booted = false;
 let endHandle: EndScreenHandle | null = null;
 let cleanupFns: Array<() => void> = [];
 
+const PLAYABLE_ROOMS: ReadonlySet<RoomId> = new Set(["sales", "hr"]);
+
+function isPlayableRoom(roomId: RoomId): roomId is PlayableRoomId {
+  return PLAYABLE_ROOMS.has(roomId);
+}
+
 function openRoom(roomId: RoomId) {
   if (getState().endScreenKind || getState().timeoutTriggered) return;
+  if (isPlayableRoom(roomId)) {
+    openPlayableRoom(roomId);
+    return;
+  }
+  if (activePlayable) closePlayableRoom();
   if (active?.roomId === roomId) return;
   if (active) closeRoom();
 
@@ -56,6 +70,32 @@ function closeRoom() {
   setState({ currentLocation: "map" });
 }
 
+function openPlayableRoom(roomId: PlayableRoomId) {
+  if (activePlayable?.roomId === roomId) return;
+  if (active) closeRoom();
+  if (activePlayable) closePlayableRoom();
+
+  const miniMap = createMiniMapButton(roomId);
+  document.body.appendChild(miniMap.root);
+  activePlayable = { roomId, miniMap };
+  setState({ currentLocation: roomId });
+  gameEvents.emit("openPlayableRoom", { roomId });
+}
+
+function closePlayableRoom() {
+  if (!activePlayable) return;
+  activePlayable.miniMap.destroy();
+  activePlayable = null;
+  gameEvents.emit("closePlayableRoom", undefined);
+  setState({ currentLocation: "map" });
+}
+
+function detachPlayableHud() {
+  if (!activePlayable) return;
+  activePlayable.miniMap.destroy();
+  activePlayable = null;
+}
+
 function ensureBriefing() {
   if (!getState().hasReadBrief) {
     mountBriefingModal(document.body);
@@ -63,15 +103,7 @@ function ensureBriefing() {
 }
 
 function restartLevel() {
-  if (active) closeRoom();
-  if (endHandle) {
-    const handle = endHandle;
-    endHandle = null;
-    handle.unmount();
-  }
-  resetLevel();
-  gameEvents.emit("levelreset", undefined);
-  ensureBriefing();
+  window.dispatchEvent(new CustomEvent("madar:restart-level"));
 }
 
 export function initLevel1() {
@@ -90,13 +122,17 @@ export function initLevel1() {
   ensureBriefing();
 
   cleanupFns.push(gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId)));
-  cleanupFns.push(gameEvents.on("exitRoom", () => closeRoom()));
+  cleanupFns.push(gameEvents.on("exitRoom", () => {
+    if (activePlayable) closePlayableRoom();
+    if (active) closeRoom();
+  }));
 
   // Timeout: close any open room immediately so player sees the
   // Deadline pounce on the map. EndGameScreen opens after the
   // short cartoon catch animation.
   cleanupFns.push(gameEvents.on("timeout", () => {
     if (active) closeRoom();
+    detachPlayableHud();
     window.setTimeout(() => {
       if (!getState().endScreenKind) openEndScreen("timeout");
     }, 1050);
@@ -106,6 +142,7 @@ export function initLevel1() {
   cleanupFns.push(subscribe((s) => {
     if (s.endScreenKind && !endHandle) {
       if (active) closeRoom();
+      if (activePlayable) closePlayableRoom();
       endHandle = mountEndGameScreen(s.endScreenKind, () => {
         restartLevel();
       });
@@ -117,6 +154,7 @@ export function initLevel1() {
 
   (window as Window & { __level1Cleanup?: () => void }).__level1Cleanup = () => {
     if (active) closeRoom();
+    if (activePlayable) closePlayableRoom();
     if (endHandle) {
       endHandle.unmount();
       endHandle = null;
