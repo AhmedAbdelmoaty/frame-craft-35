@@ -119,7 +119,12 @@ export function createDecisionRoomScreen() {
         });
         root.querySelector<HTMLButtonElement>("[data-prepare]")!.addEventListener("click", () => {
           prepareDecision();
-          gameEvents.emit("enterRoom", { roomId: "meeting" });
+          if (document.body.classList.contains("l1-playable-overlay-open")) {
+            gameEvents.emit("decisionPreparedForMeeting", undefined);
+            gameEvents.emit("closeRoomOverlay", undefined);
+          } else {
+            gameEvents.emit("enterRoom", { roomId: "meeting" });
+          }
         });
       };
 

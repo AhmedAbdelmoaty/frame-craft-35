@@ -47,7 +47,7 @@ export function createRoomShell(opts: RoomShellOptions): {
   };
 
   const handleKey = (e: KeyboardEvent) => {
-    if (e.key === "Escape") handleExit();
+    if (e.key === "Escape") gameEvents.emit("closeRoomOverlay", undefined);
   };
   window.addEventListener("keydown", handleKey);
 

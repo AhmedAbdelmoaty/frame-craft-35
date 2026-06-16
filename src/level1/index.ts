@@ -20,7 +20,7 @@ import { startTimerLoop } from "./logic/timer";
 type ScreenInstance = { root: HTMLElement; destroy: () => void };
 type ScreenFactory = () => ScreenInstance;
 type Destroyable = { destroy: () => void };
-type PlayableRoomId = Extract<RoomId, "sales" | "hr">;
+type PlayableRoomId = Extract<RoomId, "office" | "sales" | "hr" | "decision" | "meeting">;
 
 const SCREEN_FACTORIES: Record<RoomId, ScreenFactory> = {
   office: createAnalystOfficeScreen,
@@ -36,7 +36,7 @@ let booted = false;
 let endHandle: EndScreenHandle | null = null;
 let cleanupFns: Array<() => void> = [];
 
-const PLAYABLE_ROOMS: ReadonlySet<RoomId> = new Set(["sales", "hr"]);
+const PLAYABLE_ROOMS: ReadonlySet<RoomId> = new Set(["office", "sales", "hr", "decision", "meeting"]);
 
 function isPlayableRoom(roomId: RoomId): roomId is PlayableRoomId {
   return PLAYABLE_ROOMS.has(roomId);
@@ -64,10 +64,13 @@ function openRoom(roomId: RoomId) {
 
 function closeRoom() {
   if (!active) return;
+  const playableRoomId = activePlayable?.roomId;
+  const shouldReturnToPlayable = playableRoomId === active.roomId;
   active.instance.destroy();
   document.body.classList.remove("l1-room-open");
+  document.body.classList.remove("l1-playable-overlay-open");
   active = null;
-  setState({ currentLocation: "map" });
+  setState({ currentLocation: shouldReturnToPlayable && playableRoomId ? playableRoomId : "map" });
 }
 
 function openPlayableRoom(roomId: PlayableRoomId) {
@@ -84,6 +87,7 @@ function openPlayableRoom(roomId: PlayableRoomId) {
 
 function closePlayableRoom() {
   if (!activePlayable) return;
+  if (active) closeRoom();
   activePlayable.miniMap.destroy();
   activePlayable = null;
   gameEvents.emit("closePlayableRoom", undefined);
@@ -94,6 +98,21 @@ function detachPlayableHud() {
   if (!activePlayable) return;
   activePlayable.miniMap.destroy();
   activePlayable = null;
+}
+
+function openRoomOverlay(roomId: RoomId) {
+  if (getState().endScreenKind || getState().timeoutTriggered) return;
+  if (active?.roomId === roomId) return;
+  if (active) closeRoom();
+
+  const factory = SCREEN_FACTORIES[roomId];
+  if (!factory) return;
+
+  const instance = factory();
+  document.body.appendChild(instance.root);
+  document.body.classList.add("l1-room-open", "l1-playable-overlay-open");
+  active = { roomId, instance };
+  setState({ currentLocation: roomId });
 }
 
 function ensureBriefing() {
@@ -123,7 +142,11 @@ export function initLevel1() {
 
   cleanupFns.push(gameEvents.on("enterRoom", (e) => openRoom(e.detail.roomId)));
   cleanupFns.push(gameEvents.on("exitRoom", () => {
+    if (active) closeRoom();
     if (activePlayable) closePlayableRoom();
+  }));
+  cleanupFns.push(gameEvents.on("openRoomOverlay", (e) => openRoomOverlay(e.detail.roomId)));
+  cleanupFns.push(gameEvents.on("closeRoomOverlay", () => {
     if (active) closeRoom();
   }));
 
