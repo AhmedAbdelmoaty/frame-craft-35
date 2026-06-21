@@ -1,6 +1,5 @@
 import type { RoomId } from "../../game/types";
 import { gameEvents } from "../../game/events";
-import { createMiniMapButton } from "../components/MiniMapButton";
 
 export interface RoomShellOptions {
   roomId: RoomId;
@@ -23,14 +22,14 @@ export function createRoomShell(opts: RoomShellOptions): {
   root.innerHTML = `
     <div class="room-shell__body">
       <div class="room-shell__hud">
-        <div class="room-shell__map-slot"></div>
+        <button class="room-shell__close" type="button" data-close-overlay>
+          <span aria-hidden="true">←</span>
+          <span>العودة للغرفة</span>
+        </button>
       </div>
       <div class="room-shell__content"></div>
     </div>
   `;
-
-  const miniMap = createMiniMapButton(opts.roomId);
-  root.querySelector<HTMLElement>(".room-shell__map-slot")!.appendChild(miniMap.root);
 
   const body = root.querySelector<HTMLElement>(".room-shell__content")!;
   opts.renderBody?.(body);
@@ -40,6 +39,8 @@ export function createRoomShell(opts: RoomShellOptions): {
     opts.onClose?.();
   };
 
+  root.querySelector<HTMLButtonElement>("[data-close-overlay]")!.addEventListener("click", closeOverlay);
+
   const handleKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") closeOverlay();
   };
@@ -48,7 +49,6 @@ export function createRoomShell(opts: RoomShellOptions): {
   return {
     root,
     destroy: () => {
-      miniMap.destroy();
       window.removeEventListener("keydown", handleKey);
       root.remove();
     },

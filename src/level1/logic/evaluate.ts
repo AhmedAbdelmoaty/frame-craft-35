@@ -18,6 +18,8 @@ export interface EvidenceDef {
   id: EvidenceId;
   label: string;
   detail: string;
+  source: string;
+  artifact: "report" | "policy" | "analysis";
   /** Internal classification — never shown to player. */
   _strong: boolean;
 }
@@ -27,42 +29,56 @@ export const EVIDENCE_DEFS: Record<EvidenceId, EvidenceDef> = {
     id: "sales_summary",
     label: "لوحة المبيعات",
     detail: "فرع الكورنيش أعلى في الإجمالي والمتوسط.",
+    source: "مكتب المبيعات",
+    artifact: "report",
     _strong: false,
   },
   hr_policy: {
     id: "hr_policy",
     label: "سياسة HR",
     detail: "حد الأداء المقبول للمندوب هو ٨٥٪.",
+    source: "مكتب الموارد البشرية",
+    artifact: "policy",
     _strong: false,
   },
   mean: {
     id: "mean",
     label: "المتوسط الحسابي",
     detail: "الكورنيش ٩٦٪ — الميدان ٨٩٫٥٪.",
+    source: "طاولة التحليل",
+    artifact: "analysis",
     _strong: false,
   },
   threshold: {
     id: "threshold",
     label: "توزيع الأداء حول ٨٥٪",
     detail: "الكورنيش ٧ من ١٠ أقل من ٨٥٪ — الميدان ١٠ من ١٠ عند ٨٥٪ أو أكثر.",
+    source: "طاولة التحليل",
+    artifact: "analysis",
     _strong: true,
   },
   median: {
     id: "median",
     label: "الأداء المعتاد (الوسيط)",
     detail: "الكورنيش حول ٨١٪ — الميدان ٨٩٫٥٪.",
+    source: "طاولة التحليل",
+    artifact: "analysis",
     _strong: true,
   },
   stability: {
     id: "stability",
     label: "استقرار الأداء",
     detail: "الكورنيش بين ٦٠٪ و١٥٠٪ — الميدان بين ٨٥٪ و٩٤٪.",
+    source: "طاولة التحليل",
+    artifact: "analysis",
     _strong: true,
   },
   corniche_outliers: {
     id: "corniche_outliers",
     label: "قيم استثنائية في الكورنيش",
     detail: "ثلاث بطاقات عند ١٥٠٪ ترفع الصورة العامة.",
+    source: "طاولة التحليل",
+    artifact: "analysis",
     _strong: true,
   },
 };

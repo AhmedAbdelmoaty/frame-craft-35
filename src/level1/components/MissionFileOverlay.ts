@@ -21,9 +21,12 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
   root.hidden = true;
   root.innerHTML = `
     <div class="l1-mission__backdrop" data-close></div>
-    <section class="l1-mission__panel" role="dialog" aria-label="ملف المهمة">
+    <section class="l1-mission__panel" role="dialog" aria-label="دوسييه المهمة">
       <header class="l1-mission__header">
-        <h2>📁 ملف المهمة</h2>
+        <div>
+          <span class="l1-mission__eyebrow">دوسييه المهمة</span>
+          <h2>ملف التحليل</h2>
+        </div>
         <span class="l1-mission__last-update" data-last-update hidden></span>
         <button class="l1-mission__close" type="button" data-close aria-label="إغلاق">×</button>
       </header>

@@ -26,54 +26,57 @@ export function createMeetingRoomScreen() {
         if (!s.hasPreparedDecision || !presentation) {
           root.innerHTML = `
             <div class="l1-analyst-empty">
-              <div class="l1-analyst-empty__icon" aria-hidden="true">📄</div>
+              <div class="l1-analyst-empty__icon" aria-hidden="true">▤</div>
               <h3>لا توجد توصية جاهزة بعد</h3>
-              <p>جهّز التوصية من غرفة القرار أولًا، ثم عد إلى الطاولة لعرض التقرير.</p>
+              <p>جهز التوصية من غرفة القرار أولًا، ثم عد إلى الطاولة لعرض التقرير.</p>
             </div>
           `;
           return;
         }
 
         root.innerHTML = `
-          <article class="l1-report-sheet">
-            <header class="l1-report-sheet__header">
-              <div>
-                <span class="l1-report-sheet__eyebrow">ملف الاجتماع</span>
-                <h2>${presentation.report.title}</h2>
+          <article class="l1-report-sheet l1-report-sheet--meeting">
+            <section class="l1-report-sheet__stage">
+              <div class="l1-report-sheet__table" aria-hidden="true">
+                <span class="l1-report-sheet__chair l1-report-sheet__chair--top"></span>
+                <span class="l1-report-sheet__chair l1-report-sheet__chair--right"></span>
+                <span class="l1-report-sheet__chair l1-report-sheet__chair--left"></span>
+                <span class="l1-report-sheet__holo">▥</span>
               </div>
+              <div class="l1-report-sheet__callout">
+                <span class="l1-report-sheet__eyebrow">لحظة العرض</span>
+                <h2>${presentation.report.title}</h2>
+                <p>${presentation.report.summary}</p>
+              </div>
+            </section>
+
+            <aside class="l1-report-sheet__dossier">
               <span class="l1-report-sheet__stamp">جاهز للعرض</span>
-            </header>
-
-            <section class="l1-report-sheet__section">
-              <h3>التوصية</h3>
-              <p class="l1-report-sheet__lead">${presentation.report.summary}</p>
-              <p>${presentation.report.rationale}</p>
-            </section>
-
-            <section class="l1-report-sheet__section">
-              <h3>الأدلة المختارة</h3>
-              <ul class="l1-report-sheet__evidence">
-                ${presentation.report.evidenceItems
-                  .map(
-                    (item) => `
-                      <li>
-                        <strong>${item.label}</strong>
-                        <p>${item.detail}</p>
-                      </li>
-                    `,
-                  )
-                  .join("")}
-              </ul>
-            </section>
-
-            <section class="l1-report-sheet__section">
-              <h3>ملاحظة على الفريق الآخر</h3>
-              <p>${presentation.report.otherBranchNote}</p>
-            </section>
-
-            <footer class="l1-report-sheet__actions">
-              <button class="l1-btn l1-btn--primary" type="button" data-close>إغلاق التقرير</button>
-            </footer>
+              <section class="l1-report-sheet__section">
+                <h3>سبب التوصية</h3>
+                <p>${presentation.report.rationale}</p>
+              </section>
+              <section class="l1-report-sheet__section">
+                <h3>الأدلة المختارة</h3>
+                <ul class="l1-report-sheet__evidence">
+                  ${presentation.report.evidenceItems
+                    .map(
+                      (item) => `
+                        <li>
+                          <strong>${item.label}</strong>
+                          <p>${item.detail}</p>
+                        </li>
+                      `,
+                    )
+                    .join("")}
+                </ul>
+              </section>
+              <footer class="l1-report-sheet__actions">
+                <button class="l1-btn l1-btn--primary l1-btn--stamp" type="button" data-close>
+                  <span aria-hidden="true">✓</span><span>أكد العرض</span>
+                </button>
+              </footer>
+            </aside>
           </article>
         `;
 

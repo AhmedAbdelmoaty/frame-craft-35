@@ -16,7 +16,7 @@ export function createDecisionRoomScreen() {
   return createRoomShell({
     roomId: "decision",
     title: "غرفة القرار",
-    subtitle: "اختر الفرع الذي يستحق المكافأة وحدد الأدلة قبل دخول الاجتماع",
+    subtitle: "جهز التوصية قبل دخول الاجتماع",
     renderBody: (body) => {
       const root = document.createElement("div");
       root.className = "l1-decision";
@@ -29,9 +29,9 @@ export function createDecisionRoomScreen() {
         if (!isDecisionUnlocked(s)) {
           root.innerHTML = `
             <div class="l1-analyst-empty">
-              <div class="l1-analyst-empty__icon" aria-hidden="true">🗒</div>
-              <h3>لا توجد ملفات بعد</h3>
-              <p>استلم ملفًا واحدًا على الأقل من المبيعات أو HR، أو افتح طاولة التحليل، ثم عد إلى غرفة القرار.</p>
+              <div class="l1-analyst-empty__icon" aria-hidden="true">▣</div>
+              <h3>غرفة القرار تنتظر ملفاتك</h3>
+              <p>اجمع ملفًا واحدًا على الأقل من المبيعات أو HR، أو افتح طاولة التحليل، ثم عد لتجهيز التوصية.</p>
             </div>`;
           return;
         }
@@ -39,8 +39,8 @@ export function createDecisionRoomScreen() {
         if (s.hasPreparedDecision) {
           root.innerHTML = `
             <div class="l1-decision__ready">
-              <span class="l1-pill l1-pill--success">التوصية محضّرة</span>
-              <h3>توصيتك جاهزة للاجتماع</h3>
+              <span class="l1-pill l1-pill--success">ملف التوصية مختوم</span>
+              <h3>التوصية جاهزة للعرض</h3>
               <p>الفرع المرشح للمكافأة: <strong>${s.preparedBranch === "midan" ? "فرع الميدان" : "فرع الكورنيش"}</strong></p>
               <ul class="l1-decision__picks">
                 ${s.preparedEvidenceIds
@@ -50,9 +50,11 @@ export function createDecisionRoomScreen() {
                   })
                   .join("")}
               </ul>
-              <div class="l1-meeting__cta">
-                <button class="l1-btn l1-btn--ghost" type="button" data-edit>تعديل التوصية</button>
-                <button class="l1-btn l1-btn--primary" type="button" data-go>الذهاب للاجتماع ›</button>
+              <div class="l1-meeting__cta l1-decision__dock">
+                <button class="l1-btn l1-btn--ghost" type="button" data-edit>تعديل الملف</button>
+                <button class="l1-btn l1-btn--primary l1-btn--stamp" type="button" data-go>
+                  <span aria-hidden="true">→</span><span>ادخل الاجتماع</span>
+                </button>
               </div>
             </div>`;
           root.querySelector<HTMLButtonElement>("[data-edit]")!.addEventListener("click", () =>
@@ -67,18 +69,26 @@ export function createDecisionRoomScreen() {
         const ids = availableEvidence(s);
         const picked = s.selectedEvidenceIds;
         root.innerHTML = `
+          <header class="l1-decision__brief">
+            <span class="l1-decision__seal" aria-hidden="true">⚖</span>
+            <div>
+              <p>غرفة القرار</p>
+              <h3>جهز توصيتك كملف اعتماد</h3>
+            </div>
+            <strong>${picked.length}/2 أدلة</strong>
+          </header>
           <div class="l1-decision__layout">
             <section class="l1-decision__col">
-              <h3 class="l1-meeting__prompt">١) اختر الفرع الذي يستحق المكافأة</h3>
-              <p class="l1-meeting__hint">اختر الفرع الذي ستوصي بمكافأته في الاجتماع.</p>
+              <h3 class="l1-meeting__prompt">بطاقة الفرع</h3>
+              <p class="l1-meeting__hint">اختر الفرع الذي ستدافع عنه أمام الإدارة.</p>
               <div class="l1-branch-choices">
                 ${branchCard("corniche", "فرع الكورنيش", "متوسط معلن 96% · 960K", s.selectedBranch === "corniche")}
                 ${branchCard("midan", "فرع الميدان", "متوسط معلن 89.5% · 895K", s.selectedBranch === "midan")}
               </div>
             </section>
             <section class="l1-decision__col">
-              <h3 class="l1-meeting__prompt">٢) اختر دليلين يدعمان توصيتك</h3>
-              <p class="l1-meeting__hint">المختار: <strong>${picked.length} / 2</strong></p>
+              <h3 class="l1-meeting__prompt">حافظة الأدلة</h3>
+              <p class="l1-meeting__hint">ضع دليلين فقط في ملف التوصية.</p>
               <div class="l1-evidence-list">
                 ${
                   ids.length === 0
@@ -103,10 +113,10 @@ export function createDecisionRoomScreen() {
               </div>
             </section>
           </div>
-          <div class="l1-meeting__cta">
+          <div class="l1-meeting__cta l1-decision__dock">
             <button class="l1-btn l1-btn--primary l1-btn--stamp" type="button" data-prepare
               ${s.selectedBranch && picked.length === 2 ? "" : "disabled"}>
-              <span aria-hidden="true">🖋</span><span>اعتماد التوصية والذهاب للاجتماع</span>
+              <span aria-hidden="true">✒</span><span>اعتمد التوصية</span>
             </button>
           </div>
         `;
@@ -145,6 +155,7 @@ export function createDecisionRoomScreen() {
 function branchCard(id: Branch, name: string, detail: string, selected: boolean): string {
   return `
     <button class="l1-branch ${selected ? "l1-branch--selected" : ""}" type="button" data-branch="${id}">
+      <span class="l1-branch__emblem" aria-hidden="true">${id === "midan" ? "M" : "K"}</span>
       <h4>${name}</h4>
       <p>${detail}</p>
       ${selected ? `<span class="l1-branch__check">✓ مختار</span>` : ""}
