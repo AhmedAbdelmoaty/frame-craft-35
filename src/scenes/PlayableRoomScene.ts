@@ -12,7 +12,6 @@ import {
   enterAnalysisRoom,
   getState,
   inspectHRPolicy,
-  inspectSalesBoard,
   isGameOver,
   receiveIndividualPerformanceFile,
   saveHRPolicy,
@@ -28,7 +27,6 @@ import { DeadlineCompanion } from "./DeadlineCompanion";
 type PlayableRoomId = Extract<RoomId, "office" | "sales" | "hr" | "decision" | "meeting">;
 type HotspotAction =
   | "npc"
-  | "salesBoard"
   | "salesSummary"
   | "repFile"
   | "hrPolicy"
@@ -79,7 +77,6 @@ const assetKeys = {
   dataCoach: "character.coach",
   summaryReport: "prop.summaryReport",
   hrFolder: "prop.hrFolder",
-  salesBoard: "prop.salesBoard",
   decisionBoard: "prop.decisionBoard",
   notebook: "prop.notebook",
 } as const;
@@ -92,7 +89,6 @@ const assetSources: Record<string, { path: string; width: number; height: number
   [assetKeys.dataCoach]: { path: "/assets/characters/data-coach.svg", width: 74, height: 112 },
   [assetKeys.summaryReport]: { path: "/assets/props/summary-report.svg", width: 62, height: 62 },
   [assetKeys.hrFolder]: { path: "/assets/props/hr-folder.svg", width: 66, height: 66 },
-  [assetKeys.salesBoard]: { path: "/assets/props/sales-board.svg", width: 110, height: 82 },
   [assetKeys.decisionBoard]: { path: "/assets/props/decision-board.svg", width: 112, height: 84 },
   [assetKeys.notebook]: { path: "/assets/props/notebook.svg", width: 56, height: 56 },
 };
@@ -128,9 +124,8 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
     },
     hotspots: [
       { id: "npc", x: 950, y: 350, label: "تحدث مع عماد", kind: "npc" },
-      { id: "salesBoard", x: 620, y: 270, label: "افحص لوحة المبيعات", kind: "board", asset: assetKeys.salesBoard },
-      { id: "salesSummary", x: 620, y: 470, label: "استلام ملخص المبيعات", kind: "file", asset: assetKeys.summaryReport },
-      { id: "repFile", x: 420, y: 470, label: "استلام ملف الأداء الفردي", kind: "file", asset: assetKeys.hrFolder },
+      { id: "salesSummary", x: 650, y: 330, label: "ملخص المبيعات", kind: "board", asset: assetKeys.summaryReport },
+      { id: "repFile", x: 460, y: 470, label: "ملف الأداء", kind: "file", asset: assetKeys.hrFolder },
     ],
   },
   hr: {
@@ -151,7 +146,7 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
     },
     hotspots: [
       { id: "npc", x: 930, y: 350, label: "تحدث مع ليلى", kind: "npc" },
-      { id: "hrPolicy", x: 600, y: 455, label: "استلام سياسة الأداء", kind: "folder", asset: assetKeys.hrFolder },
+      { id: "hrPolicy", x: 600, y: 455, label: "سياسة HR", kind: "folder", asset: assetKeys.hrFolder },
     ],
   },
   decision: {
@@ -312,6 +307,11 @@ export class PlayableRoomScene extends Phaser.Scene {
 
   private drawRoom() {
     const g = this.add.graphics();
+    g.fillStyle(0x111a26, 1);
+    g.fillRoundedRect(84, 124, 1212, 612, 24);
+    g.lineStyle(2, 0x30475f, 0.9);
+    g.strokeRoundedRect(84, 124, 1212, 612, 24);
+
     g.fillStyle(0xf7f4ea, 1);
     g.fillRoundedRect(110, 150, 1160, 560, 18);
     g.lineStyle(5, 0xb9c4cf, 1);
@@ -322,13 +322,19 @@ export class PlayableRoomScene extends Phaser.Scene {
     g.lineStyle(4, 0xffffff, 0.92);
     g.strokeRoundedRect(170, 205, 1040, 450, 16);
 
+    g.lineStyle(1, 0xffffff, 0.18);
+    for (let x = 220; x <= 1160; x += 94) g.lineBetween(x, 238, x, 640);
+    for (let y = 255; y <= 620; y += 58) g.lineBetween(190, y, 1190, y);
+
     g.fillStyle(0xd7dee7, 0.9);
     g.fillRoundedRect(210, 610, 170, 34, 10);
     g.lineStyle(2, 0xaebac6, 1);
     g.strokeRoundedRect(210, 610, 170, 34, 10);
 
-    this.add.text(690, 96, this.config.title, this.labelStyle(30, "#17202a", "900")).setOrigin(0.5);
-    this.add.text(690, 132, this.config.subtitle, this.labelStyle(15, "#607083", "800")).setOrigin(0.5);
+    const titlePlate = this.add.rectangle(690, 103, 430, 76, 0x0b1420, 0.92);
+    titlePlate.setStrokeStyle(1, this.config.accent, 0.45);
+    this.add.text(690, 91, this.config.title, this.labelStyle(28, "#ffffff", "900")).setOrigin(0.5);
+    this.add.text(690, 126, this.config.subtitle, this.labelStyle(14, "#a8bacb", "800")).setOrigin(0.5);
     this.add.text(295, 627, "باب الخريطة", this.labelStyle(13, "#607083", "800")).setOrigin(0.5);
 
     if (this.roomId === "meeting") {
@@ -413,8 +419,8 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.config.hotspots.forEach((hotspot) => {
       this.hotspots.set(hotspot.id, hotspot);
       const container = this.add.container(hotspot.x, hotspot.y).setDepth(hotspot.y + 4);
-      const halo = this.add.circle(0, 44, 34, this.config.accent, 0.1);
-      halo.setStrokeStyle(2, this.config.accent, 0.3);
+      const halo = this.add.circle(0, 44, 36, this.config.accent, 0.14);
+      halo.setStrokeStyle(3, this.config.accent, 0.42);
       container.add(halo);
 
       if (hotspot.kind === "npc") {
@@ -438,12 +444,20 @@ export class PlayableRoomScene extends Phaser.Scene {
       }
 
       const label = this.add.text(0, 72, hotspot.label, {
-        ...this.textStyle(12, "#17202a", "900"),
+        ...this.textStyle(12, "#eaffff", "900"),
         align: "center",
-        backgroundColor: "rgba(255,255,255,0.78)",
-        padding: { x: 8, y: 4 },
+        backgroundColor: "rgba(7,16,26,0.88)",
+        padding: { x: 10, y: 5 },
       }).setOrigin(0.5);
       if (hotspot.kind !== "npc") container.add(label);
+
+      const doneBadge = this.add.text(34, 4, "✓", {
+        ...this.textStyle(15, "#07101a", "900"),
+        align: "center",
+        backgroundColor: "rgba(86,241,236,0.96)",
+        padding: { x: 7, y: 3 },
+      }).setOrigin(0.5).setName("doneBadge").setVisible(false);
+      if (hotspot.kind !== "npc") container.add(doneBadge);
 
       container.setSize(130, 120);
       container.setInteractive({ useHandCursor: true });
@@ -575,16 +589,6 @@ export class PlayableRoomScene extends Phaser.Scene {
       return;
     }
 
-    if (hotspot.id === "salesBoard") {
-      inspectSalesBoard();
-      openEvidencePreview({
-        kind: "sales-summary",
-        alreadyCollected: getState().hasSavedSalesSummary,
-        onCollect: saveSalesSummary,
-      });
-      return;
-    }
-
     if (hotspot.id === "salesSummary") {
       openEvidencePreview({
         kind: "sales-summary",
@@ -676,7 +680,6 @@ export class PlayableRoomScene extends Phaser.Scene {
 
   private refreshHotspots() {
     const s = getState();
-    this.setHotspotDone("salesBoard", s.hasInspectedSalesBoard);
     this.setHotspotDone("salesSummary", s.hasSavedSalesSummary);
     this.setHotspotDone("repFile", s.hasReceivedIndividualPerformanceFile);
     this.setHotspotDone("hrPolicy", s.hasSavedHRPolicy);
@@ -706,6 +709,8 @@ export class PlayableRoomScene extends Phaser.Scene {
       halo.setFillStyle(done ? 0x2f8a4e : this.config.accent, done ? 0.18 : 0.1);
       halo.setStrokeStyle(2, done ? 0x2f8a4e : this.config.accent, done ? 0.55 : 0.3);
     }
+    const badge = view.getByName("doneBadge") as Phaser.GameObjects.Text | null;
+    badge?.setVisible(done);
   }
 
   private setHotspotLabel(id: HotspotAction, label: string) {
