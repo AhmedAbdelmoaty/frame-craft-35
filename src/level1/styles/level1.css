@@ -1476,6 +1476,216 @@ body.l1-room-open #game-root {
   }
 }
 
+/* ============= Analysis Workbench V4: readable tools + metric strip fix ============= */
+
+.l1-analysis__body {
+  grid-template-columns: 292px minmax(0, 1fr) 156px !important;
+}
+
+.l1-analysis__tools {
+  grid-template-rows: 28px repeat(6, minmax(62px, 1fr)) !important;
+  padding: 10px !important;
+  gap: 7px !important;
+}
+
+.l1-analysis-tool {
+  display: grid !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+  grid-template-rows: 1fr !important;
+  align-items: center !important;
+  justify-items: stretch !important;
+  gap: 8px !important;
+  min-height: 62px !important;
+  padding: 8px 9px !important;
+  text-align: start !important;
+}
+
+.l1-analysis-tool span {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 15px !important;
+}
+
+.l1-analysis-tool b {
+  display: block !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  font-weight: 950 !important;
+  text-align: start !important;
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.l1-analysis__stage {
+  grid-template-rows: 54px minmax(0, 1fr) 88px !important;
+}
+
+.l1-analysis__dock {
+  min-height: 88px !important;
+  grid-template-columns: repeat(6, minmax(86px, 1fr)) !important;
+  gap: 8px !important;
+  padding: 10px 12px 12px !important;
+}
+
+.l1-analysis-metric {
+  min-height: 66px !important;
+  padding: 8px 9px !important;
+  align-content: center !important;
+  justify-items: center !important;
+  text-align: center !important;
+  overflow: hidden !important;
+}
+
+.l1-analysis-metric span {
+  width: 100% !important;
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.l1-analysis-metric strong {
+  width: 100% !important;
+  display: block !important;
+  color: #fff !important;
+  font-size: 20px !important;
+  line-height: 1.05 !important;
+  font-weight: 950 !important;
+  direction: ltr !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.l1-analysis-metric small {
+  width: 100% !important;
+  display: block !important;
+  font-size: 10px !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+@media (max-width: 1180px), (max-height: 760px) {
+  .l1-analysis__body {
+    grid-template-columns: 244px minmax(0, 1fr) 146px !important;
+  }
+
+  .l1-analysis__tools {
+    grid-template-rows: 26px repeat(6, minmax(56px, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .l1-analysis-tool {
+    min-height: 56px !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+    gap: 7px !important;
+    padding: 7px !important;
+  }
+
+  .l1-analysis-tool span {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .l1-analysis-tool b {
+    font-size: 11px !important;
+  }
+
+  .l1-analysis__stage {
+    grid-template-rows: 48px minmax(0, 1fr) 82px !important;
+  }
+
+  .l1-analysis__dock {
+    min-height: 82px !important;
+    grid-template-columns: repeat(6, minmax(76px, 1fr)) !important;
+  }
+
+  .l1-analysis-metric strong {
+    font-size: 18px !important;
+  }
+}
+
+/* ============= Analysis Workbench V5: hard fix for tool label overflow ============= */
+
+.l1-analysis__body {
+  grid-template-columns: 292px minmax(0, 1fr) 220px !important;
+}
+
+.l1-analysis__tools {
+  grid-template-rows: 30px repeat(6, minmax(58px, 1fr)) !important;
+  gap: 8px !important;
+  padding: 10px !important;
+}
+
+.l1-analysis-tool {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 58px !important;
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  grid-template-areas: "icon label" !important;
+  align-items: center !important;
+  justify-items: stretch !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  overflow: hidden !important;
+  text-align: start !important;
+  direction: rtl !important;
+}
+
+.l1-analysis-tool span {
+  grid-area: icon !important;
+  justify-self: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+}
+
+.l1-analysis-tool b {
+  grid-area: label !important;
+  grid-column: auto !important;
+  justify-self: stretch !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: start !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+}
+
+@media (max-width: 1180px), (max-height: 760px) {
+  .l1-analysis__body {
+    grid-template-columns: 244px minmax(0, 1fr) 200px !important;
+  }
+
+  .l1-analysis-tool {
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+    min-height: 54px !important;
+    padding: 7px 10px !important;
+    gap: 8px !important;
+  }
+
+  .l1-analysis-tool span {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+
+  .l1-analysis-tool b {
+    font-size: 12px !important;
+  }
+}
+
 /* Meeting unlock ready glow already exists; reinforce subtle pulse */
 .room-shell__map-slot {
   display: flex;
@@ -5196,5 +5406,82 @@ body {
 
   .l1-analysis__tools-title {
     grid-column: 1 / -1;
+  }
+}
+
+/* Final analysis tools sizing: keep Arabic labels inside the button. */
+.l1-analysis__body {
+  grid-template-columns: 292px minmax(0, 1fr) 180px !important;
+}
+
+.l1-analysis__tools {
+  grid-template-rows: 30px repeat(6, minmax(58px, 1fr)) !important;
+  gap: 8px !important;
+  padding: 10px !important;
+}
+
+.l1-analysis-tool {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 58px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 40px !important;
+  grid-template-areas: "label icon" !important;
+  align-items: center !important;
+  justify-items: stretch !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  direction: ltr !important;
+  overflow: hidden !important;
+  text-align: right !important;
+}
+
+.l1-analysis-tool span {
+  grid-area: icon !important;
+  justify-self: end !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  font-size: 15px !important;
+}
+
+.l1-analysis-tool b {
+  grid-area: label !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+  direction: rtl !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+  font-weight: 950 !important;
+}
+
+@media (max-width: 1180px), (max-height: 760px) {
+  .l1-analysis__body {
+    grid-template-columns: 244px minmax(0, 1fr) 148px !important;
+  }
+
+  .l1-analysis-tool {
+    grid-template-columns: minmax(0, 1fr) 34px !important;
+    gap: 7px !important;
+    padding: 7px 9px !important;
+  }
+
+  .l1-analysis-tool span {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    font-size: 13px !important;
+  }
+
+  .l1-analysis-tool b {
+    font-size: 11px !important;
   }
 }
