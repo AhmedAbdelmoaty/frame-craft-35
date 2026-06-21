@@ -6,6 +6,8 @@ import {
   type MeetingDialogueLine,
   type MeetingSpeakerId,
 } from "../level1/logic/meetingPresentation";
+import { openEvidencePreview } from "../level1/components/EvidencePreview";
+import { openCinematicDialogue, type CinematicDialogueLine } from "../level1/components/CinematicDialogue";
 import {
   enterAnalysisRoom,
   getState,
@@ -196,6 +198,7 @@ export class PlayableRoomScene extends Phaser.Scene {
   private promptText?: Phaser.GameObjects.Text;
   private bubble?: Phaser.GameObjects.Container;
   private dialogueBubble?: Phaser.GameObjects.Container;
+  private cinematicDialogue?: { close: () => void };
   private hotspots = new Map<HotspotAction, RoomHotspot>();
   private hotspotViews = new Map<HotspotAction, Phaser.GameObjects.Container>();
   private hotspotLabels = new Map<HotspotAction, Phaser.GameObjects.Text>();
@@ -220,7 +223,6 @@ export class PlayableRoomScene extends Phaser.Scene {
     objects: Phaser.GameObjects.GameObject[],
   ) => {
     if (this.meetingDialogueActive) {
-      this.advanceMeetingDialogue();
       return;
     }
     if (isGameOver() || objects.length > 0) return;
@@ -230,7 +232,6 @@ export class PlayableRoomScene extends Phaser.Scene {
   };
   private readonly handleInteractKey = () => {
     if (this.meetingDialogueActive) {
-      this.advanceMeetingDialogue();
       return;
     }
     if (isGameOver()) return;
@@ -279,6 +280,7 @@ export class PlayableRoomScene extends Phaser.Scene {
       this.cancelMove();
       this.clearBubble();
       this.clearDialogueBubble();
+      this.cinematicDialogue?.close();
       this.meetingDialogueActive = false;
       this.input.enabled = false;
       this.deadline?.pounce();
@@ -536,7 +538,9 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.showPrompt(hotspot);
 
     if (hotspot.id === "npc") {
-      if (this.config.npc) this.showBubble(this.config.npc.lines, hotspot.x, hotspot.y - 90);
+      if (this.config.npc) {
+        this.openNpcDialogue();
+      }
       return;
     }
 
@@ -573,26 +577,39 @@ export class PlayableRoomScene extends Phaser.Scene {
 
     if (hotspot.id === "salesBoard") {
       inspectSalesBoard();
-      this.showBubble(["تم فحص لوحة المبيعات الرسمية. الملخص موجود على المكتب."], hotspot.x, hotspot.y - 90);
+      openEvidencePreview({
+        kind: "sales-summary",
+        alreadyCollected: getState().hasSavedSalesSummary,
+        onCollect: saveSalesSummary,
+      });
       return;
     }
 
     if (hotspot.id === "salesSummary") {
-      saveSalesSummary();
-      this.showBubble(["تم استلام ملخص المبيعات وحفظه في ملف المهمة."], hotspot.x, hotspot.y - 90);
+      openEvidencePreview({
+        kind: "sales-summary",
+        alreadyCollected: getState().hasSavedSalesSummary,
+        onCollect: saveSalesSummary,
+      });
       return;
     }
 
     if (hotspot.id === "repFile") {
-      receiveIndividualPerformanceFile();
-      this.showBubble(["تم استلام ملف الأداء الفردي. أدوات التحليل أصبحت جاهزة له."], hotspot.x, hotspot.y - 90);
+      openEvidencePreview({
+        kind: "rep-performance",
+        alreadyCollected: getState().hasReceivedIndividualPerformanceFile,
+        onCollect: receiveIndividualPerformanceFile,
+      });
       return;
     }
 
     if (hotspot.id === "hrPolicy") {
       inspectHRPolicy();
-      saveHRPolicy();
-      this.showBubble(["تم استلام سياسة الأداء وحفظها في ملف المهمة."], hotspot.x, hotspot.y - 90);
+      openEvidencePreview({
+        kind: "hr-policy",
+        alreadyCollected: getState().hasSavedHRPolicy,
+        onCollect: saveHRPolicy,
+      });
     }
   }
 
@@ -729,12 +746,23 @@ export class PlayableRoomScene extends Phaser.Scene {
 
     this.clearBubble();
     this.clearDialogueBubble();
+    this.cinematicDialogue?.close();
     this.meetingDialogue = presentation.dialogue;
     this.meetingDialogueIndex = -1;
     this.meetingDialogueActive = true;
     setMeetingStage("dialogue");
     this.showPrompt();
-    this.advanceMeetingDialogue();
+    this.cinematicDialogue = openCinematicDialogue({
+      lines: this.meetingDialogue.map((line) => this.toCinematicLine(line)),
+      onComplete: () => this.finishMeetingDialogue(),
+      onClose: () => {
+        this.meetingDialogueActive = false;
+        this.meetingDialogue = [];
+        this.meetingDialogueIndex = -1;
+        this.highlightSpeaker();
+        setMeetingStage("report_open");
+      },
+    });
   }
 
   private advanceMeetingDialogue() {
@@ -803,6 +831,8 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.meetingDialogue = [];
     this.meetingDialogueIndex = -1;
     this.clearDialogueBubble();
+    this.cinematicDialogue = undefined;
+    this.highlightSpeaker();
 
     if (!presentation) return;
 
@@ -819,6 +849,63 @@ export class PlayableRoomScene extends Phaser.Scene {
     return "عماد";
   }
 
+  private speakerRole(speaker: MeetingDialogueLine["speaker"]) {
+    if (speaker === "player") return "محلل البيانات";
+    if (speaker === "nader") return "CEO";
+    if (speaker === "layla") return "مديرة HR";
+    return "مدير المبيعات";
+  }
+
+  private speakerTone(speaker: MeetingDialogueLine["speaker"]): CinematicDialogueLine["tone"] {
+    if (speaker === "player") return "player";
+    if (speaker === "layla") return "hr";
+    if (speaker === "nader") return "coach";
+    if (speaker === "emad") return "sales";
+    return "neutral";
+  }
+
+  private speakerAvatar(speaker: MeetingDialogueLine["speaker"]) {
+    if (speaker === "player") {
+      const key = this.profile.avatar === "female" ? assetKeys.playerFemale : assetKeys.playerMale;
+      return assetSources[key].path;
+    }
+    if (speaker === "nader") return assetSources[assetKeys.dataCoach].path;
+    if (speaker === "layla") return assetSources[assetKeys.hrManager].path;
+    return assetSources[assetKeys.salesManager].path;
+  }
+
+  private toCinematicLine(line: MeetingDialogueLine): CinematicDialogueLine {
+    return {
+      speakerName: this.speakerName(line.speaker),
+      speakerRole: this.speakerRole(line.speaker),
+      text: line.text,
+      avatarSrc: this.speakerAvatar(line.speaker),
+      tone: this.speakerTone(line.speaker),
+      onShow: () => this.highlightSpeaker(line.speaker),
+    };
+  }
+
+  private openNpcDialogue() {
+    if (!this.config.npc) return;
+    this.cinematicDialogue?.close();
+    const npc = this.config.npc;
+    this.cinematicDialogue = openCinematicDialogue({
+      lines: npc.lines.map((text) => ({
+        speakerName: npc.name,
+        speakerRole: npc.role,
+        text,
+        avatarSrc: assetSources[npc.asset].path,
+        tone: this.roomId === "hr" ? "hr" : "sales",
+      })),
+      onComplete: () => {
+        this.cinematicDialogue = undefined;
+      },
+      onClose: () => {
+        this.cinematicDialogue = undefined;
+      },
+    });
+  }
+
   private cancelMove() {
     this.moveTween?.stop();
     this.moveTween = undefined;
@@ -829,6 +916,8 @@ export class PlayableRoomScene extends Phaser.Scene {
   private closeScene() {
     this.cancelMove();
     this.clearDialogueBubble();
+    this.cinematicDialogue?.close();
+    this.cinematicDialogue = undefined;
     if (this.roomId === "meeting" && !isGameOver() && getState().meetingStage !== "result") {
       setMeetingStage("intro");
     }

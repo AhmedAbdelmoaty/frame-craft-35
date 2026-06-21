@@ -7,6 +7,7 @@ import {
   subscribe,
   visitSales,
 } from "../state/store";
+import { openEvidencePreview } from "../components/EvidencePreview";
 
 export function createSalesOfficeScreen() {
   visitSales();
@@ -103,23 +104,18 @@ export function createSalesOfficeScreen() {
       render();
 
       saveBtn.addEventListener("click", () => {
-        saveSalesSummary();
-        saveBtn.animate(
-          [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }],
-          { duration: 220, easing: "ease-out" },
-        );
+        openEvidencePreview({
+          kind: "sales-summary",
+          alreadyCollected: getState().hasSavedSalesSummary,
+          onCollect: saveSalesSummary,
+        });
       });
       receiveBtn.addEventListener("click", () => {
-        receiveIndividualPerformanceFile();
-        const env = body.querySelector<HTMLElement>(".l1-file-card__envelope");
-        env?.animate(
-          [
-            { transform: "translateY(0) rotate(0)" },
-            { transform: "translateY(-8px) rotate(-4deg)" },
-            { transform: "translateY(0) rotate(0)" },
-          ],
-          { duration: 300, easing: "ease-out" },
-        );
+        openEvidencePreview({
+          kind: "rep-performance",
+          alreadyCollected: getState().hasReceivedIndividualPerformanceFile,
+          onCollect: receiveIndividualPerformanceFile,
+        });
       });
 
       const observer = new MutationObserver(() => {

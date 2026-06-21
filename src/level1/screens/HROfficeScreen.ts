@@ -6,6 +6,7 @@ import {
   subscribe,
   visitHR,
 } from "../state/store";
+import { openEvidencePreview } from "../components/EvidencePreview";
 
 export function createHROfficeScreen() {
   visitHR();
@@ -70,11 +71,11 @@ export function createHROfficeScreen() {
       render();
 
       saveBtn.addEventListener("click", () => {
-        saveHRPolicy();
-        saveBtn.animate(
-          [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }],
-          { duration: 220, easing: "ease-out" },
-        );
+        openEvidencePreview({
+          kind: "hr-policy",
+          alreadyCollected: getState().hasSavedHRPolicy,
+          onCollect: saveHRPolicy,
+        });
       });
 
       const observer = new MutationObserver(() => {
