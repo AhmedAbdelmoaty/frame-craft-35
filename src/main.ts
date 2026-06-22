@@ -1,7 +1,8 @@
 import "./styles.css";
 import { createGame } from "./game/createGame";
-import { initViewportMode } from "./game/mobileViewport";
+import { getViewportMode, initViewportMode } from "./game/mobileViewport";
 import { initLevel1 } from "./level1";
+import { mountMobileEntryOverlay } from "./level1/components/MobileEntryOverlay";
 import { resetLevel } from "./level1/state/store";
 import type { PlayerProfile } from "./game/types";
 
@@ -139,6 +140,16 @@ function bootSlice(profile: PlayerProfile) {
   window.setTimeout(() => document.body.classList.remove("madar-input-guard"), 2000);
 }
 
+function renderMobilePreStart() {
+  appRoot.innerHTML = `<main class="mobile-prestart-shell" aria-label="وضع الموبايل"></main>`;
+  const overlay = mountMobileEntryOverlay(document.body, {
+    onAccepted: () => {
+      overlay.destroy();
+      renderProfileScreen();
+    },
+  });
+}
+
 window.addEventListener("madar:restart-level", () => {
   bootSlice(currentProfile ?? defaultProfile);
 });
@@ -170,4 +181,8 @@ async function clearStalePreviewCache() {
   }
 }
 
-renderProfileScreen();
+if (getViewportMode() === "desktop") {
+  renderProfileScreen();
+} else {
+  renderMobilePreStart();
+}

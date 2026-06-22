@@ -31,7 +31,10 @@ function guardMapInput() {
   window.setTimeout(() => document.body.classList.remove("madar-input-guard"), 900);
 }
 
-export function mountMobileEntryOverlay(parent: HTMLElement = document.body) {
+export function mountMobileEntryOverlay(
+  parent: HTMLElement = document.body,
+  options: { onAccepted?: () => void } = {},
+) {
   const root = document.createElement("section");
   root.className = "mobile-entry";
   root.dir = "rtl";
@@ -91,6 +94,7 @@ export function mountMobileEntryOverlay(parent: HTMLElement = document.body) {
     acceptedMobileMode = true;
     fallback.hidden = !hadFallback;
     render();
+    options.onAccepted?.();
   };
 
   button.addEventListener("click", startMobileMode);

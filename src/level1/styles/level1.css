@@ -7619,6 +7619,9 @@ html[data-device-mode="mobile-landscape"] .room-shell {
   position: fixed !important;
   inset: 0 !important;
   z-index: 4600 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
   padding:
     calc(var(--safe-top, 0px) + 8px)
     calc(var(--safe-right, 0px) + 8px)
@@ -7629,7 +7632,8 @@ html[data-device-mode="mobile-landscape"] .room-shell {
 
 html[data-device-mode="mobile-landscape"] .room-shell__body {
   width: 100% !important;
-  height: 100% !important;
+  height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 16px) !important;
+  min-height: calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 16px) !important;
   max-width: none !important;
   max-height: none !important;
   padding: 0 !important;
@@ -7652,6 +7656,7 @@ html[data-device-mode="mobile-landscape"] .room-shell__close {
 
 html[data-device-mode="mobile-landscape"] .room-shell__content {
   min-height: 0;
+  height: 100% !important;
   overflow: auto !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -7847,4 +7852,478 @@ html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__box {
 html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__text {
   font-size: 14px;
   line-height: 1.55;
+}
+
+/* ============= Final mobile flow blockers ============= */
+
+.mobile-prestart-shell {
+  width: 100vw;
+  height: var(--app-height, 100vh);
+  background: #07101a;
+  overflow: hidden;
+}
+
+html[data-device-mode^="mobile"] .mobile-entry {
+  z-index: 7000;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell__body {
+  background: rgba(8, 17, 29, 0.98) !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell__hud {
+  position: absolute !important;
+  top: calc(var(--safe-top, 0px) + 8px) !important;
+  left: calc(var(--safe-left, 0px) + 8px) !important;
+  z-index: 4 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell__close {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell__close span:last-child {
+  display: none !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analyst-room .l1-analysis {
+  height: calc(100% - 16px) !important;
+  max-height: calc(100% - 16px) !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__top {
+  min-height: 48px !important;
+  display: grid !important;
+  grid-template-columns: 96px minmax(0, 1fr) 190px !important;
+  gap: 8px !important;
+  align-items: center !important;
+  padding: 7px 10px 7px 58px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__file-btn {
+  min-height: 34px !important;
+  padding: 5px 8px !important;
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__title h3 {
+  font-size: 15px !important;
+  line-height: 1.15 !important;
+  margin: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__title span {
+  display: none !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__switcher {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 5px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__mode {
+  min-height: 34px !important;
+  padding: 5px 7px !important;
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__body {
+  height: auto !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: 126px minmax(0, 1fr) 180px !important;
+  grid-template-areas: "tools stage raw" !important;
+  gap: 8px !important;
+  padding: 0 8px 8px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__tools {
+  grid-area: tools !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: 20px repeat(6, minmax(37px, 1fr)) !important;
+  gap: 4px !important;
+  padding: 6px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__tools-title {
+  font-size: 11px !important;
+  line-height: 1 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-tool {
+  min-height: 37px !important;
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  gap: 5px !important;
+  padding: 4px 5px !important;
+  border-radius: 10px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-tool span {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-tool b {
+  font-size: 9px !important;
+  line-height: 1.05 !important;
+  white-space: normal !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__stage {
+  grid-area: stage !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: 42px minmax(0, 1fr) 52px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__stage-head {
+  min-height: 42px !important;
+  padding: 6px 8px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__stage-head h4 {
+  font-size: 14px !important;
+  line-height: 1.12 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__stage-head b {
+  font-size: 10px !important;
+  padding: 5px 7px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__chart-wrap {
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 4px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-chart {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  display: block !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__dock {
+  min-height: 52px !important;
+  grid-template-columns: repeat(6, minmax(48px, 1fr)) !important;
+  gap: 4px !important;
+  padding: 4px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-metric {
+  min-height: 44px !important;
+  padding: 3px 4px !important;
+  border-radius: 8px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-metric span,
+html[data-device-mode="mobile-landscape"] .l1-analysis-metric small {
+  font-size: 8px !important;
+  line-height: 1 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-metric strong {
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__raw {
+  grid-area: raw !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 6px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__raw-head {
+  min-height: 28px !important;
+  padding: 4px 6px !important;
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__raw-list {
+  max-height: calc(100% - 34px) !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 6px !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  padding-inline-end: 2px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-card {
+  min-height: 54px !important;
+  padding: 7px 8px !important;
+  border-radius: 9px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-card span {
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis-card strong {
+  font-size: 17px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__brief {
+  min-height: 52px !important;
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) auto !important;
+  padding: 7px 10px 7px 58px !important;
+  border-radius: 12px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__seal {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 20px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__brief p {
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__brief h3 {
+  font-size: 18px !important;
+  line-height: 1.15 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__layout {
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) !important;
+  gap: 8px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__col {
+  min-height: 0 !important;
+  padding: 10px !important;
+  gap: 7px !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-meeting__prompt {
+  font-size: 17px !important;
+  margin: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-meeting__hint {
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  margin: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-branch-choices,
+html[data-device-mode="mobile-landscape"] .l1-evidence-list {
+  gap: 6px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-branch,
+html[data-device-mode="mobile-landscape"] .l1-evidence {
+  min-height: 54px !important;
+  padding: 8px 10px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-branch h4,
+html[data-device-mode="mobile-landscape"] .l1-evidence strong {
+  font-size: 14px !important;
+  line-height: 1.15 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-branch p,
+html[data-device-mode="mobile-landscape"] .l1-evidence em {
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__dock,
+html[data-device-mode="mobile-landscape"] .l1-meeting__cta {
+  position: static !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__dock .l1-btn,
+html[data-device-mode="mobile-landscape"] .l1-meeting__cta .l1-btn {
+  min-height: 44px !important;
+  padding: 8px 14px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__ready {
+  height: 100% !important;
+  overflow: auto !important;
+  padding: 12px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end {
+  padding:
+    calc(var(--safe-top, 0px) + 8px)
+    calc(var(--safe-right, 0px) + 8px)
+    calc(var(--safe-bottom, 0px) + 8px)
+    calc(var(--safe-left, 0px) + 8px) !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__card {
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: minmax(250px, 0.85fr) minmax(0, 1.15fr) !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  grid-template-areas:
+    "hero content"
+    "cta cta" !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__hero {
+  grid-area: hero !important;
+  min-height: 0 !important;
+  padding: 8px !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 6px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__visual {
+  height: 104px !important;
+  min-height: 104px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__title {
+  font-size: 24px !important;
+  line-height: 1.15 !important;
+  margin: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__flavor {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  margin: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__score {
+  padding: 8px 10px !important;
+  min-height: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__content {
+  grid-area: content !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  display: grid !important;
+  gap: 8px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__summary-grid {
+  gap: 8px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__case-file,
+html[data-device-mode="mobile-landscape"] .l1-end__stat,
+html[data-device-mode="mobile-landscape"] .l1-end__evidence,
+html[data-device-mode="mobile-landscape"] .l1-end__lesson {
+  padding: 8px 10px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__lesson ul,
+html[data-device-mode="mobile-landscape"] .l1-end__picks {
+  margin: 0 !important;
+  gap: 5px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__cta {
+  grid-area: cta !important;
+  padding: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-end__retry {
+  min-height: 44px !important;
+}
+
+html[data-device-mode="mobile-landscape"] {
+  --mobile-flow-height: 100vh;
+}
+
+@supports (height: 100lvh) {
+  html[data-device-mode="mobile-landscape"] {
+    --mobile-flow-height: 100lvh;
+  }
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell,
+html[data-device-mode="mobile-landscape"] .l1-mission,
+html[data-device-mode="mobile-landscape"] .l1-end {
+  height: var(--mobile-flow-height) !important;
+  min-height: var(--mobile-flow-height) !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell__body {
+  height: calc(var(--mobile-flow-height) - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 16px) !important;
+  min-height: calc(var(--mobile-flow-height) - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 16px) !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-analysis__body {
+  height: auto !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell .l1-analyst-room,
+html[data-device-mode="mobile-landscape"] .room-shell .l1-analysis {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell .l1-analysis {
+  display: grid !important;
+  grid-template-rows: 48px minmax(0, 1fr) !important;
+}
+
+html[data-device-mode="mobile-landscape"] .room-shell .l1-analysis__body {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
 }
