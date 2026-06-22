@@ -1,4 +1,4 @@
-import { getState } from "../../state/store";
+import { getState, setMissionFileOpen } from "../../state/store";
 import { openEvidencePreview } from "../EvidencePreview";
 
 type SavedFile = {
@@ -73,11 +73,15 @@ export function renderFilesTab(container: HTMLElement) {
 
   container.querySelectorAll<HTMLButtonElement>("[data-file]").forEach((button) => {
     button.addEventListener("click", () => {
-      openEvidencePreview({
-        kind: button.dataset.file as SavedFile["id"],
-        alreadyCollected: true,
-        onCollect: () => undefined,
-      });
+      const kind = button.dataset.file as SavedFile["id"];
+      setMissionFileOpen(false);
+      window.setTimeout(() => {
+        openEvidencePreview({
+          kind,
+          alreadyCollected: true,
+          onCollect: () => undefined,
+        });
+      }, 0);
     });
   });
 }

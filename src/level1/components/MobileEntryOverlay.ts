@@ -33,7 +33,7 @@ function guardMapInput() {
 
 export function mountMobileEntryOverlay(
   parent: HTMLElement = document.body,
-  options: { onAccepted?: () => void } = {},
+  options: { onAccepted?: () => void; requestFullscreenOnStart?: boolean } = {},
 ) {
   const root = document.createElement("section");
   root.className = "mobile-entry";
@@ -79,16 +79,18 @@ export function mountMobileEntryOverlay(
     fallback.hidden = true;
     let hadFallback = false;
 
-    try {
-      await requestMobileFullscreen();
-    } catch {
-      hadFallback = true;
-    }
+    if (options.requestFullscreenOnStart) {
+      try {
+        await requestMobileFullscreen();
+      } catch {
+        hadFallback = true;
+      }
 
-    try {
-      await lockLandscape();
-    } catch {
-      hadFallback = true;
+      try {
+        await lockLandscape();
+      } catch {
+        hadFallback = true;
+      }
     }
 
     acceptedMobileMode = true;

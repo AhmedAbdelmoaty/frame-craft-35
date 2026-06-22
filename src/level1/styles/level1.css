@@ -8327,3 +8327,216 @@ html[data-device-mode="mobile-landscape"] .room-shell .l1-analysis__body {
   height: 100% !important;
   max-height: 100% !important;
 }
+
+/* ============= Real-device mobile flow fix ============= */
+
+html[data-device-mode="mobile-landscape"] .l1-artifact {
+  z-index: 8200 !important;
+  height: var(--mobile-flow-height) !important;
+  min-height: var(--mobile-flow-height) !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__panel {
+  width: min(100%, 980px) !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-rows: 58px minmax(0, 1fr) 50px !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__header {
+  min-height: 0 !important;
+  padding: 7px 12px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__header h2 {
+  font-size: 22px !important;
+  line-height: 1.1 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__header p,
+html[data-device-mode="mobile-landscape"] .l1-artifact__header span {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__close {
+  width: 42px !important;
+  height: 42px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__paper {
+  min-height: 0 !important;
+  padding: 8px 10px !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact-sheet {
+  padding: 18px 24px !important;
+  border-radius: 12px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact-sheet h3 {
+  margin-bottom: 10px !important;
+  font-size: 20px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact-sheet table {
+  font-size: 13px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact-sheet th,
+html[data-device-mode="mobile-landscape"] .l1-artifact-sheet td {
+  padding: 7px 8px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__footer {
+  min-height: 0 !important;
+  padding: 6px 12px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-artifact__collect {
+  min-height: 40px !important;
+  padding: 8px 14px !important;
+  font-size: 15px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-mission__panel {
+  width: min(100%, 1000px) !important;
+  height: calc(var(--mobile-flow-height) - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 18px) !important;
+  max-height: none !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-file-item {
+  min-height: 58px !important;
+  padding: 9px 12px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-file-item__body strong {
+  font-size: 15px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-file-item__body small {
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue {
+  z-index: 7100 !important;
+  padding:
+    0
+    calc(var(--safe-right, 0px) + 10px)
+    calc(var(--safe-bottom, 0px) + 8px)
+    calc(var(--safe-left, 0px) + 10px) !important;
+  grid-template-columns: minmax(0, 1fr) 82px !important;
+  gap: 8px !important;
+  align-items: end !important;
+  pointer-events: auto !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__box {
+  min-height: 106px !important;
+  max-height: 42vh !important;
+  padding: 12px 14px 9px !important;
+  overflow: auto !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__speaker strong {
+  font-size: 16px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__speaker span {
+  font-size: 11px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__text {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__portrait {
+  width: 76px !important;
+  height: 98px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__portrait img {
+  width: 58px !important;
+  max-height: 92px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-cinematic-dialogue__footer {
+  margin-top: 6px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision {
+  gap: 8px !important;
+  grid-template-rows: 50px minmax(0, 1fr) 46px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__brief {
+  min-height: 48px !important;
+  padding: 7px 10px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__layout {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__col {
+  height: 100% !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__col h3 {
+  margin-bottom: 5px !important;
+  font-size: 18px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__col > p {
+  margin-bottom: 7px !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-branch,
+html[data-device-mode="mobile-landscape"] .l1-evidence {
+  margin-bottom: 7px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__dock {
+  display: grid !important;
+  place-items: center !important;
+  padding-bottom: 0 !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-decision__dock .l1-btn {
+  width: min(420px, 48vw) !important;
+  min-height: 42px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-report-sheet--meeting {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-report-sheet__dossier {
+  min-height: 0 !important;
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-report-sheet__section {
+  padding-top: 10px !important;
+}
+
+html[data-device-mode="mobile-landscape"] .l1-report-sheet__section p {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+}
