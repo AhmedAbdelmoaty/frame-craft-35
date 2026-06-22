@@ -26,8 +26,8 @@ type Phase = "calm" | "alert" | "critical" | "zero";
 function phaseOf(s: Level1State): Phase {
   const t = s.meetingTimeRemaining;
   if (t <= 0) return "zero";
-  if (t <= 45) return "critical";
-  if (t <= LEVEL_DURATION_SECONDS * 0.5) return "alert";
+  if (t <= 30) return "critical";
+  if (t <= 60) return "alert";
   return "calm";
 }
 

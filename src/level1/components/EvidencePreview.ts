@@ -73,7 +73,8 @@ export function openEvidencePreview(options: EvidencePreviewOptions) {
     options.onCollect();
     collectBtn.disabled = true;
     collectBtn.innerHTML = `<span aria-hidden="true">✓</span><span>محفوظ في الدفتر</span>`;
-    playCollectFeedback(meta.icon);
+    showCollectToast("تم حفظ الملف");
+    playCollectFeedback(meta.icon, collectBtn);
     window.setTimeout(close, 520);
   });
 
@@ -163,14 +164,43 @@ function renderHrPolicy() {
   `;
 }
 
-function playCollectFeedback(icon: string) {
+function showCollectToast(message: string) {
+  const toast = document.createElement("div");
+  toast.className = "l1-toast";
+  toast.dir = "rtl";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("l1-toast--show"));
+  window.setTimeout(() => {
+    toast.classList.remove("l1-toast--show");
+    window.setTimeout(() => toast.remove(), 320);
+  }, 1700);
+}
+
+function playCollectFeedback(icon: string, sourceEl?: HTMLElement) {
   const fly = document.createElement("div");
   fly.className = "l1-artifact-fly";
   fly.textContent = icon;
+
+  const sourceRect = sourceEl?.getBoundingClientRect();
+  const notebook = document.querySelector<HTMLElement>(".l1-topbar__mission-btn");
+  const targetRect = notebook?.getBoundingClientRect();
+  const startX = sourceRect ? sourceRect.left + sourceRect.width / 2 : window.innerWidth - 64;
+  const startY = sourceRect ? sourceRect.top + sourceRect.height / 2 : window.innerHeight * 0.56;
+  const endX = targetRect ? targetRect.left + targetRect.width / 2 : window.innerWidth - 48;
+  const endY = targetRect ? targetRect.top + targetRect.height / 2 : 72;
+
+  fly.style.left = `${startX}px`;
+  fly.style.top = `${startY}px`;
+  fly.style.setProperty("--l1-fly-dx", `${endX - startX}px`);
+  fly.style.setProperty("--l1-fly-dy", `${endY - startY}px`);
   document.body.appendChild(fly);
   window.setTimeout(() => fly.remove(), 900);
 
-  const notebook = document.querySelector<HTMLElement>(".l1-topbar__mission-btn");
+  notebook?.classList.remove("l1-topbar__mission-btn--pulse");
+  void notebook?.offsetWidth;
+  notebook?.classList.add("l1-topbar__mission-btn--pulse");
+  window.setTimeout(() => notebook?.classList.remove("l1-topbar__mission-btn--pulse"), 700);
   notebook?.animate(
     [
       { transform: "scale(1)" },
