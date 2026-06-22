@@ -1,17 +1,12 @@
 import { getState, setActiveTab, setMissionFileOpen, subscribe, type MissionTabId } from "../state/store";
 import { renderBriefTab } from "./tabs/BriefTab";
-
-import { renderNotesTab } from "./tabs/NotesTab";
-import { renderBranchesTab } from "./tabs/BranchesTab";
-import { renderPolicyTab } from "./tabs/PolicyTab";
 import { renderEvidenceTab } from "./tabs/EvidenceTab";
+import { renderFilesTab } from "./tabs/FilesTab";
 
 const TABS: { id: MissionTabId; label: string; icon: string }[] = [
-  { id: "brief", label: "الملخّص", icon: "📋" },
-  { id: "branches", label: "الفروع", icon: "🏬" },
-  { id: "evidence", label: "الأدلة", icon: "🔎" },
-  { id: "policy", label: "السياسة", icon: "📐" },
-  { id: "notes", label: "ملاحظاتي", icon: "✍️" },
+  { id: "brief", label: "الملخص", icon: "▤" },
+  { id: "files", label: "الملفات", icon: "▣" },
+  { id: "evidence", label: "الأدلة", icon: "⌕" },
 ];
 
 export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
@@ -21,11 +16,11 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
   root.hidden = true;
   root.innerHTML = `
     <div class="l1-mission__backdrop" data-close></div>
-    <section class="l1-mission__panel" role="dialog" aria-label="دوسييه المهمة">
+    <section class="l1-mission__panel" role="dialog" aria-label="ملف المهمة">
       <header class="l1-mission__header">
         <div>
           <span class="l1-mission__eyebrow">دوسييه المهمة</span>
-          <h2>ملف التحليل</h2>
+          <h2>ملف المهمة</h2>
         </div>
         <span class="l1-mission__last-update" data-last-update hidden></span>
         <button class="l1-mission__close" type="button" data-close aria-label="إغلاق">×</button>
@@ -63,23 +58,9 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
   window.addEventListener("keydown", handleKey);
 
   const renderActiveTab = (tab: MissionTabId) => {
-    switch (tab) {
-      case "brief":
-        renderBriefTab(contentEl);
-        break;
-      case "branches":
-        renderBranchesTab(contentEl);
-        break;
-      case "evidence":
-        renderEvidenceTab(contentEl);
-        break;
-      case "policy":
-        renderPolicyTab(contentEl);
-        break;
-      case "notes":
-        renderNotesTab(contentEl);
-        break;
-    }
+    if (tab === "brief") renderBriefTab(contentEl);
+    if (tab === "files") renderFilesTab(contentEl);
+    if (tab === "evidence") renderEvidenceTab(contentEl);
   };
 
   const lastUpdateEl = root.querySelector<HTMLElement>("[data-last-update]")!;
@@ -90,7 +71,7 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
     tabBtns.forEach((b) => b.classList.toggle("l1-mission__tab--active", b.dataset.tab === s.missionFileTab));
     if (s.lastMissionUpdate) {
       lastUpdateEl.hidden = false;
-      lastUpdateEl.textContent = `آخر تحديث: ${s.lastMissionUpdate}`;
+      lastUpdateEl.textContent = s.lastMissionUpdate;
     } else {
       lastUpdateEl.hidden = true;
     }

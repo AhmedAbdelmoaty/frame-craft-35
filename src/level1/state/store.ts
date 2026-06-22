@@ -6,7 +6,7 @@ export type Branch = BranchId;
 export type Outcome = "success" | "failure" | null;
 export type FailureReason = "chose_corniche" | "midan_weak_evidence" | "incomplete" | null;
 export type RoomLocation = "office" | "sales" | "hr" | "decision" | "meeting" | "map";
-export type MissionTabId = "brief" | "branches" | "evidence" | "policy" | "notes";
+export type MissionTabId = "brief" | "files" | "evidence";
 export type ToolId = "mean" | "threshold" | "median" | "range" | "sd" | "iqr";
 export type EndScreenKind = "success" | "wrong_decision" | "timeout" | null;
 export type MeetingStage = "intro" | "report_open" | "dialogue" | "result";
@@ -44,7 +44,6 @@ export interface Level1State {
   meetingStage: MeetingStage;
   missionFileOpen: boolean;
   missionFileTab: MissionTabId;
-  notesText: string;
   meetingUnlockSeen: boolean;
   lastMissionUpdate: string | null;
   timeoutTriggered: boolean;
@@ -82,7 +81,6 @@ const initialState: Level1State = {
   meetingStage: "intro",
   missionFileOpen: false,
   missionFileTab: "brief",
-  notesText: "",
   meetingUnlockSeen: false,
   lastMissionUpdate: null,
   timeoutTriggered: false,
@@ -154,10 +152,6 @@ export function setMissionFileOpen(open: boolean) {
 export function setActiveTab(tab: MissionTabId) {
   setState({ missionFileTab: tab, missionFileOpen: true });
 }
-export function setNotes(text: string) {
-  setState({ notesText: text });
-}
-
 // ----- Sales / HR -----
 export function visitSales() {
   if (!state.hasVisitedSales) setState({ hasVisitedSales: true });

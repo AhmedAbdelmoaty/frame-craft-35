@@ -25,7 +25,7 @@ export function createHROfficeScreen() {
               </div>
             </div>
             <div class="l1-dialogue">
-              <p class="l1-dialogue__text">سياسة الأداء الرسمية أمامك. خذها معك قبل بناء التوصية.</p>
+              <p class="l1-dialogue__text">سياسة الأداء الرسمية أمامك. خذها معك إذا أردت إرفاقها بملف التوصية.</p>
             </div>
           </aside>
 
@@ -43,7 +43,7 @@ export function createHROfficeScreen() {
                 </p>
                 <ul class="l1-folder__list">
                   <li>تطبق السياسة على جميع المندوبين دون استثناء.</li>
-                  <li>الحكم يكون على مستوى المندوب الفرد.</li>
+                  <li>تسري الوثيقة على بيانات الربع الحالي.</li>
                 </ul>
               </div>
               <footer class="l1-folder__foot" data-save-wrap>

@@ -29,7 +29,7 @@ export function createSalesOfficeScreen() {
               </div>
             </div>
             <div class="l1-dialogue" data-dialogue>
-              <p class="l1-dialogue__text">الأرقام الرسمية جاهزة على اللوحة، ومعها ملف الأداء الفردي لو احتجته للتحليل.</p>
+              <p class="l1-dialogue__text">الأرقام الرسمية جاهزة على اللوحة، ومعها ملف الأداء الفردي لو احتجته في التوصية.</p>
             </div>
           </aside>
 

@@ -14,9 +14,9 @@ import { availableEvidence } from "../logic/evaluate";
 
 const LOCATION_LABEL: Record<RoomLocation, string> = {
   map: "خريطة الشركة",
-  office: "مكتب المحلل",
+  office: "غرفة التحليل",
   sales: "مكتب المبيعات",
-  hr: "مكتب الموارد البشرية",
+  hr: "مكتب HR",
   decision: "غرفة القرار",
   meeting: "غرفة الاجتماع",
 };
@@ -39,18 +39,18 @@ export function mountTopBar(parent: HTMLElement = document.body) {
     <div class="l1-topbar__timer" data-timer>
       <span class="l1-topbar__timer-icon" aria-hidden="true">⏳</span>
       <span class="l1-topbar__timer-stack">
-        <span class="l1-topbar__timer-label">الوقت تحت الضغط</span>
+        <span class="l1-topbar__timer-label">وقت المهمة</span>
         <span class="l1-topbar__timer-text" data-timer-text>03:00</span>
       </span>
       <span class="l1-topbar__timer-bar" aria-hidden="true"><i data-timer-bar></i></span>
     </div>
-    <button class="l1-topbar__mission-btn" type="button" data-mission-btn>
-      <span aria-hidden="true">📁</span>
-      <span>ملف المهمة</span>
+    <button class="l1-topbar__mission-btn" type="button" data-mission-btn aria-label="فتح ملف المهمة">
+      <span aria-hidden="true">▣</span>
+      <span>الملف</span>
       <b class="l1-topbar__mission-count" data-mission-count>0</b>
     </button>
     <div class="l1-topbar__location">
-      <span class="l1-topbar__location-icon" aria-hidden="true">📍</span>
+      <span class="l1-topbar__location-icon" aria-hidden="true">◆</span>
       <span class="l1-topbar__location-text" data-loc-text>خريطة الشركة</span>
     </div>
   `;
@@ -91,7 +91,7 @@ export function mountTopBar(parent: HTMLElement = document.body) {
 
     if (unlocked && !s.meetingUnlockSeen && !over) {
       markMeetingUnlockSeen();
-      showToast("التوصية جاهزة — اعرضها في الاجتماع 🤝");
+      showToast("التوصية جاهزة - اعرضها في غرفة الاجتماع");
     }
   };
 

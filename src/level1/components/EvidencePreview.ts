@@ -18,7 +18,7 @@ const PREVIEW_META: Record<EvidencePreviewKind, { icon: string; title: string; s
   "rep-performance": {
     icon: "▦",
     title: "ملف الأداء الفردي",
-    subtitle: "أرقام خام لكل مندوب قبل التحليل",
+    subtitle: "سجل أداء المندوبين في الفرعين",
     collectLabel: "احفظ الملف في الدفتر",
   },
   "hr-policy": {
@@ -50,7 +50,7 @@ export function openEvidencePreview(options: EvidencePreviewOptions) {
         ${renderPreviewBody(options.kind)}
       </div>
       <footer class="l1-artifact__footer">
-        <p>المعاينة تعرض بيانات خام فقط. التفسير الحقيقي يتم داخل غرفة التحليل.</p>
+        <p>احفظ المستند إذا أردت الرجوع إليه داخل ملف المهمة.</p>
         <button class="l1-artifact__collect" type="button" data-collect ${options.alreadyCollected ? "disabled" : ""}>
           <span aria-hidden="true">${options.alreadyCollected ? "✓" : "↗"}</span>
           <span>${options.alreadyCollected ? "محفوظ في الدفتر" : meta.collectLabel}</span>
@@ -95,7 +95,7 @@ function renderSalesSummary() {
       <div class="l1-artifact-sheet__stamp">معتمد</div>
       <h3>لوحة الأداء الرسمية · الربع الحالي</h3>
       <table>
-        <thead><tr><th>الفرع</th><th>إجمالي المبيعات</th><th>المتوسط المعلن</th></tr></thead>
+        <thead><tr><th>الفرع</th><th>إجمالي المبيعات</th><th>متوسط الأداء المعلن</th></tr></thead>
         <tbody>
           ${Object.values(BRANCHES)
             .map(
@@ -109,7 +109,7 @@ function renderSalesSummary() {
             .join("")}
         </tbody>
       </table>
-      <p>ملاحظة: هذه لوحة مختصرة من قسم المبيعات، وليست تحليلًا نهائيًا.</p>
+      <p>سجل صادر من قسم المبيعات.</p>
     </div>
   `;
 }
@@ -117,7 +117,7 @@ function renderSalesSummary() {
 function renderRepPerformance() {
   return `
     <div class="l1-artifact-sheet">
-      <div class="l1-artifact-sheet__stamp">خام</div>
+      <div class="l1-artifact-sheet__stamp">تفصيلي</div>
       <h3>أداء المندوبين · عينة الفرعين</h3>
       <div class="l1-artifact__rep-grid">
         ${Object.values(BRANCHES)
@@ -143,7 +143,7 @@ function renderRepPerformance() {
           )
           .join("")}
       </div>
-      <p>الأرقام هنا خام. غرفة التحليل هي المكان المناسب لاكتشاف النمط.</p>
+      <p>سجل تفصيلي مرفق بملف المبيعات.</p>
     </div>
   `;
 }
@@ -155,10 +155,10 @@ function renderHrPolicy() {
       <h3>وثيقة سياسة المكافأة · الربع الحالي</h3>
       <dl>
         <div><dt>حد الأداء المقبول</dt><dd>${PERFORMANCE_THRESHOLD}% أو أكثر</dd></div>
-        <div><dt>نطاق الحكم</dt><dd>كل مندوب على حدة</dd></div>
-        <div><dt>ملاحظة تنفيذية</dt><dd>تطبق السياسة على جميع المندوبين دون استثناء.</dd></div>
+        <div><dt>نطاق التطبيق</dt><dd>جميع المندوبين المسجلين في الملف</dd></div>
+        <div><dt>ملاحظة تنفيذية</dt><dd>تطبق السياسة دون استثناءات مسجلة.</dd></div>
       </dl>
-      <p>السياسة لا تختار الفرع الفائز وحدها، لكنها تحدد معيار الحكم.</p>
+      <p>وثيقة داخلية صادرة من HR.</p>
     </div>
   `;
 }

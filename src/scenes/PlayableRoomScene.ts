@@ -119,7 +119,7 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
       asset: assetKeys.salesManager,
       lines: [
         "الأرقام الرسمية على اللوحة. خذ الملفات التي تحتاجها قبل الاجتماع.",
-        "ملف الأداء الفردي على المكتب، وسيفيدك داخل التحليل.",
+        "ملف الأداء الفردي على المكتب، وسيفيدك في تجهيز التوصية.",
       ],
     },
     hotspots: [
@@ -141,7 +141,7 @@ const ROOM_CONFIGS: Record<PlayableRoomId, RoomConfig> = {
       asset: assetKeys.hrManager,
       lines: [
         "المكافأة الجماعية يجب أن تكون قابلة للتبرير.",
-        "سياسة الأداء على المكتب. خذها معك قبل بناء التوصية.",
+        "سياسة الأداء على المكتب. خذها معك إذا أردت إرفاقها بملف التوصية.",
       ],
     },
     hotspots: [

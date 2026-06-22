@@ -33,7 +33,7 @@ const completed = (roomId: RoomId, state: Level1State): boolean => {
 function renderMiniMap(state: Level1State) {
   const current = activeRoom(state.currentLocation);
   return `
-    <span class="l1-minimap__label">خريطة الشركة</span>
+    <span class="l1-minimap__label">الخريطة</span>
     <span class="l1-minimap__canvas" aria-hidden="true">
       <span class="l1-minimap__corridor l1-minimap__corridor--h"></span>
       <span class="l1-minimap__corridor l1-minimap__corridor--v1"></span>
@@ -53,6 +53,7 @@ export function createMiniMapButton(roomId: RoomId) {
   const button = document.createElement("button");
   button.className = "l1-minimap";
   button.type = "button";
+  button.dir = "rtl";
   button.setAttribute("aria-label", "العودة إلى خريطة الشركة");
 
   const handleClick = () => {

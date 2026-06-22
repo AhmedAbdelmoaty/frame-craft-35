@@ -31,7 +31,7 @@ export function createDecisionRoomScreen() {
             <div class="l1-analyst-empty">
               <div class="l1-analyst-empty__icon" aria-hidden="true">▣</div>
               <h3>غرفة القرار تنتظر ملفاتك</h3>
-              <p>اجمع ملفًا واحدًا على الأقل من المبيعات أو HR، أو افتح طاولة التحليل، ثم عد لتجهيز التوصية.</p>
+              <p>استلم ملفًا واحدًا على الأقل من المبيعات أو HR، ثم عد لتجهيز التوصية.</p>
             </div>`;
           return;
         }
@@ -92,7 +92,7 @@ export function createDecisionRoomScreen() {
               <div class="l1-evidence-list">
                 ${
                   ids.length === 0
-                    ? `<p class="l1-decision__empty">لا توجد أدلة متاحة بعد. استلم ملفات أو استخدم أدوات التحليل.</p>`
+                    ? `<p class="l1-decision__empty">لا توجد أدلة متاحة بعد. استلم ملفات من المكاتب أولًا.</p>`
                     : ids
                         .map((id) => {
                           const e = EVIDENCE_DEFS[id];
