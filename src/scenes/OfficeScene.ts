@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { gameEvents } from "../game/events";
+import { attachOfficeMobileCamera, type MobileCameraController } from "../game/mobileCamera";
 import type { HotspotId, PlayerProfile, RoomId, StationId } from "../game/types";
 import { getState, isGameOver, subscribe } from "../level1/state/store";
 import { DeadlineCompanion } from "./DeadlineCompanion";
@@ -143,6 +144,7 @@ export class OfficeScene extends Phaser.Scene {
   private unsubscribePlayableRoom?: () => void;
   private unsubscribeClosePlayableRoom?: () => void;
   private deadline?: DeadlineCompanion;
+  private mobileCamera?: MobileCameraController;
 
 
   constructor(private readonly profile: PlayerProfile) {
@@ -171,6 +173,7 @@ export class OfficeScene extends Phaser.Scene {
     this.drawFurniture();
     this.drawNpcs();
     this.createPlayer();
+    this.mobileCamera = attachOfficeMobileCamera(this, () => this.player);
     if (this.player) {
       this.deadline = new DeadlineCompanion(this, this.player);
     }
@@ -216,6 +219,7 @@ export class OfficeScene extends Phaser.Scene {
       this.unsubscribePlayableRoom?.();
       this.unsubscribeClosePlayableRoom?.();
       this.cancelMove();
+      this.mobileCamera?.destroy();
     });
 
   }
@@ -257,7 +261,10 @@ export class OfficeScene extends Phaser.Scene {
       const room = this.add.rectangle(station.x, station.y, station.width, station.height, station.color, 1);
       room.setStrokeStyle(3, 0xffffff, 0.96);
       room.setInteractive({ useHandCursor: true });
-      room.on("pointerdown", () => this.setStation(station.id, true));
+      room.on("pointerdown", () => {
+        if (this.isMapInputBlocked()) return;
+        this.setStation(station.id, true);
+      });
 
       const highlight = this.add.rectangle(station.x, station.y, station.width + 12, station.height + 12, 0xffffff, 0);
       highlight.setStrokeStyle(4, 0x2b78c5, 0);
@@ -302,7 +309,10 @@ export class OfficeScene extends Phaser.Scene {
       const prop = this.add.image(propX, propY, assetKeys[station.propKey]);
       prop.setInteractive({ useHandCursor: true });
       prop.setDepth(4);
-      prop.on("pointerdown", () => this.interactWith(hotspot));
+      prop.on("pointerdown", () => {
+        if (this.isMapInputBlocked()) return;
+        this.interactWith(hotspot);
+      });
       prop.on("pointerover", () => this.showPrompt(hotspot));
       prop.on("pointerout", () => this.showPrompt());
       this.tweens.add({
@@ -317,7 +327,10 @@ export class OfficeScene extends Phaser.Scene {
       const desk = this.add.rectangle(propX, propY, 128, 54, 0xffffff, 0.78);
       desk.setStrokeStyle(2, 0x9aa8b8, 0.75);
       desk.setInteractive({ useHandCursor: true });
-      desk.on("pointerdown", () => this.interactWith(hotspot));
+      desk.on("pointerdown", () => {
+        if (this.isMapInputBlocked()) return;
+        this.interactWith(hotspot);
+      });
       desk.on("pointerover", () => this.showPrompt(hotspot));
       desk.on("pointerout", () => this.showPrompt());
       this.add.text(propX - 50, propY - 10, "تكليف", this.labelStyle(16, "#27313c", "900")).setDepth(5);
@@ -451,6 +464,13 @@ export class OfficeScene extends Phaser.Scene {
     });
   }
 
+  private isMapInputBlocked() {
+    return (
+      document.body.classList.contains("madar-input-guard") ||
+      Boolean(document.querySelector(".l1-briefing, .mobile-entry:not([hidden])"))
+    );
+  }
+
   private interactWith(hotspot: HotspotView) {
     if (isGameOver()) return;
     this.setStation(hotspot.station, true, () => {
@@ -482,6 +502,7 @@ export class OfficeScene extends Phaser.Scene {
         this.player.setPosition(target.x, target.y);
         this.player.setDepth(target.y + 20);
         this.playerLabel.setPosition(target.x, target.y + 70);
+        this.mobileCamera?.focusNow();
         onArrive?.();
       }
     }
@@ -523,6 +544,7 @@ export class OfficeScene extends Phaser.Scene {
         this.moveTween = undefined;
         this.moveCleanup?.();
         this.moveCleanup = undefined;
+        this.mobileCamera?.focusNow();
         if (token === this.moveToken && this.currentStation === station && !isGameOver()) {
           onArrive?.();
         }

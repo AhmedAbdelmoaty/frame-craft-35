@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { gameEvents } from "../game/events";
+import { attachPlayableRoomMobileCamera, type MobileCameraController } from "../game/mobileCamera";
+import { getViewportMode, VIEWPORT_MODE_EVENT } from "../game/mobileViewport";
 import type { PlayerProfile, RoomId } from "../game/types";
 import {
   buildMeetingPresentation,
@@ -208,6 +210,8 @@ export class PlayableRoomScene extends Phaser.Scene {
   private bubbleTimer?: Phaser.Time.TimerEvent;
   private deadline?: DeadlineCompanion;
   private meetingReportProp?: Phaser.GameObjects.Image;
+  private mobileCamera?: MobileCameraController;
+  private touchControls?: HTMLElement;
   private unsubscribeStore?: () => void;
   private unsubscribeClose?: () => void;
   private unsubscribeTimeout?: () => void;
@@ -217,6 +221,9 @@ export class PlayableRoomScene extends Phaser.Scene {
     pointer: Phaser.Input.Pointer,
     objects: Phaser.GameObjects.GameObject[],
   ) => {
+    if (this.isRoomInputBlocked()) {
+      return;
+    }
     if (this.meetingDialogueActive) {
       return;
     }
@@ -260,8 +267,10 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.createPeople();
     this.createHotspots();
     this.createPlayer();
+    this.mobileCamera = attachPlayableRoomMobileCamera(this, () => this.player);
     if (this.player) this.deadline = new DeadlineCompanion(this, this.player);
     this.createPrompt();
+    this.createTouchControls();
     this.setupInput();
     this.refreshHotspots();
 
@@ -299,10 +308,16 @@ export class PlayableRoomScene extends Phaser.Scene {
       this.unsubscribeMeetingReportReviewed?.();
       this.input.off("pointerdown", this.handleRoomPointerDown);
       this.input.keyboard?.off("keydown-E", this.handleInteractKey);
+      this.mobileCamera?.destroy();
+      this.destroyTouchControls();
       this.cancelMove();
       this.clearBubble();
       this.clearDialogueBubble();
     });
+  }
+
+  update() {
+    this.refreshHotspotProximity();
   }
 
   private drawRoom() {
@@ -419,8 +434,9 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.config.hotspots.forEach((hotspot) => {
       this.hotspots.set(hotspot.id, hotspot);
       const container = this.add.container(hotspot.x, hotspot.y).setDepth(hotspot.y + 4);
-      const halo = this.add.circle(0, 44, 36, this.config.accent, 0.14);
+      const halo = this.add.circle(0, 44, 36, this.config.accent, 0.14).setName("hotspotHalo");
       halo.setStrokeStyle(3, this.config.accent, 0.42);
+      halo.setVisible(false);
       container.add(halo);
 
       if (hotspot.kind === "npc") {
@@ -461,7 +477,10 @@ export class PlayableRoomScene extends Phaser.Scene {
 
       container.setSize(130, 120);
       container.setInteractive({ useHandCursor: true });
-      container.on("pointerdown", () => this.moveToHotspot(hotspot));
+      container.on("pointerdown", () => {
+        if (this.isRoomInputBlocked()) return;
+        this.activateHotspot(hotspot);
+      });
       container.on("pointerover", () => this.showPrompt(hotspot));
       container.on("pointerout", () => this.showPrompt());
       this.hotspotViews.set(hotspot.id, container);
@@ -504,13 +523,72 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-E", this.handleInteractKey);
   }
 
+  private createTouchControls() {
+    const root = document.createElement("div");
+    root.className = "l1-touch-actions";
+    root.dir = "rtl";
+    root.innerHTML = `
+      <button class="l1-touch-actions__btn l1-touch-actions__btn--back" type="button" data-back>
+        <span aria-hidden="true">←</span><span>الخريطة</span>
+      </button>
+      <button class="l1-touch-actions__btn l1-touch-actions__btn--interact" type="button" data-interact>
+        <span aria-hidden="true">□</span><span>تفاعل</span>
+      </button>
+    `;
+
+    const stopInputLeak = (event: Event) => event.stopPropagation();
+    root.addEventListener("pointerdown", stopInputLeak);
+    root.addEventListener("click", stopInputLeak);
+
+    const render = () => {
+      root.hidden = getViewportMode() !== "mobile-landscape" || isGameOver();
+    };
+
+    root.querySelector<HTMLButtonElement>("[data-back]")!.addEventListener("click", () => {
+      if (isGameOver()) return;
+      gameEvents.emit("exitRoom", { roomId: this.roomId });
+    });
+    root.querySelector<HTMLButtonElement>("[data-interact]")!.addEventListener("click", () => {
+      if (this.isRoomInputBlocked() || isGameOver() || this.meetingDialogueActive) return;
+      const hotspot = this.nearestHotspot(false);
+      if (hotspot) this.moveToHotspot(hotspot);
+    });
+
+    window.addEventListener(VIEWPORT_MODE_EVENT, render);
+    document.body.appendChild(root);
+    render();
+    this.touchControls = root;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener(VIEWPORT_MODE_EVENT, render);
+      root.remove();
+    });
+  }
+
+  private destroyTouchControls() {
+    this.touchControls?.remove();
+    this.touchControls = undefined;
+  }
+
+  private activateHotspot(hotspot: RoomHotspot) {
+    if (isGameOver() || this.meetingDialogueActive) return;
+    if (this.isNearHotspot(hotspot)) {
+      this.interact(hotspot);
+      return;
+    }
+    this.movePlayerTo(this.hotspotApproachPoint(hotspot));
+    this.showApproachCue(hotspot);
+  }
+
   private moveToHotspot(hotspot: RoomHotspot) {
     if (isGameOver() || this.meetingDialogueActive) return;
-    const target = {
+    this.movePlayerTo(this.hotspotApproachPoint(hotspot), () => this.interact(hotspot));
+  }
+
+  private hotspotApproachPoint(hotspot: RoomHotspot) {
+    return {
       x: Phaser.Math.Clamp(hotspot.x - 42, ROOM_BOUNDS.left, ROOM_BOUNDS.right),
       y: Phaser.Math.Clamp(hotspot.y + 60, ROOM_BOUNDS.top, ROOM_BOUNDS.bottom),
     };
-    this.movePlayerTo(target, () => this.interact(hotspot));
   }
 
   private movePlayerTo(target: { x: number; y: number }, onArrive?: () => void) {
@@ -542,6 +620,7 @@ export class PlayableRoomScene extends Phaser.Scene {
         this.moveTween = undefined;
         this.moveCleanup?.();
         this.moveCleanup = undefined;
+        this.mobileCamera?.focusNow();
         if (token === this.moveToken && !isGameOver()) onArrive?.();
       },
     });
@@ -664,7 +743,16 @@ export class PlayableRoomScene extends Phaser.Scene {
     this.prompt.setVisible(true);
   }
 
-  private nearestHotspot() {
+  private showApproachCue(hotspot: RoomHotspot) {
+    this.showBubble(["اقترب أكثر للتفاعل"], hotspot.x, hotspot.y - 92);
+  }
+
+  private isNearHotspot(hotspot: RoomHotspot) {
+    if (!this.player) return false;
+    return Phaser.Math.Distance.Between(this.player.x, this.player.y, hotspot.x, hotspot.y) <= INTERACTION_DISTANCE;
+  }
+
+  private nearestHotspot(nearOnly = true) {
     if (!this.player) return null;
     let best: RoomHotspot | null = null;
     let bestDist = Infinity;
@@ -675,7 +763,29 @@ export class PlayableRoomScene extends Phaser.Scene {
         bestDist = dist;
       }
     });
-    return bestDist <= INTERACTION_DISTANCE ? best : null;
+    return !nearOnly || bestDist <= INTERACTION_DISTANCE ? best : null;
+  }
+
+  private isRoomInputBlocked() {
+    return (
+      document.body.classList.contains("madar-input-guard") ||
+      document.body.classList.contains("l1-room-open") ||
+      Boolean(document.querySelector(
+        ".l1-briefing, .mobile-entry:not([hidden]), .l1-mission:not([hidden]), .l1-artifact, .l1-cinematic-dialogue",
+      ))
+    );
+  }
+
+  private refreshHotspotProximity() {
+    if (!this.player || isGameOver()) return;
+    this.hotspotViews.forEach((view, id) => {
+      const hotspot = this.hotspots.get(id);
+      if (!hotspot) return;
+      const near = this.isNearHotspot(hotspot);
+      const halo = view.getByName("hotspotHalo") as Phaser.GameObjects.Arc | null;
+      halo?.setVisible(near);
+      view.setScale(near ? 1.035 : 1);
+    });
   }
 
   private refreshHotspots() {
@@ -733,13 +843,29 @@ export class PlayableRoomScene extends Phaser.Scene {
 
     this.meetingReportProp.setVisible(true);
     if (animate) {
+      this.meetingReportProp.setAlpha(0);
+      this.meetingReportProp.setY(388);
+      this.meetingReportProp.setScale(1.22);
+      this.meetingReportProp.setAngle(-18);
       this.tweens.add({
         targets: this.meetingReportProp,
-        y: this.meetingReportProp.y - 6,
-        yoyo: true,
-        repeat: 1,
-        duration: 170,
-        ease: "Sine.easeOut",
+        alpha: 1,
+        y: 438,
+        scale: 1.1,
+        angle: -10,
+        duration: 420,
+        ease: "Back.easeOut",
+        onComplete: () => {
+          if (!this.meetingReportProp) return;
+          this.tweens.add({
+            targets: this.meetingReportProp,
+            y: 432,
+            yoyo: true,
+            repeat: 1,
+            duration: 120,
+            ease: "Sine.easeOut",
+          });
+        },
       });
     }
   }

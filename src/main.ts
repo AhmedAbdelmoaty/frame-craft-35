@@ -1,5 +1,6 @@
 import "./styles.css";
 import { createGame } from "./game/createGame";
+import { initViewportMode } from "./game/mobileViewport";
 import { initLevel1 } from "./level1";
 import { resetLevel } from "./level1/state/store";
 import type { PlayerProfile } from "./game/types";
@@ -18,6 +19,7 @@ let currentGame: ReturnType<typeof createGame> | null = null;
 let currentProfile: PlayerProfile | null = null;
 
 document.documentElement.dataset.appVersion = APP_VERSION;
+initViewportMode();
 
 void clearStalePreviewCache();
 
@@ -27,6 +29,7 @@ const defaultProfile: PlayerProfile = {
 };
 
 function renderProfileScreen() {
+  document.body.classList.remove("madar-game-active");
   appRoot.innerHTML = `
     <main class="profile-screen" dir="rtl">
       <div class="start-scene start-scene--compact" aria-label="شاشة بداية مهمة المحلل">
@@ -121,6 +124,8 @@ function bootSlice(profile: PlayerProfile) {
   currentGame = null;
   resetLevel();
   currentProfile = profile;
+  document.body.classList.add("madar-game-active");
+  document.body.classList.add("madar-input-guard");
 
   appRoot.innerHTML = `
     <main class="game-shell">
@@ -131,6 +136,7 @@ function bootSlice(profile: PlayerProfile) {
 
   currentGame = createGame(profile);
   initLevel1();
+  window.setTimeout(() => document.body.classList.remove("madar-input-guard"), 2000);
 }
 
 window.addEventListener("madar:restart-level", () => {

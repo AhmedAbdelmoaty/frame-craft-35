@@ -60,10 +60,22 @@ export function openEvidencePreview(options: EvidencePreviewOptions) {
   `;
 
   document.body.appendChild(root);
+  document.body.classList.add("l1-transient-overlay-open");
+
+  const stopInputLeak = (event: Event) => {
+    event.stopPropagation();
+  };
+  root.addEventListener("pointerdown", stopInputLeak);
+  root.addEventListener("click", stopInputLeak);
 
   const close = () => {
     root.classList.add("l1-artifact--closing");
-    window.setTimeout(() => root.remove(), 180);
+    window.setTimeout(() => {
+      root.remove();
+      document.body.classList.remove("l1-transient-overlay-open");
+      root.removeEventListener("pointerdown", stopInputLeak);
+      root.removeEventListener("click", stopInputLeak);
+    }, 180);
   };
 
   root.querySelectorAll<HTMLElement>("[data-close]").forEach((el) => el.addEventListener("click", close));

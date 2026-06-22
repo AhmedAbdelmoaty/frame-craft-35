@@ -110,9 +110,19 @@ function renderSummary(kind: EndKind): string {
         })
         .join("")}</ul>`
     : `<p class="l1-end__none">لم تُقدَّم توصية في هذه الجولة.</p>`;
+  const verdict =
+    kind === "success"
+      ? "الحكم: توصية معتمدة"
+      : kind === "wrong_decision"
+      ? "الحكم: توصية غير كافية"
+      : "الحكم: لم تصل التوصية";
 
   return `
     <div class="l1-end__summary-grid">
+      <section class="l1-end__case-file">
+        <span>كشف التحقيق</span>
+        <strong>${verdict}</strong>
+      </section>
       <div class="l1-end__summary">
         <div class="l1-end__stat">
           <span class="l1-end__stat-label">الفرع الموصى به</span>

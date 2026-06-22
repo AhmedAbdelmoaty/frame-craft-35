@@ -34,6 +34,12 @@ export function createRoomShell(opts: RoomShellOptions): {
   const body = root.querySelector<HTMLElement>(".room-shell__content")!;
   opts.renderBody?.(body);
 
+  const stopInputLeak = (event: Event) => {
+    event.stopPropagation();
+  };
+  root.addEventListener("pointerdown", stopInputLeak);
+  root.addEventListener("click", stopInputLeak);
+
   const closeOverlay = () => {
     gameEvents.emit("closeRoomOverlay", undefined);
     opts.onClose?.();
@@ -50,6 +56,8 @@ export function createRoomShell(opts: RoomShellOptions): {
     root,
     destroy: () => {
       window.removeEventListener("keydown", handleKey);
+      root.removeEventListener("pointerdown", stopInputLeak);
+      root.removeEventListener("click", stopInputLeak);
       root.remove();
     },
   };

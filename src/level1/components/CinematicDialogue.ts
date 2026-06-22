@@ -49,6 +49,13 @@ export function openCinematicDialogue(options: CinematicDialogueOptions) {
     </div>
   `;
   document.body.appendChild(root);
+  document.body.classList.add("l1-transient-overlay-open");
+
+  const stopInputLeak = (event: Event) => {
+    event.stopPropagation();
+  };
+  root.addEventListener("pointerdown", stopInputLeak);
+  root.addEventListener("click", stopInputLeak);
 
   const portraitWrap = root.querySelector<HTMLElement>("[data-portrait-wrap]")!;
   const avatar = root.querySelector<HTMLImageElement>("[data-avatar]")!;
@@ -77,7 +84,12 @@ export function openCinematicDialogue(options: CinematicDialogueOptions) {
     closed = true;
     clearTyping();
     root.classList.add("l1-cinematic-dialogue--closing");
-    window.setTimeout(() => root.remove(), 180);
+    window.setTimeout(() => {
+      root.remove();
+      document.body.classList.remove("l1-transient-overlay-open");
+      root.removeEventListener("pointerdown", stopInputLeak);
+      root.removeEventListener("click", stopInputLeak);
+    }, 180);
     if (completed) options.onComplete?.();
     else options.onClose?.();
   };

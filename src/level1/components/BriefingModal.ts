@@ -36,12 +36,23 @@ export function mountBriefingModal(parent: HTMLElement = document.body) {
   `;
   parent.appendChild(root);
 
+  const stopInputLeak = (event: Event) => {
+    event.stopPropagation();
+  };
+  const guardMapInput = () => {
+    document.body.classList.add("madar-input-guard");
+    window.setTimeout(() => document.body.classList.remove("madar-input-guard"), 900);
+  };
+  root.addEventListener("pointerdown", stopInputLeak);
+  root.addEventListener("click", stopInputLeak);
+
   const close = () => {
     root.classList.add("l1-briefing--leaving");
     window.setTimeout(() => root.remove(), 260);
   };
 
   root.querySelector<HTMLButtonElement>("[data-start]")!.addEventListener("click", () => {
+    guardMapInput();
     markBriefRead();
     startTimer();
     close();
@@ -55,5 +66,13 @@ export function mountBriefingModal(parent: HTMLElement = document.body) {
     }
   });
 
-  return { root, destroy: () => { unsub(); root.remove(); } };
+  return {
+    root,
+    destroy: () => {
+      unsub();
+      root.removeEventListener("pointerdown", stopInputLeak);
+      root.removeEventListener("click", stopInputLeak);
+      root.remove();
+    },
+  };
 }

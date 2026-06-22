@@ -43,6 +43,11 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
 
   const contentEl = root.querySelector<HTMLElement>("[data-content]")!;
   const tabBtns = Array.from(root.querySelectorAll<HTMLButtonElement>(".l1-mission__tab"));
+  const stopInputLeak = (event: Event) => {
+    event.stopPropagation();
+  };
+  root.addEventListener("pointerdown", stopInputLeak);
+  root.addEventListener("click", stopInputLeak);
 
   tabBtns.forEach((btn) => {
     btn.addEventListener("click", () => setActiveTab(btn.dataset.tab as MissionTabId));
@@ -86,6 +91,8 @@ export function mountMissionFileOverlay(parent: HTMLElement = document.body) {
     destroy: () => {
       unsub();
       window.removeEventListener("keydown", handleKey);
+      root.removeEventListener("pointerdown", stopInputLeak);
+      root.removeEventListener("click", stopInputLeak);
       root.remove();
     },
   };
