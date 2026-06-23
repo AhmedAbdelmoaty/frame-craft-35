@@ -2,7 +2,7 @@ import "./styles.css";
 import { createGame } from "./game/createGame";
 import { getViewportMode, initViewportMode } from "./game/mobileViewport";
 import { initLevel1 } from "./level1";
-import { mountMobileEntryOverlay } from "./level1/components/MobileEntryOverlay";
+import { hasAcceptedMobileEntry, mountMobileEntryOverlay } from "./level1/components/MobileEntryOverlay";
 import { resetLevel } from "./level1/state/store";
 import type { PlayerProfile } from "./game/types";
 
@@ -19,8 +19,13 @@ const appRoot = app;
 let currentGame: ReturnType<typeof createGame> | null = null;
 let currentProfile: PlayerProfile | null = null;
 let mobileEntryAccepted = false;
-let bootStage: "mobile-gate" | "start-screen" | "gameplay" = "start-screen";
-const debugMobile = new URLSearchParams(window.location.search).get("debugMobile") === "1";
+let mobileGateMounted = false;
+let bootStage: "gate" | "start-screen" | "gameplay" = "start-screen";
+let lastViewportEvent = "none";
+const debugErrors: string[] = [];
+const searchParams = new URLSearchParams(window.location.search);
+const debugMobile = searchParams.get("debugMobile") === "1";
+const skipMobileGate = searchParams.get("skipMobileGate") === "1";
 
 document.documentElement.dataset.appVersion = APP_VERSION;
 initViewportMode();
@@ -34,8 +39,6 @@ const defaultProfile: PlayerProfile = {
 
 function renderProfileScreen() {
   document.body.classList.remove("madar-game-active");
-  document.body.classList.remove("madar-input-guard");
-  document.querySelectorAll(".mobile-entry").forEach((item) => item.remove());
   setBootStage("start-screen");
   appRoot.innerHTML = `
     <main class="profile-screen" dir="rtl">
@@ -148,20 +151,19 @@ function bootSlice(profile: PlayerProfile) {
 }
 
 function renderMobilePreStart() {
-  if (mobileEntryAccepted) {
+  if (skipMobileGate) {
     renderProfileScreen();
     return;
   }
 
-  document.body.classList.remove("madar-game-active");
-  document.body.classList.remove("madar-input-guard");
-  document.querySelectorAll(".mobile-entry").forEach((item) => item.remove());
-  setBootStage("mobile-gate");
+  setBootStage("gate");
   appRoot.innerHTML = `<main class="mobile-prestart-shell" aria-label="وضع الموبايل"></main>`;
-  const gateRoot = appRoot.querySelector<HTMLElement>(".mobile-prestart-shell") ?? appRoot;
-  const overlay = mountMobileEntryOverlay(gateRoot, {
+  mobileGateMounted = true;
+  updateMobileDebug();
+  const overlay = mountMobileEntryOverlay(document.body, {
     onAccepted: () => {
       mobileEntryAccepted = true;
+      mobileGateMounted = false;
       overlay.destroy();
       renderProfileScreen();
     },
@@ -184,12 +186,43 @@ function updateMobileDebug() {
     document.body.appendChild(debug);
   }
 
-  debug.textContent = `mode=${getViewportMode()} | accepted=${mobileEntryAccepted ? "yes" : "no"} | stage=${bootStage}`;
+  const viewport = window.visualViewport;
+  const visualSize = viewport ? `${Math.round(viewport.width)}x${Math.round(viewport.height)}` : "n/a";
+  const fullscreen = document.fullscreenElement ? "yes" : "no";
+  const errors = debugErrors.length ? debugErrors.slice(-2).join(" | ") : "none";
+  debug.textContent = [
+    `mode=${getViewportMode()}`,
+    `gate=${mobileGateMounted ? "yes" : "no"}`,
+    `accepted=${mobileEntryAccepted || hasAcceptedMobileEntry() ? "yes" : "no"}`,
+    `stage=${bootStage}`,
+    `win=${window.innerWidth}x${window.innerHeight}`,
+    `vv=${visualSize}`,
+    `fullscreen=${fullscreen}`,
+    `lastEvent=${lastViewportEvent}`,
+    `err=${errors}`,
+  ].join(" | ");
 }
 
 window.addEventListener("madar:restart-level", () => {
   bootSlice(currentProfile ?? defaultProfile);
 });
+
+function recordDebugEvent(name: string) {
+  lastViewportEvent = `${name}@${new Date().toLocaleTimeString("en-GB")}`;
+  updateMobileDebug();
+}
+
+function recordDebugError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  debugErrors.push(message.slice(0, 160));
+  if (debugErrors.length > 2) debugErrors.shift();
+  updateMobileDebug();
+}
+
+window.addEventListener("resize", () => recordDebugEvent("resize"), { passive: true });
+window.addEventListener("orientationchange", () => recordDebugEvent("orientation"), { passive: true });
+window.addEventListener("error", (event) => recordDebugError(event.message || event.error));
+window.addEventListener("unhandledrejection", (event) => recordDebugError(event.reason));
 
 async function clearStalePreviewCache() {
   if (sessionStorage.getItem(CACHE_CLEANUP_KEY) === "done") return;
@@ -218,10 +251,10 @@ async function clearStalePreviewCache() {
   }
 }
 
-if (getViewportMode() === "desktop") {
+if (getViewportMode() === "desktop" || skipMobileGate) {
   renderProfileScreen();
 } else {
   renderMobilePreStart();
 }
 
-window.addEventListener("madar:viewport-mode-change", updateMobileDebug);
+window.addEventListener("madar:viewport-mode-change", () => recordDebugEvent("mode"));

@@ -13,6 +13,7 @@ import { createMeetingRoomScreen } from "./screens/MeetingRoomScreen";
 import { mountTopBar } from "./components/TopBar";
 import { mountMissionFileOverlay } from "./components/MissionFileOverlay";
 import { createMiniMapButton } from "./components/MiniMapButton";
+import { mountMobileEntryOverlay } from "./components/MobileEntryOverlay";
 import { mountBriefingModal } from "./components/BriefingModal";
 import { mountEndGameScreen, type EndScreenHandle } from "./components/EndGameScreen";
 import { startTimerLoop } from "./logic/timer";
@@ -119,8 +120,10 @@ export function initLevel1() {
 
   const topBar = mountTopBar(document.body) as Destroyable;
   const missionFile = mountMissionFileOverlay(document.body) as Destroyable;
+  const mobileEntry = mountMobileEntryOverlay(document.body) as Destroyable;
   cleanupFns.push(() => topBar.destroy());
   cleanupFns.push(() => missionFile.destroy());
+  cleanupFns.push(() => mobileEntry.destroy());
   startTimerLoop();
 
   ensureBriefing();

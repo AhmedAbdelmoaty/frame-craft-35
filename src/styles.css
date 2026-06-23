@@ -26,10 +26,6 @@ body {
   background: #dfe7ef;
 }
 
-#app {
-  min-height: 100vh;
-}
-
 [dir="rtl"] {
   text-align: right;
 }
@@ -1671,10 +1667,6 @@ input[name="name"] {
   :root {
     --app-height: 100dvh;
   }
-
-  #app {
-    min-height: 100dvh;
-  }
 }
 
 body.madar-game-active {
@@ -1718,16 +1710,6 @@ body.madar-input-guard #game-root,
 body.madar-input-guard .game-root,
 body.madar-input-guard canvas {
   pointer-events: none;
-}
-
-.mobile-prestart-shell {
-  width: 100vw;
-  height: var(--app-height);
-  min-height: var(--app-height);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-  background: #07111d;
 }
 
 .mobile-debug {

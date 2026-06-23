@@ -1,9 +1,38 @@
-import { getViewportMode, type ViewportMode } from "../../game/mobileViewport";
+import { getViewportMode, VIEWPORT_MODE_EVENT, type ViewportMode } from "../../game/mobileViewport";
+
+type OrientationScreen = Screen & {
+  orientation?: ScreenOrientation & {
+    lock?: (orientation: "landscape") => Promise<void>;
+  };
+};
 
 let acceptedMobileMode = false;
 
 function isMobile(mode: ViewportMode) {
   return mode === "mobile-portrait" || mode === "mobile-landscape";
+}
+
+async function requestMobileFullscreen() {
+  const root = document.documentElement;
+  if (!document.fullscreenElement && root.requestFullscreen) {
+    await root.requestFullscreen();
+  }
+}
+
+async function lockLandscape() {
+  const orientation = (screen as OrientationScreen).orientation;
+  if (orientation?.lock) {
+    await orientation.lock("landscape");
+  }
+}
+
+function guardMapInput() {
+  document.body.classList.add("madar-input-guard");
+  window.setTimeout(() => document.body.classList.remove("madar-input-guard"), 900);
+}
+
+export function hasAcceptedMobileEntry() {
+  return acceptedMobileMode;
 }
 
 export function mountMobileEntryOverlay(
@@ -39,7 +68,7 @@ export function mountMobileEntryOverlay(
 
   const render = () => {
     const mode = getViewportMode();
-    const shouldShow = isMobile(mode) && !acceptedMobileMode;
+    const shouldShow = isMobile(mode) && (!acceptedMobileMode || mode === "mobile-portrait");
     root.hidden = !shouldShow;
     root.classList.toggle("mobile-entry--portrait", mode === "mobile-portrait");
     root.classList.toggle("mobile-entry--landscape", mode === "mobile-landscape");
@@ -49,10 +78,25 @@ export function mountMobileEntryOverlay(
         : "اضغط الزر لتشغيل ملء الشاشة وتجربة الموبايل بأكبر مساحة ممكنة.";
   };
 
-  const startMobileMode = () => {
-    acceptedMobileMode = true;
+  const startMobileMode = async () => {
+    guardMapInput();
     fallback.hidden = true;
-    root.hidden = true;
+    let hadFallback = false;
+
+    try {
+      await requestMobileFullscreen();
+    } catch {
+      hadFallback = true;
+    }
+
+    try {
+      await lockLandscape();
+    } catch {
+      hadFallback = true;
+    }
+
+    acceptedMobileMode = true;
+    fallback.hidden = !hadFallback;
     render();
     options.onAccepted?.();
   };
@@ -60,6 +104,7 @@ export function mountMobileEntryOverlay(
   button.addEventListener("click", startMobileMode);
   root.addEventListener("pointerdown", stopInputLeak);
   root.addEventListener("click", stopInputLeak);
+  window.addEventListener(VIEWPORT_MODE_EVENT, render);
   parent.appendChild(root);
   render();
 
@@ -69,6 +114,7 @@ export function mountMobileEntryOverlay(
       button.removeEventListener("click", startMobileMode);
       root.removeEventListener("pointerdown", stopInputLeak);
       root.removeEventListener("click", stopInputLeak);
+      window.removeEventListener(VIEWPORT_MODE_EVENT, render);
       root.remove();
     },
   };
